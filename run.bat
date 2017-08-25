@@ -1,0 +1,1 @@
+C:\Software\qemu\qemu-system-i386.exe eos.img

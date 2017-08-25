@@ -1,0 +1,70 @@
+2017-08-20 22:02:30
+http://wiki.osdev.org/Rolling_Your_Own_Bootloader
+
+Q: what is a bootloader?
+A: the code executed on computer start up to load kernel from disk to memory
+
+
+https://en.wikipedia.org/wiki/Real_mode
+
+实模式和保护模式是x86系列CPU的历史遗留问题，80286引入保护模式之前只有实模式的存在，之后也为了兼容，开机首先还是进入实模式，然后通过代码(bootloader?)开启保护模式
+
+保护模式提供访存限制、代码权限等功能——作为现代操作系统实现多任务进程隔离之类的基础
+
+居然还有 long mode , 64位系统用的
+
+https://en.wikipedia.org/wiki/A20_line
+打开A20的故事
+
+
+https://stackoverflow.com/questions/13132138/purest-way-to-assemble-compile-a-file-with-no-other-elf-object-bloat
+gcc编译汇编代码
+
+
+http://wiki.osdev.org/GDT
+http://wiki.osdev.org/GDT_Tutorial
+啊，实模式的时候就要设置GDT——用来描述segments的，比如哪些可执行，ring level是多少... 这些都是进入保护模式后就直接要用的
+还要设置IDT，用来描述中断以及它们的handler的
+
+2017-08-22 00:02:56
+电脑启动后先执行BIOS的自检程序，然后加载硬盘的第一个扇区——如果这个扇区被视为bootable的话（即512字节的最后两个字节为0xaa55）
+加载到内存的0x7c00处，然后跳转到这里开始继续执行
+
+那么现阶段目标明确了：
+在这512字节内实现一下INT 10H调用，在屏幕上显示点儿字儿
+
+明儿应该就能搞出来吧，，之后各种捣鼓进保护模式，，保护模式之后就终于能往多任务、文件系统走了
+
+2017-08-23 23:54:00
+https://en.wikipedia.org/wiki/INT_10H
+
+int 10h 还能画图啊，要不要在bootloader这儿多玩儿几天呢？用汇编去搞事情，画个 bad apple 什么的
+
+https://everything2.com/title/Interrupt+10h
+
+2017-08-24 23:25:03
+https://en.wikibooks.org/wiki/X86_Assembly/Bootloaders
+
+看这里的汇编想实践一下，不知道有啥好办法，，来看用gdb debug qemu
+
+https://en.wikibooks.org/wiki/QEMU/Debugging_with_QEMU
+
+2017-08-25 00:28:42
+搞定了
+    在虚拟机ubuntu里写asm
+    nasm编译
+    ndisasm + hexdump 瞅瞅
+    curl 把 eos.img 发送给物理机(物理机上跑个python脚本拿flask接POST存文件)
+    物理机手动运行debug.bat以debug模式启动qemu
+    ubuntu里gdb target remote host:1234连上物理机
+        layout asm
+        layout regs
+        continue
+        si ... si si
+
+看到 lodsb 原来除了把 ds:si 的内容移到 al 而且会自动把 si 加 1
+然后 cld (clear direction，对应的是 std - set direction) 是保证这个 si 加1而不是减1
+
+明儿把这个过程再自动化一点，不着急，慢慢来，总能把 int 10h 搞定的
+
+之后应该是读盘的 int ，否则512字节蹦跶不了几天，，然后之后准备实模式的代码应该许多其实可以用C写了，，当然也免不了汇编
