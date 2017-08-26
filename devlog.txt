@@ -72,3 +72,31 @@ https://en.wikibooks.org/wiki/QEMU/Debugging_with_QEMU
 2017-08-26 00:10:30
 达成成就：实模式下用 int 10h 显示 "hello eos!"
 我擦，又过12点了，睡
+
+2017-08-26 02:00:29
+昨儿在卫生间看了点儿
+原来实模式去保护模式要搞那么复杂的原因(setup一大堆什么descriptor)是两者访问内存的机制不同
+实模式很简单，就是一个段寄存器+偏移寄存器，，然而保护模式下的段(segment)不能只用一个寄存器来描述了，
+而要用一整个descriptor——一段8字节长的内存，里面存着段起始地址、privilege、executable、writable等信息
+所以原理上就是用来描述 segment 的家伙从寄存器变成了descriptor
+寄存器是直接硬件就有的，descriptor却需要我们自己去在内存里写相应的值，所以会麻烦
+但理解了原理之后，剩下的就都是细节了
+
+http://www.jamesmolloy.co.uk/tutorial_html/3.-The%20Screen.html
+mark screen write
+
+2017-08-26 14:07:05
+https://stackoverflow.com/questions/14441215/bits-16-and-bits-32-in-nasm
+nasm [bits 16] [bits 32]
+
+http://www.rcollins.org/Productivity/NullDescriptor.html
+GDT的第一个descriptor应该是null descriptor，这是规定，但是INTEL又说CPU永远不会reference这个descriptor
+所以可以直接用它来存 lgdt 命令的数据：2字节GDT表的长度(减1)，4字节GDT表的首地址
+(减1的原因是这里的长度取值 [0, 65536]，是用 [0,65535] 映射过去的)
+
+2017-08-26 15:26:07
+http://wiki.osdev.org/Global_Descriptor_Table
+填充GDT entry时需要严重参考这个图
+
+2017-08-26 15:56:39
+达成成就：进入保护模式

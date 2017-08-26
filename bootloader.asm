@@ -1,33 +1,61 @@
+%include "util.inc"
+
     org 7c00h
-
-Setup:
-    mov ax, 0003h
-    int 10h  ; clear screen
-
-    mov bx, 000fh  ; bh = 0 for page number 0, bl = 15 for color white
-    mov cx, 1  ; repetive count 1
-    xor dx, dx  ; dh = 0 for row 0, dl = 0 for col 0
-    mov ds, dx  ; clear ds
-    cld  ; clear direction for lodsb
-    mov si, MessageBeg  ; load message
-
-Putchar:
-    mov ah, 2  ; ah = 2 to set cursor position
-    int 10h
     
-    mov ah, 9  ; write char
-    lodsb
-    int 10h
+[bits 16]
+    ; fill up GDT base offset
+    xor eax, eax
+    mov ax, cs
+    shl eax, 4
+    add eax, GDT
+    mov dword [GDT + 2], eax
     
-    inc dl  ; next col
-    
-    cmp si, MessageEnd
-    jne Putchar
-    hlt
+    ; fill up code descriptor base offset
+    xor eax, eax
+    mov ax, cs
+    shl eax, 4
+    add eax, CODE_SEGMENT
+    mov word [CODE_DESCRIPTOR + 2], ax
+    shr eax, 16
+    mov byte [CODE_DESCRIPTOR + 4], al
+    mov byte [CODE_DESCRIPTOR + 7], ah
 
-MessageBeg:
-    db "hello eos!"
-MessageEnd:
+    lgdt [GDT]
 
-    times 512 - ($ - $$) - 2 db 0
+    ; open a20
+    cli
+    in al, 92h
+    or al, 10b
+    out 92h, al
+
+    mov eax, cr0
+    or eax, 1
+    mov cr0, eax
+
+    jmp dword CODE_SELECTOR:0
+
+[bits 32]
+CODE_SEGMENT:
+    mov ax, VIDEO_SELECTOR
+    mov ds, ax
+    mov edi, (12 * 80 + 40) * 2
+    mov ah, 0fh
+    mov al, 'f'
+    mov [ds:edi], ax
+    jmp $
+CodeLength equ $ - CODE_SEGMENT
+
+GDT:
+    dw GDT_END - GDT - 1
+    dd __
+    dw NULL
+CODE_DESCRIPTOR:
+    Descriptor __, CodeLength, DA_OS_CODE
+    CODE_SELECTOR equ CODE_DESCRIPTOR - GDT
+VIDEO_DESCRIPTOR:
+    Descriptor 0b8000h, 0ffffh, DA_OS_DATA
+    VIDEO_SELECTOR equ VIDEO_DESCRIPTOR - GDT
+GDT_END:
+
+    times 510 - ($ - $$) db 0
     dw 0aa55h
