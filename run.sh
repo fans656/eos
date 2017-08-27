@@ -1,2 +1,2 @@
-nasm -f bin -o eos.img bootloader.asm
+./build.sh
 curl -XPOST --data-binary "@eos.img" host:6560

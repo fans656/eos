@@ -104,9 +104,9 @@ http://wiki.osdev.org/Global_Descriptor_Table
 2017-08-26 22:41:52
 . understand assembly function
     call/ret/push/pop
-) write a simple printf able to output
-    ) null ended string
-    ) arguments in stack
+. write a simple printf able to output
+    . null ended string
+    x arguments in stack
 
 为什么stack是从高地址往低地址生长的呢？
 可能根本原因是push指令被设计成是减sp吧~~
@@ -127,3 +127,61 @@ debug了半天——其实是人肉找错，有几个需要注意的地方：
     2. 不能在callee里直接 pop esi ，因为这时候栈顶存的是返回地址！参数都被压在返回地址下面呢，所以应该 mov esi, [esp + 4] (这也是c编译出来的汇编访问局部变量访问arguments的方法)
     3. 因为你的 CodeDescriptor 里 base 直接是 bits 32 部分的偏移量，所以引用 Message 的时候要用 Message - CODE_SEGMENT，即32位段里的相对偏移而不是你汇编里头的绝对偏移
 别的没啥了，搞了个能显示 null ended 字符串的 printf
+
+2017-08-27 13:44:40
+) write code in C
+) load sectors in 512B bootloader
+
+2017-08-27 15:46:51
+想用C来接着写，但是怎么把 kernel.c 变成可以由 bootloader 跳转过去的 raw binary 成为一个问题
+查了好久没有好的解决办法，似乎正路是直接使用ELF格式——那么去(再度)看看ELF吧
+
+2017-08-27 17:48:54
+我靠，发现只需要一个code descriptor就好了额，，显存可以直接
+    mov eax, 0b8000h
+    mov word [eax], 0f41h
+来写啊
+
+2017-08-27 17:52:32
+接下来试试把c编译出来的binary加载到内存，然后去执行
+
+2017-08-27 21:16:09
+实现了C语言写显存，爽！
+整体过程是：
+    bootloader.asm => 512B
+    kernel.c => kernel.o => kernel.out (这一步要指定 .text 和 .data 的 org，具体方法见 build.sh)
+    从 kernel.o 里 objcopy 出来所有的section拼成一个 kernel.img (小麻烦，要用dd在 .eh_frame 之后填充一定字节保证 .data 出现在 0x9000 的内存，因为 .text 里有引用)
+    跟 bootloader 的 512字节 一块儿拼成 eos.img
+    运行的时候 bootloader 加载其后的10个sector到内存0x8000，进入保护模式，跳转过去
+C语言里就能直接写
+    VIDEO_MEM[i] = 0x0f | ('0' + i);
+啦~~
+
+2017-08-27 21:53:10
+接下来有无数方向，选什么样的路走呢？
+暂觉这样：
+先搞出来提示符 "> _"
+和键盘输入
+——键盘输入这一步就得涉及中断了，这个估计就得捣鼓一阵子
+之后呢，嗯，应该开始支持跑程序，就得有文件系统
+然后最好是能兼容ELF格式
+这就是一堆操作系统需要提供的系统调用了
+
+到了这里就是一个基本的DOS雏形
+接下来就该是进程了
+(虚拟内存是在这里么？)
+
+进程完了，可以试试图形界面
+
+到这里估摸着得一年了吧
+
+再往后，网络协议栈
+
+再往后呢？完善各种细节估计就可以搞很久，到时候看意愿吧
+走到网络这一步，我们的mint也可以重拾起来了
+
+那么，单机中的一个网络世界，乃至分布式，啥都可以搞
+mint里支撑出的几个项目(redis? hadoop? kafka? p2p? ...)，以后也可以作为转行的资本了(如果毕业真的是在Amazon搞Android的话)
+
+回到现实：命令行提示符，哈
+> _
