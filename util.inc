@@ -7,7 +7,7 @@
     db (%1 >> 24) & 0ffh  ; base 24:31
 %endmacro
 
-DA_OS_CODE equ 4098h
+DA_OS_CODE equ 409ah
 DA_OS_DATA equ 0092h
 __ equ 0
 NULL equ 0

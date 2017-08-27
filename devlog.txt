@@ -100,3 +100,30 @@ http://wiki.osdev.org/Global_Descriptor_Table
 
 2017-08-26 15:56:39
 达成成就：进入保护模式
+
+2017-08-26 22:41:52
+. understand assembly function
+    call/ret/push/pop
+) write a simple printf able to output
+    ) null ended string
+    ) arguments in stack
+
+为什么stack是从高地址往低地址生长的呢？
+可能根本原因是push指令被设计成是减sp吧~~
+另外，是不是stack segment可以用上descriptor中那个direction属性了呢？空栈的话ss跟esp相等？
+
+2017-08-27 10:17:56
+为了想调函数(printf)于是需要用到栈，于是需要知道7c00的时候内存布局是什么样的：
+哪些地方是BIOS？哪些地方是显存？那些地方是我可以用的？
+
+http://wiki.osdev.org/Memory_Map_(x86)
+这里说的很清楚
+
+结论是至少从 7c00 的那512字节之后一直到 7ffff 统共480多k都是可以用的
+
+2017-08-27 11:49:08
+debug了半天——其实是人肉找错，有几个需要注意的地方：
+    1. lodsb用的是 ds:esi，所以写显存时候另用一套 es:edi
+    2. 不能在callee里直接 pop esi ，因为这时候栈顶存的是返回地址！参数都被压在返回地址下面呢，所以应该 mov esi, [esp + 4] (这也是c编译出来的汇编访问局部变量访问arguments的方法)
+    3. 因为你的 CodeDescriptor 里 base 直接是 bits 32 部分的偏移量，所以引用 Message 的时候要用 Message - CODE_SEGMENT，即32位段里的相对偏移而不是你汇编里头的绝对偏移
+别的没啥了，搞了个能显示 null ended 字符串的 printf

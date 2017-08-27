@@ -36,13 +36,60 @@
 
 [bits 32]
 CODE_SEGMENT:
-    mov ax, VIDEO_SELECTOR
-    mov ds, ax
-    mov edi, (12 * 80 + 40) * 2
-    mov ah, 0fh
-    mov al, 'f'
-    mov [ds:edi], ax
+    ;mov ax, DATA_SELECTOR
+    ;mov es, ax
+    ;mov dword [es:0], 00102h
+
+    ;mov ax, VIDEO_SELECTOR
+    ;mov ds, ax
+    ;mov edi, (12 * 80 + 40) * 2
+
+    ;mov ax, [es:0]
+    ;mov ah, 0fh
+    ;mov [ds:edi], ax
+    ;
+    ;add edi, 2
+    ;mov ax, [es:1]
+    ;mov ah, 0fh
+    ;mov [ds:edi], ax
+
+    push dword MessageOffset
+    call Printf
+    add esp, 4
+
+    push dword Message2Offset
+    call Printf
+    add esp, 4
+
     jmp $
+
+Printf:
+    mov ax, cs
+    mov ds, ax
+    mov esi, [esp + 4]
+    
+    mov ax, VIDEO_SELECTOR
+    mov es, ax
+    mov edi, 0
+
+    ;pop edi
+    mov ah, 0fh
+    cld
+Printf_show_char:
+    lodsb
+    mov [es:edi], ax
+    add edi, 2
+    cmp al, 0
+    jne Printf_show_char
+    ret
+
+Message:
+    db "hello world", 0
+MessageOffset equ Message - CODE_SEGMENT
+Message2:
+    db "is this a test?", 0
+Message2Offset equ Message2 - CODE_SEGMENT
+
 CodeLength equ $ - CODE_SEGMENT
 
 GDT:
@@ -55,6 +102,9 @@ CODE_DESCRIPTOR:
 VIDEO_DESCRIPTOR:
     Descriptor 0b8000h, 0ffffh, DA_OS_DATA
     VIDEO_SELECTOR equ VIDEO_DESCRIPTOR - GDT
+DATA_DESCRIPTOR:
+    Descriptor 0100000h, 2, DA_OS_DATA
+    DATA_SELECTOR equ DATA_DESCRIPTOR - GDT
 GDT_END:
 
     times 510 - ($ - $$) db 0
