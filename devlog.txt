@@ -274,3 +274,17 @@ http://www.computer-engineering.org/ps2keyboard/scancodes1.html
 于是编出来的 .text 里第一个函数不是 kernel_entry 了，于是崩了
 
 所以hack之：把kernel.c重命名为0kernel.c，囧
+
+2017-08-31 00:08:53
+感觉下一步应该写个 printf / scanf
+然后把 scancode set 1 完善一下(目前只处理了A-Z)
+就能做一个简单的console了
+甚至能做一个fake的贪吃蛇——一个写在内核里的贪吃蛇
+(fake的意思是这货不是user space的程序)
+
+嗯...要写贪吃蛇可能会需要涉及
+    - 时钟
+        sleep(100)
+    - 中断
+        poll key的while循环不能放在游戏逻辑里了
+        否则玩家按一下“上”，小蛇是得能持续往上走的，这时不能在那while循环等输入
