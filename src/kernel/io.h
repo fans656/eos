@@ -1,3 +1,6 @@
+#ifndef IO_H
+#define IO_H
+
 #include <stdint.h>
 #include "util.h"
 
@@ -12,3 +15,6 @@ void print_int(int val);
 void print_str(char* s);
 void print_mem(void* addr, int n_bytes);
 void set_cursor_pos(uint8_t row, uint8_t col);
+int get_char();
+
+#endif

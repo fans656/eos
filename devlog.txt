@@ -264,3 +264,13 @@ mark一下这个答案，这个答主应该在一系列答案里其中某篇提�
 
 http://wiki.osdev.org/%228042%22_PS/2_Controller
 http://www.computer-engineering.org/ps2keyboard/scancodes1.html
+
+2017-08-30 23:58:26
+目前的源码文件：
+    io.c
+    kernel.c
+    util.c
+因为忽然多了io.c而编译的时候是 gcc *.c
+于是编出来的 .text 里第一个函数不是 kernel_entry 了，于是崩了
+
+所以hack之：把kernel.c重命名为0kernel.c，囧

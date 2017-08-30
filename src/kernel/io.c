@@ -1,4 +1,5 @@
-#include "textmode.h"
+#include <stdint.h>
+#include "io.h"
 #include "util.h"
 
 uint16_t GRAY_FG = 0x0700;
@@ -12,6 +13,41 @@ uint8_t cursor_cur_col = 0;
 
 uint16_t* VIDEO_MEM = (uint16_t*)0xb8000;
 uint16_t* VGA_INDEX_BASE_PORT_ADDR = (uint16_t*)0x0463;
+
+uint8_t SCANCODE_TO_KEY[256] = {
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I',
+    'O', 'P',   0,   0,   0,   0, 'A', 'S',
+    'D', 'F', 'G', 'H', 'J', 'K', 'L',   0,
+      0,   0,   0,   0, 'Z', 'X', 'C', 'V',
+    'B', 'N', 'M',   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I',
+    'O', 'P',   0,   0,   0,   0, 'A', 'S',
+    'D', 'F', 'G', 'H', 'J', 'K', 'L',   0,
+      0,   0,   0,   0, 'Z', 'X', 'C', 'V',
+    'B', 'N', 'M',   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,
+};
 
 void scroll_down_one_line() {
     for (int i = 0; i < N_ROWS - 1; ++i) {
@@ -103,4 +139,19 @@ void set_cursor_pos(uint8_t row, uint8_t col) {
     outb(port + 1, offset & 0xff);
     outb(port, 0x0e);
     outb(port + 1, (offset >> 8) & 0xff);
+}
+
+int get_char() {
+    int ch = -1;
+    while (1) {
+        uint8_t status = inb(0x64);
+        if (status & 0x1) {
+            uint8_t scancode = inb(0x60);
+            if ((scancode & 0x80) == 0) {
+                ch = SCANCODE_TO_KEY[scancode] | 0x20;
+                break;
+            }
+        }
+    }
+    return ch;
 }
