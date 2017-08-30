@@ -3,6 +3,7 @@
 
 extern uint16_t GRAY_FG;
 extern uint16_t WHITE_FG;
+extern uint16_t* VIDEO_MEM;
 
 void clear_screen();
 void put_char(char ch);

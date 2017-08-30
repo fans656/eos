@@ -235,3 +235,32 @@ C语言写printf就简单多了，来写一个看一看EBDA有多大
 
 果然好了，，目前就把加载的sector个数固定写大点吧，64个sector支持32K的kernel
 之后一切完成了回头再说支持第三方bootloader或者自己写能解析elf的bootloader
+
+2017-08-30 16:55:47
+https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#Extended-Asm
+在C语言里写汇编
+
+http://www.osdev.org/howtos/2/
+inb/outb
+
+2017-08-30 22:20:53
+https://stackoverflow.com/questions/3215878/what-are-in-out-instructions-in-x86-used-for/33444273#33444273
+https://stackoverflow.com/questions/22054578/how-to-run-a-program-without-an-operating-system/32483545#32483545
+mark一下这个答案，这个答主应该在一系列答案里其中某篇提到keyboard IO
+
+2017-08-30 23:08:15
+正确的读键盘输入的办法是用中断，即收到中断后去执行
+    in 60, al
+把scancode的byte读进来
+
+但这里我先简单起见用polling的方式实现一下吧
+先
+    uint8_t status = inb(0x64);
+    if (status & 0x01) {
+        uint8_t scancode = inb(0x60);
+    }
+0x01 是 Output Buffer Status
+(这里的input/output是相对于keyboard来说的，output就是keyboard产生了按键等待CPU去读)
+
+http://wiki.osdev.org/%228042%22_PS/2_Controller
+http://www.computer-engineering.org/ps2keyboard/scancodes1.html

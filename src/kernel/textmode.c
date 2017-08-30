@@ -93,11 +93,12 @@ void clear_screen() {
             VIDEO_MEM[i * 80 + j] = GRAY_FG | ' ';
         }
     }
+    set_cursor_pos(0, 0);
 }
 
 void set_cursor_pos(uint8_t row, uint8_t col) {
     uint16_t port = *VGA_INDEX_BASE_PORT_ADDR;
-    uint16_t offset = row * N_ROWS + col;
+    uint16_t offset = row * N_COLS + col;
     outb(port, 0x0f);
     outb(port + 1, offset & 0xff);
     outb(port, 0x0e);
