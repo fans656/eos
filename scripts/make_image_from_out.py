@@ -14,7 +14,7 @@ def get_section_headers(data):
         res.append(ph)
     return res
 
-with open('kernel.out', 'rb') as f:
+with open('bin/kernel.out', 'rb') as f:
     data = f.read()
 
 section_header_offset = struct.unpack('<I', data[0x20:0x20+4])[0]
@@ -45,5 +45,5 @@ for offset, section in sections:
     image[offset:offset+len(section)] = section
 image = ''.join(image)
 
-with open('kernel.img', 'wb') as f:
+with open('bin/kernel.img', 'wb') as f:
     f.write(image)

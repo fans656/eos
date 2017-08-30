@@ -1,9 +1,9 @@
-#include <stdint.h>
+#include "textmode.h"
+#include "util.h"
 
 uint16_t GRAY_FG = 0x0700;
 uint16_t WHITE_FG = 0x0f00;
 
-char* CONSOLE_PROMPT = "$ ";
 uint8_t N_ROWS = 25;
 uint8_t N_COLS = 80;
 
@@ -12,21 +12,6 @@ uint8_t cursor_cur_col = 0;
 
 uint16_t* VIDEO_MEM = (uint16_t*)0xb8000;
 uint16_t* VGA_INDEX_BASE_PORT_ADDR = (uint16_t*)0x0463;
-
-void clear_screen();
-void hlt();
-void put_char(char ch);
-void print_byte(uint8_t val);
-void print_int(int val);
-void print_str(char* s);
-void print_mem(void* addr, int n_bytes);
-void set_cursor_pos(uint8_t row, uint8_t col);
-
-void kernel_entry() {
-    clear_screen();
-    print_str(CONSOLE_PROMPT);
-    hlt();
-}
 
 void scroll_down_one_line() {
     for (int i = 0; i < N_ROWS - 1; ++i) {
@@ -110,10 +95,6 @@ void clear_screen() {
     }
 }
 
-void outb(uint16_t port, uint8_t val) {
-    asm volatile ("outb %0, %1" :: "a"(val), "dN"(port));
-}
-
 void set_cursor_pos(uint8_t row, uint8_t col) {
     uint16_t port = *VGA_INDEX_BASE_PORT_ADDR;
     uint16_t offset = row * N_ROWS + col;
@@ -121,10 +102,4 @@ void set_cursor_pos(uint8_t row, uint8_t col) {
     outb(port + 1, offset & 0xff);
     outb(port, 0x0e);
     outb(port + 1, (offset >> 8) & 0xff);
-}
-
-void hlt() {
-    while (1) {
-        ;
-    }
 }

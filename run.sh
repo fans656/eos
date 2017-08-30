@@ -1,2 +1,2 @@
 ./build.sh
-curl -XPOST --data-binary "@eos.img" host:6560
+curl -XPOST --data-binary "@bin/eos.img" host:6560
