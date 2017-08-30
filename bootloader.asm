@@ -8,7 +8,7 @@
     mov ah, 0x02  ; read function
     mov bx, 0x800
     mov es, bx  ; buffer
-    mov al, 10  ; number of sectors
+    mov al, 64  ; number of sectors, 64 sectors = 32K max sized kernel
     mov dl, 80h  ; 1st hard disk
     mov ch, 0  ; cylinder
     mov dh, 0  ; head
