@@ -112,7 +112,7 @@ void print_int(int val) {
         val = -val;
     }
     int base = 1;
-    while (base * 10 < val) {
+    while (base * 10 <= val) {
         base *= 10;
     }
     while (base) {

@@ -4,15 +4,14 @@
 char* CONSOLE_PROMPT = "$ ";
 
 void kernel_entry() {
+    clear_screen();
     setup_idt();
-    asm volatile ("int 49");
 
-    //clear_screen();
-    //asm volatile ("int 49");
-    print_str(CONSOLE_PROMPT);
-    //while (1) {
-    //    char ch = get_char();
-    //    put_char(ch);
-    //}
+    //uint8_t x = inb(0x21);
+    //print_byte(x);
+    //put_char('\n');
+    //uint8_t y = inb(0xa1);
+    //print_byte(y);
+
     hlt();
 }

@@ -298,3 +298,14 @@ http://wiki.osdev.org/Interrupt_Descriptor_Table
 感觉知道上午interrupt搞不定是什么原因了：code descriptor 的 base 以前写的是 0x8000
 而这里ISR的地址是(绝对)线性地址，就错了
 在bootloader里把descriptor的base改成0x0000，就对了
+
+http://wiki.osdev.org/Inline_Assembly/Examples#I.2FO_access
+inb/outb
+
+2017-08-31 13:39:27
+http://wiki.osdev.org/8259_PIC
+想开硬件中断的话得先初始化8259A，因为这货的IRQ是0-15跟除0错误之类的exceptions重了
+但是我是不是可以先试试直接就用这些IRQ？
+
+http://wiki.osdev.org/IRQ
+IRQ
