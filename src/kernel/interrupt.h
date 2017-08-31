@@ -1,6 +1,8 @@
 #ifndef INTERRUPT_H
 #define INTERRUPT_H
 
+#include <stdint.h>
+
 typedef struct _IDTEntry {
     uint16_t offset1;
     uint16_t selector;

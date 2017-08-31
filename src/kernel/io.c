@@ -1,4 +1,8 @@
+/*
+http://www.computer-engineering.org/ps2keyboard/scancodes1.html
+ */
 #include <stdint.h>
+#include <stdbool.h>
 #include "io.h"
 #include "util.h"
 
@@ -14,40 +18,31 @@ uint8_t cursor_cur_col = 0;
 uint16_t* VIDEO_MEM = (uint16_t*)0xb8000;
 uint16_t* VGA_INDEX_BASE_PORT_ADDR = (uint16_t*)0x0463;
 
-uint8_t SCANCODE_TO_KEY[256] = {
+uint8_t SCANCODE_TO_KEY[128] = {
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
     'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I',
     'O', 'P',   0,   0,   0,   0, 'A', 'S',
+
     'D', 'F', 'G', 'H', 'J', 'K', 'L',   0,
       0,   0,   0,   0, 'Z', 'X', 'C', 'V',
     'B', 'N', 'M',   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
+
       0,   0,   0,   0,   0,   0,   0,   0,
+      KEY_UP,   0,   0,   KEY_LEFT,   0,   KEY_RIGHT,   0,   0,
+      KEY_DOWN,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I',
-    'O', 'P',   0,   0,   0,   0, 'A', 'S',
-    'D', 'F', 'G', 'H', 'J', 'K', 'L',   0,
-      0,   0,   0,   0, 'Z', 'X', 'C', 'V',
-    'B', 'N', 'M',   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
+
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
       0,   0,   0,   0,   0,   0,   0,   0,
 };
+
+bool key_states[128] = {0};
+int current_key = -1;
+int num_key_pressed = 0;
 
 void scroll_down_one_line() {
     for (int i = 0; i < N_ROWS - 1; ++i) {
@@ -139,6 +134,8 @@ void clear_screen() {
 }
 
 void set_cursor_pos(uint8_t row, uint8_t col) {
+    cursor_cur_row = row;
+    cursor_cur_col = col;
     uint16_t port = *VGA_INDEX_BASE_PORT_ADDR;
     uint16_t offset = row * N_COLS + col;
     outb(port, 0x0f);
@@ -148,16 +145,33 @@ void set_cursor_pos(uint8_t row, uint8_t col) {
 }
 
 int get_char() {
-    int ch = -1;
     while (1) {
-        uint8_t status = inb(0x64);
-        if (status & 0x1) {
-            uint8_t scancode = inb(0x60);
-            if ((scancode & 0x80) == 0) {
-                ch = SCANCODE_TO_KEY[scancode] | 0x20;
-                break;
-            }
+        int ch = get_char_nonblocking();
+        if (ch != -1) {
+            return ch;
+        } else {
+            asm("hlt");
         }
     }
-    return ch;
+}
+
+int get_char_nonblocking() {
+    return current_key;
+}
+
+void update_key_states(uint8_t scancode) {
+    uint8_t key = SCANCODE_TO_KEY[scancode & 0x7f];
+    bool up = scancode & 0x80;
+    if (up) {
+        if (--num_key_pressed == 0) {
+            current_key = -1;
+        }
+        key_states[key] = 0;
+    } else {
+        if (!key_states[key]) {
+            ++num_key_pressed;
+        }
+        current_key = key;
+        key_states[key] = 1;
+    }
 }

@@ -4,6 +4,7 @@ http://wiki.osdev.org/IRQ
 http://wiki.osdev.org/I_Cant_Get_Interrupts_Working
  */
 #include <stdint.h>
+#include <stdbool.h>
 #include "interrupt.h"
 #include "io.h"
 #include "util.h"
@@ -113,17 +114,7 @@ void isr_pit_timer() {
 
 void isr_keyboard() {
     asm volatile ("pushad");
-    
-    uint8_t scancode = inb(0x60);
-    char ch = SCANCODE_TO_KEY[scancode];
-    put_char(ch);
-    if (scancode & 0x80) {
-        print_str(" Up");
-    } else {
-        print_str(" Down");
-    }
-    put_char('\n');
-
+    update_key_states(inb(0x60));
     send_eoi(IRQ_KEYBOARD);
     asm volatile ("popad; leave; iret");
 }
