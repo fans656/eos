@@ -7,10 +7,12 @@
 extern uint16_t GRAY_FG;
 extern uint16_t WHITE_FG;
 extern uint16_t* VIDEO_MEM;
+extern uint8_t SCANCODE_TO_KEY[];
 
 void clear_screen();
 void put_char(char ch);
 void print_byte(uint8_t val);
+void print_word(uint16_t val);
 void print_int(int val);
 void print_str(char* s);
 void print_mem(void* addr, int n_bytes);

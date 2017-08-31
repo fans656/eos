@@ -4,12 +4,27 @@
 #include "util.h"
 
 #define IRQ_KEYBOARD 1
+
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
 #define PIC2_COMMAND 0xa0
 #define PIC2_DATA 0xa1
 
 #define PIC_EOI 0x20
+#define PIC_READ_IRR 0x0a
+#define PIC_READ_ISR 0x0b
+
+#define ICW1_ICW4 0x01
+#define ICW1_SINGLE 0x02
+#define ICW1_INTERVAL4 0x04
+#define ICW1_LEVEL 0x08
+#define ICW1_INIT 0x10
+ 
+#define ICW4_8086 0x01
+#define ICW4_AUTO 0x02
+#define ICW4_BUF_SLAVE 0x08
+#define ICW4_BUF_MASTER 0x0C
+#define ICW4_SFNM 0x10
 
 IDTEntry idt[256];
 
@@ -29,6 +44,31 @@ void fill_idt_entry(int idx, ISR isr) {
     idt[idx].attr = isr ? 0x8e : 0x00;
 }
 
+void io_wait() {
+    asm("nop;nop;nop;nop;");
+}
+
+void pic_remap() {
+
+	outb(PIC1_COMMAND, ICW1_INIT+ICW1_ICW4);
+	io_wait();
+	outb(PIC2_COMMAND, ICW1_INIT+ICW1_ICW4);
+	io_wait();
+	outb(PIC1_DATA, 0x20);
+	io_wait();
+	outb(PIC2_DATA, 0x28);
+	io_wait();
+	outb(PIC1_DATA, 4);
+	io_wait();
+	outb(PIC2_DATA, 2);
+	io_wait();
+ 
+	outb(PIC1_DATA, ICW4_8086);
+	io_wait();
+	outb(PIC2_DATA, ICW4_8086);
+	io_wait();
+}
+
 void send_eoi(uint8_t irq) {
     if (irq >= 8) {
         outb(PIC2_COMMAND, PIC_EOI);
@@ -36,24 +76,34 @@ void send_eoi(uint8_t irq) {
     outb(PIC1_COMMAND, PIC_EOI);
 }
 
-int counter = 0;
+uint16_t pic_get_status_register(uint8_t ocw3) {
+    outb(PIC1_COMMAND, ocw3);
+    outb(PIC2_COMMAND, ocw3);
+    return (inb(PIC2_COMMAND) << 8) | inb(PIC1_COMMAND);
+}
 
-void isr_default() {
-    asm volatile ("pushad");
-    
-    print_str("isr_default ");
-    print_int(counter++);
-    put_char('\n');
+uint16_t pic_get_in_service_register() {
+    return pic_get_status_register(PIC_READ_ISR);
+}
 
-    send_eoi(255);
-    asm volatile ("popad; leave; iret");
+uint16_t pic_get_interrupt_request_register() {
+    return pic_get_status_register(PIC_READ_IRR);
 }
 
 void isr_keyboard() {
     asm volatile ("pushad");
     
-    print_str("isr_keyboard\n");
+    uint8_t scancode = inb(0x60);
+    char ch = SCANCODE_TO_KEY[scancode];
+    put_char(ch);
+    if (scancode & 0x80) {
+        print_str(" Up");
+    } else {
+        print_str(" Down");
+    }
+    put_char('\n');
 
+    send_eoi(IRQ_KEYBOARD);
     asm volatile ("popad; leave; iret");
 }
 
@@ -64,14 +114,10 @@ void setup_idt() {
     asm volatile ("mov eax, %0" :: "r"(&idtr));
     asm volatile ("lidt [eax]");
 
-    for (int i = 0; i < 256; ++i) {
-        fill_idt_entry(i, isr_default);
-    }
-    fill_idt_entry(0x02, isr_keyboard);
+    fill_idt_entry(0x21, isr_keyboard);
 
-    outb(0x21, 0xfe);
+    pic_remap();
+    outb(0x21, 0xfd);
     outb(0xa1, 0xff);
-
-    //asm("int 2");
     asm ("sti");
 }

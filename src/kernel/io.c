@@ -96,6 +96,12 @@ void print_byte(uint8_t val) {
     put_char(four_bits_to_char(val & 0x0f));
 }
 
+void print_word(uint16_t val) {
+    print_byte(val & 0xff);
+    put_char(' ');
+    print_byte(val >> 8);
+}
+
 void print_mem(void* addr, int n_bytes) {
     uint8_t* p = addr;
     for (int i = 0; i < n_bytes; ++i) {
