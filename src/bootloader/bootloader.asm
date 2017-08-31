@@ -3,6 +3,7 @@
     org 7c00h
     
 [bits 16]
+START:
     ; load kernel
     mov cx, 10
     mov ah, 0x02  ; read function
@@ -31,13 +32,13 @@
     mov eax, cr0
     or eax, 1
     mov cr0, eax
-    jmp dword 8:0
+    jmp dword 8:0x8000
 
 GDT:
     dw GDT_END - GDT - 1
     dd __
     dw NULL
-    Descriptor 0x8000, 0ffffffffh, DA_OS_CODE
+    Descriptor 0x0000, 0ffffffffh, DA_OS_CODE
 GDT_END:
 
     times 510 - ($ - $$) db 0

@@ -288,3 +288,13 @@ http://www.computer-engineering.org/ps2keyboard/scancodes1.html
     - 中断
         poll key的while循环不能放在游戏逻辑里了
         否则玩家按一下“上”，小蛇是得能持续往上走的，这时不能在那while循环等输入
+
+2017-08-31 08:21:38
+实现一下中断
+
+http://wiki.osdev.org/Interrupt_Descriptor_Table
+
+2017-08-31 12:27:42
+感觉知道上午interrupt搞不定是什么原因了：code descriptor 的 base 以前写的是 0x8000
+而这里ISR的地址是(绝对)线性地址，就错了
+在bootloader里把descriptor的base改成0x0000，就对了
