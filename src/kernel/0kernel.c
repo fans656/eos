@@ -1,6 +1,7 @@
 #include "io.h"
 #include "interrupt.h"
 #include "snake.h"
+#include "util.h"
 
 char* CONSOLE_PROMPT = "$ ";
 

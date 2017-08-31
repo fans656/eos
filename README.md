@@ -5,12 +5,16 @@
 - Enter protected mode
 - Print message using C
 - Keyboard input by polling
+- Keyboard input by interrupt
+- Snake
 
 ## Future
 
-- Keyboard input by interrupt
-- File system
+- printf/scanf
+- Memory Paging
+- malloc/free
 - ELF executable
+- File system
 - Multi-processing
 - Graphical user interface
 - Networking

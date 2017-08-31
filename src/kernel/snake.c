@@ -3,6 +3,8 @@
 #include "snake.h"
 #include "math.h"
 #include "io.h"
+#include "util.h"
+#include "time.h"
 
 void snake_init(Snake* snake) {
     snake->direction.x = 1;
@@ -43,11 +45,11 @@ void draw(Snake* snake) {
             dy = diff_y > 0 ? 1 : -1;
         }
         for (int x = pt1->x, y = pt1->y; x != pt2->x || y != pt2->y; x += dx, y+= dy) {
-            set_cursor_pos(y, x);
+            set_cursor_row_col(y, x);
             put_char('*');
         }
     }
-    set_cursor_pos(0, 0);
+    set_cursor_row_col(0, 0);
     print_int(snake_length(snake));
 }
 
@@ -157,15 +159,15 @@ void get_direction_from_user(int* dx, int* dy) {
 
 void draw_food(int x, int y) {
     if (x >= 0) {
-        set_cursor_pos(x, y);
+        set_cursor_row_col(y, x);
         put_char('o');
-        set_cursor_pos(x, y);
+        set_cursor_row_col(y, x);
     }
 }
 
 void gen_food(Snake* snake, int* x, int* y) {
-    *x = 10;
-    *y = 10;
+    *x = randint(1, 78);
+    *y = randint(1, 23);
 }
 
 void snake_game() {
@@ -174,11 +176,13 @@ void snake_game() {
         snake_init(&snake);
         draw(&snake);
 
-        set_cursor_pos(snake.points[0].y + 2, 29);
+        set_cursor_row_col(snake.points[0].y + 2, 29);
         print_str("Press any key to start");
-        set_cursor_pos(snake.points[0].y, snake.points[0].x + 1);
+        set_cursor_row_col(snake.points[0].y, snake.points[0].x + 1);
         print_str(">");
         get_char();
+
+        srand(clock());
 
         int dx = 1, dy = 0;
         int food_x = -1, food_y = -1;
@@ -194,10 +198,10 @@ void snake_game() {
             }
             sleep(1);
         }
-        set_cursor_pos(10, 30);
+        set_cursor_row_col(10, 30);
         print_str("  YOU ARE DEAD!!!  ");
-        sleep(20);
+        sleep(100);
         get_char();
-        sleep(5);
+        sleep(50);
     }
 }

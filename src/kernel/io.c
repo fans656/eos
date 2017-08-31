@@ -40,9 +40,9 @@ uint8_t SCANCODE_TO_KEY[128] = {
       0,   0,   0,   0,   0,   0,   0,   0,
 };
 
-bool key_states[128] = {0};
 int current_key = -1;
 int num_key_pressed = 0;
+bool key_states[128] = {0};
 
 void scroll_down_one_line() {
     for (int i = 0; i < N_ROWS - 1; ++i) {
@@ -73,7 +73,7 @@ void put_char(char ch) {
             put_newline();
         }
     }
-    set_cursor_pos(cursor_cur_row, cursor_cur_col);
+    set_cursor_row_col(cursor_cur_row, cursor_cur_col);
 }
 
 void print_str(char* s) {
@@ -130,10 +130,10 @@ void clear_screen() {
             VIDEO_MEM[i * 80 + j] = GRAY_FG | ' ';
         }
     }
-    set_cursor_pos(0, 0);
+    set_cursor_row_col(0, 0);
 }
 
-void set_cursor_pos(uint8_t row, uint8_t col) {
+void set_cursor_row_col(uint8_t row, uint8_t col) {
     cursor_cur_row = row;
     cursor_cur_col = col;
     uint16_t port = *VGA_INDEX_BASE_PORT_ADDR;
@@ -171,7 +171,7 @@ void update_key_states(uint8_t scancode) {
         if (!key_states[key]) {
             ++num_key_pressed;
         }
-        current_key = key;
         key_states[key] = 1;
+        current_key = key;
     }
 }

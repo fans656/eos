@@ -309,3 +309,8 @@ http://wiki.osdev.org/8259_PIC
 
 http://wiki.osdev.org/IRQ
 IRQ
+
+2017-08-31 21:13:02
+我擦，C语言里的bool不能乱用...
+几个变量换一下位置bug就消失了
+暂时无力追寻root cause——编译出来的kernel已经15K了

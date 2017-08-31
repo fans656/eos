@@ -8,6 +8,7 @@ http://wiki.osdev.org/I_Cant_Get_Interrupts_Working
 #include "interrupt.h"
 #include "io.h"
 #include "util.h"
+#include "time.h"
 
 #define IRQ_PIT_TIMER 0
 #define IRQ_KEYBOARD 1
@@ -37,7 +38,6 @@ http://wiki.osdev.org/I_Cant_Get_Interrupts_Working
 #define ICW4_SFNM 0x10
 
 IDTEntry idt[256];
-int sleep_count = -1;
 
 typedef struct __attribute__((__packed__)) {
     uint16_t limit : 16;
@@ -104,6 +104,8 @@ uint16_t pic_get_interrupt_request_register() {
 void isr_pit_timer() {
     asm volatile ("pushad");
     
+    ++g_clock_counter;
+    
     if (sleep_count >= 0) {
         --sleep_count;
     }
@@ -134,11 +136,4 @@ void setup_idt() {
             IRQ_MASK_TIMER & IRQ_MASK_KEYBOARD);
     outb(0xa1, 0xff);
     asm ("sti");
-}
-
-void sleep(int cnt) {
-    sleep_count = cnt;
-    while (sleep_count) {
-        asm("hlt");
-    }
 }
