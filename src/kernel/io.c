@@ -175,3 +175,34 @@ void update_key_states(uint8_t scancode) {
         current_key = key;
     }
 }
+
+void printf(char* fmt, ...) {
+    char* arg = (char*)&fmt + 4;
+    for (char* p = fmt; *p; ++p) {
+        if (*p != '%') {
+            put_char(*p);
+        } else {
+            ++p;
+            switch (*p) {
+                case 'c':
+                    put_char(*(char*)arg);
+                    ++arg;
+                    break;
+                case 'd':
+                    print_int(*(int*)arg);
+                    arg += 4;
+                    break;
+                case 's':
+                    print_str((char*)(*(char**)arg));
+                    arg += 4;
+                    break;
+                case '%':
+                    put_char('%');
+                    break;
+                default:
+                    printf("%%%c", *p);
+                    break;
+            }
+        }
+    }
+}

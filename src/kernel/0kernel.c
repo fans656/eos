@@ -9,7 +9,7 @@ void kernel_entry() {
     setup_idt();
     clear_screen();
     
-    snake_game();
+    printf("x = %d, y = %d\n%s %c %f", 3, 5, "really?", 'A');
 
     hlt();
 }
