@@ -1,9 +1,18 @@
+/*
+http://wiki.osdev.org/8259_PIC
+http://wiki.osdev.org/IRQ
+http://wiki.osdev.org/I_Cant_Get_Interrupts_Working
+ */
 #include <stdint.h>
 #include "interrupt.h"
 #include "io.h"
 #include "util.h"
 
+#define IRQ_PIT_TIMER 0
 #define IRQ_KEYBOARD 1
+
+#define IRQ_MASK_TIMER 0xfe
+#define IRQ_MASK_KEYBOARD 0xfd
 
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
@@ -27,6 +36,7 @@
 #define ICW4_SFNM 0x10
 
 IDTEntry idt[256];
+int sleep_count = -1;
 
 typedef struct __attribute__((__packed__)) {
     uint16_t limit : 16;
@@ -90,6 +100,17 @@ uint16_t pic_get_interrupt_request_register() {
     return pic_get_status_register(PIC_READ_IRR);
 }
 
+void isr_pit_timer() {
+    asm volatile ("pushad");
+    
+    if (sleep_count >= 0) {
+        --sleep_count;
+    }
+
+    send_eoi(IRQ_PIT_TIMER);
+    asm volatile ("popad; leave; iret");
+}
+
 void isr_keyboard() {
     asm volatile ("pushad");
     
@@ -114,10 +135,19 @@ void setup_idt() {
     asm volatile ("mov eax, %0" :: "r"(&idtr));
     asm volatile ("lidt [eax]");
 
+    fill_idt_entry(0x20, isr_pit_timer);
     fill_idt_entry(0x21, isr_keyboard);
 
     pic_remap();
-    outb(0x21, 0xfd);
+    outb(0x21,
+            IRQ_MASK_TIMER & IRQ_MASK_KEYBOARD);
     outb(0xa1, 0xff);
     asm ("sti");
+}
+
+void sleep(int cnt) {
+    sleep_count = cnt;
+    while (sleep_count) {
+        asm("hlt");
+    }
 }

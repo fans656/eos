@@ -11,5 +11,6 @@ typedef struct _IDTEntry {
 
 extern struct _IDTEntry idt[256];
 void setup_idt();
+void sleep(int cnt);
 
 #endif
