@@ -4,6 +4,9 @@
     
 [bits 16]
 START:
+    ; video mode 13h (320x200 256 color)
+    mov ax, 0x13
+    int 0x10
     ; test LBA addressing
     mov ah, 0x41
     mov bx, 0x55aa

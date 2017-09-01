@@ -490,3 +490,8 @@ https://en.wikipedia.org/wiki/.bss
 然后实现多进程
 
 然后，GUI!
+
+2017-09-02 00:53:49
+https://stackoverflow.com/questions/14419088/how-to-draw-a-pixel-on-the-screen-in-protected-mode-in-x86-assembly
+video mode 13h 提供 320x200 256色的绘制，可以在保护模式下通过写内存画图
+我要实现一下把我的avatar画出来~~
