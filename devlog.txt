@@ -406,3 +406,72 @@ protected mode下没法直接int 13h，得自己写driver了
 之后kernel自己启动进程的时候，也是负责给人进程把这些内存赋0——满足C语言的标准
 
 哎要解析segment，那么暂时用糙点儿的办法吧，直接给kernel.img padding上16K的0
+
+2017-09-01 14:53:32
+现在的问题是，MBR里“加载内核文件到内存”的代码写得并不大对——它是直接指定int 13h加载64个sector
+但是很可能硬盘的一道track根本都没有64个sector，所以如果kernel涨到大于这个值，就崩了
+而且，目前kernel可能只有十几K，但MBR还是去blindly加载了32K(如前所说，估计没有32K)
+所以正确的做法应该是，bootloader要检测文件系统，然后根据文件系统的信息去加载恰好大小的kernel进内存
+而且要解析ELF格式以正确地把global/static内存空间初始化为0
+
+但是加上文件系统和ELF解析后的bootloader还能维持在512字节吗？不能的话应该怎么做？
+MBR的512字节究竟应该完成哪些功能？
+
+感觉应该研究下GRUB的做法，一种方式是，在disk image上安装一个grub，然后瞅瞅它的MBR里写了啥
+
+https://en.wikipedia.org/wiki/Master_boot_record
+MBR的前446个字节是用来放代码的，接下来有4个16字节的Partition Table Entry，然后是0xaa55
+
+目前我的bootloader直接不看分区，默认kernel被放在从第2个sector开始的N个sectors里
+
+貌似可以在partition table entry中写上kernel image的start和size
+
+wiki里说：
+
+    Due to the restricted size of the MBR's code section, it typically contains only a small program that copies additional code (such as a boot loader) from the storage device into memory.
+
+所以512字节一般只做一件事：把真正干活的bootloader从硬盘加载到内存中
+可以认为这个加载入内存的bootloader开始执行还是real mode，然后再去干各种文件系统找kernel image，解析ELF，初始化uninitialized data memory等事儿
+
+还是wiki，说512该做的是：扫描partition table，找到bootable的那个(第一个字节是0x80)，然后把这个bootable partition的第一个sector加载入内存，执行之
+partition的第一个sector叫做VBR - Volume Boot Record
+
+4个partition并不一定要占据所有的磁盘空间，比如第一磁道上的所有sector就可以空出来放bootloader，而512可以默认加载这里的代码，由这里的代码来处理文件系统/ELF/memory init
+一个磁道至多31个sector(CHS中的s只有5 bit，又是从1开始的)，也就是差不多16K，完全够了，bootloader需要多大嘛
+之后的kernel作为正常文件系统中的文件，好办多了
+
+所以其实目前的做法有一定正确性，只是要改一改
+目前是512直接加载了kernel并且进了protected mode
+应该改成加载bootloader，然后bootloader通过文件系统加载kernel再进protected mode
+
+MBR加载VBR最好也是加载在7c00的位置，这样才叫chain loading
+于是问题来了——MBR调用int 13h以及jmp的这几句代码执行的时候不能位于7c00的那512字节里
+所以MBR得想办法把这部分代码挪到另一个位置，然后跳过去执行
+https://en.wikipedia.org/wiki/Master_boot_record
+搜 relocate itself 有真相
+
+2017-09-01 17:29:13
+https://stackoverflow.com/questions/18873346/how-does-bootloadere-g-grub-lilo-find-kernel-image
+忽然又有了一个想法：bootloader就放在512里(没有stage-2)，在生成eos.img的时候，用脚本改写512里的部分数据
+比如
+    dd __  ; kernel beg (LBA - Logical Block Address)
+    dd __  ; kernel size
+    dd __  ; kernel global/static memory beg
+    dd __  ; kernel global/static memory size
+    dw 0xaa55
+然后bootloader不需要理解文件系统也不需要解析ELF，这样就可以512字节搞定，然后这512直接欢快地加载kernel到内存中
+kernel自己呢再去处理文件系统
+
+然后关于int 13h，可以用 ah=08h 来查询硬盘信息：多少个cylinders，多少个heads，多少个sectors
+
+2017-09-01 22:28:31
+https://reverseengineering.stackexchange.com/questions/4230/why-i-can-not-directly-get-the-content-of-bss-section
+哎呀妈蛋的，原来是 kernel.out 里新增了 .bss 段，但是objdump是显示不出来的——这个段在文件总不占空间
+
+2017-09-01 23:07:58
+https://en.wikipedia.org/wiki/.bss
+
+但是我这里gcc编译出来的kernel.out中.bss确实是占用空间的，用脚本把这段数据改写成0
+然后bootloader加载入内存后就相当于初始化为0了
+反正这段空间不会很大(全局变量能有多少嘛)
+以后写加载应用程序的loader时再实现动态初始化——应用程序可能开辟很大的全局变量空间，比如做题时一个20000的dp数组...
