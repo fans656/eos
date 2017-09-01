@@ -2,14 +2,16 @@
 #include "interrupt.h"
 #include "snake.h"
 #include "util.h"
+#include "globals.h"
 
 char* CONSOLE_PROMPT = "$ ";
 
 void kernel_entry() {
+    init_globals();
     setup_idt();
     clear_screen();
     
-    printf("x = %d, y = %d\n%s %c %f", 3, 5, "really?", 'A');
+    snake_game();
 
     hlt();
 }

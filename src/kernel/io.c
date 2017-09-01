@@ -42,7 +42,7 @@ uint8_t SCANCODE_TO_KEY[128] = {
 
 int current_key = -1;
 int num_key_pressed = 0;
-bool key_states[128] = {0};
+bool key_states[128];
 
 void scroll_down_one_line() {
     for (int i = 0; i < N_ROWS - 1; ++i) {
@@ -194,6 +194,14 @@ void printf(char* fmt, ...) {
                     break;
                 case 's':
                     print_str((char*)(*(char**)arg));
+                    arg += 4;
+                    break;
+                case 'p':
+                    print_str("0x");
+                    print_byte(*((char*)arg + 3));
+                    print_byte(*((char*)arg + 2));
+                    print_byte(*((char*)arg + 1));
+                    print_byte(*((char*)arg));
                     arg += 4;
                     break;
                 case '%':

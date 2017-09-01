@@ -2,6 +2,7 @@
 #define IO_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "util.h"
 
 #define KEY_UP (0x48 | 0x80)
@@ -14,8 +15,12 @@ extern uint16_t WHITE_FG;
 extern uint16_t* VIDEO_MEM;
 extern uint8_t SCANCODE_TO_KEY[];
 
+extern uint8_t cursor_cur_row;
+extern uint8_t cursor_cur_col;
+
 extern int current_key;
 extern int num_key_pressed;
+extern bool key_states[];
 
 void clear_screen();
 void put_char(char ch);
