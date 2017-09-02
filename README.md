@@ -7,16 +7,18 @@
 - Keyboard input by polling
 - Keyboard input by interrupt
 - Snake
+- printf
+- 320x240 256-color VGA graphics
+- 1024x768 24-bit true color VESA graphics
 
 ## Future
 
-- printf/scanf
+- File system
 - Memory Paging
 - malloc/free
 - ELF executable
-- File system
 - Multi-processing
-- Graphical user interface
+- GUI
 - Networking
 - Mouse
 - Audio

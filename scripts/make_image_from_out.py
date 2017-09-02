@@ -172,9 +172,23 @@ if debugging:
 try:
     with open('bin/kernel.img', 'wb') as f:
         f.write(image)
-    n_sectors = len(image) // 512
+    n_kernel_sectors = n_sectors = len(image) // 512
+    # rewrite MBR code to load N sectors for kernel
     with open('bin/eos.img', 'rb+') as f:
-        f.seek(512 - 2 - 16 + 2, os.SEEK_SET)
+        f.seek(512 - 4 - 16 + 2, os.SEEK_SET)
         f.write(chr(n_sectors & 0xff) + chr((n_sectors & 0xff00) >> 8))
 except Exception:
     pass
+
+if os.path.exists('bin/girl.raw'):
+    with open('bin/girl.raw') as f:
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        assert size % 512 == 0
+        n_sectors = size // 512
+    with open('bin/eos.img', 'rb+') as f:
+        f.seek(512 - 4 - 16 - 16 - 2, os.SEEK_SET)
+        f.write(struct.pack('<H', n_sectors))
+        f.seek(512 - 4 - 16 - 16 + 8, os.SEEK_SET)
+        f.write(struct.pack('<I', n_kernel_sectors + 1))
+    os.system('cat bin/girl.raw >> bin/kernel.img')

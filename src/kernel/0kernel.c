@@ -5,24 +5,27 @@
 #include "draw.h"
 #include "image.h"
 
+void print_sector(int i_sector);
+
 void kernel_entry() {
-    int margin_top = (200 - (200 / 32 * 32)) / 2;
-    for (int row = 0; row < 6; ++row) {
-        for (int col = 0; col < 10; ++col) {
-            int base_y = row * 32 + margin_top;
-            int base_x = col * 32;
-            for (int y = 0; y < 32; ++y) {
-                for (int x = 0; x < 32; ++x) {
-                    draw_pixel(base_x + x, base_y + y, image[y * 32 + x]);
-                }
-            }
+    setup_idt();
+    graphic_init();
+
+    int width = *(uint32_t*)0x20000;
+    int height = *(uint32_t*)0x20004;
+    
+    int bytes_per_pixel = get_bytes_per_pixel();
+    
+    int left = (get_screen_width() - width) / 2;
+    int top = (get_screen_height() - height) / 2;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            uint32_t offset = 0x20008 + (y * width + x) * bytes_per_pixel;
+            uint32_t color = *(uint32_t*)offset & 0x00ffffff;
+            draw_pixel(left + x, top + y, color);
         }
     }
 
-    //setup_idt();
-    //clear_screen();
-    //
     //snake_game();
-
     hlt();
 }

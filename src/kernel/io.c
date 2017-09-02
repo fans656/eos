@@ -186,7 +186,7 @@ void printf(char* fmt, ...) {
             switch (*p) {
                 case 'c':
                     put_char(*(char*)arg);
-                    ++arg;
+                    arg += 4;
                     break;
                 case 'd':
                     print_int(*(int*)arg);
@@ -196,6 +196,7 @@ void printf(char* fmt, ...) {
                     print_str((char*)(*(char**)arg));
                     arg += 4;
                     break;
+                case 'x':
                 case 'p':
                     print_str("0x");
                     print_byte(*((char*)arg + 3));

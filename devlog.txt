@@ -495,3 +495,21 @@ https://en.wikipedia.org/wiki/.bss
 https://stackoverflow.com/questions/14419088/how-to-draw-a-pixel-on-the-screen-in-protected-mode-in-x86-assembly
 video mode 13h 提供 320x200 256色的绘制，可以在保护模式下通过写内存画图
 我要实现一下把我的avatar画出来~~
+
+2017-09-02 02:59:20
+http://www.drdobbs.com/programming-with-vesa-bios-extensions/184403213
+尝试一下VESA mode，如果成功可以支持1280x720这种分辨率，32bit true color
+
+http://www.delorie.com/djgpp/doc/rbinter/ix/10/4F.html
+
+http://forum.osdev.org/viewtopic.php?f=2&t=30186
+
+2017-09-02 16:26:24
+一个bug折腾了好久！！
+int 13h 42h LBA 读硬盘时每次最多能读127个扇区，大约是64K
+但是我的图片可以有300多K
+所以需要多次调用，在汇编里维护变量真是个噩梦
+加载进内存的数据总是不对，最后发现是我把要加载的内存offset存在edx里，而int 13h会修改edx的内容
+所以解决办法是，在调用int 13h的前后特么把所有寄存器push/pop一下
+
+于是现在实现高分辨率真彩色了(1024x768 24bit color)，显示了个妹子在屏幕上
