@@ -108,7 +108,7 @@ GDT:
     Descriptor 0x0000, 0ffffffffh, DA_OS_DATA
 GDT_END:
 
-    times 512 - 4 - 16 - 16 - 2 - ($ - $$) db 0
+    times 512 - 2 - 64 - 2 - 16 - 16 - 2 - ($ - $$) db 0
 
 DAP2_N_SECTORS:
     dw __
@@ -136,5 +136,10 @@ DAP_LBA_LOW:
 DAP_LBA_HIGH:
     dd 0
 
+PADDING:
     dw 0x0000
+
+PARTITION_TABLE:
+    times 16 * 4 db 0
+
     dw 0aa55h

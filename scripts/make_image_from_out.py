@@ -169,14 +169,18 @@ if debugging:
     print 'Kernel image padded size: {} ({} - {} sectors)'.format(
         size, human_size(size), int(math.ceil(size / 512.0)))
 
+SIGNATURE_SIZE = 2
+PARTITION_TABLE_SIZE = 64
+PADDING_SIZE = 2
+END_OF_DAP = 512 - SIGNATURE_SIZE - PARTITION_TABLE_SIZE - PADDING_SIZE
 try:
     with open('bin/kernel.img', 'wb') as f:
         f.write(image)
     n_kernel_sectors = n_sectors = len(image) // 512
     # rewrite MBR code to load N sectors for kernel
     with open('bin/eos.img', 'rb+') as f:
-        f.seek(512 - 4 - 16 + 2, os.SEEK_SET)
-        f.write(chr(n_sectors & 0xff) + chr((n_sectors & 0xff00) >> 8))
+        f.seek(END_OF_DAP - 16 + 2, os.SEEK_SET)
+        f.write(struct.pack('<H', n_sectors))
 except Exception:
     pass
 
@@ -187,8 +191,8 @@ if os.path.exists('bin/girl.raw'):
         assert size % 512 == 0
         n_sectors = size // 512
     with open('bin/eos.img', 'rb+') as f:
-        f.seek(512 - 4 - 16 - 16 - 2, os.SEEK_SET)
+        f.seek(END_OF_DAP - 32 - 2, os.SEEK_SET)
         f.write(struct.pack('<H', n_sectors))
-        f.seek(512 - 4 - 16 - 16 + 8, os.SEEK_SET)
+        f.seek(END_OF_DAP - 32 + 8, os.SEEK_SET)
         f.write(struct.pack('<I', n_kernel_sectors + 1))
     os.system('cat bin/girl.raw >> bin/kernel.img')

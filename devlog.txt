@@ -513,3 +513,78 @@ int 13h 42h LBA 读硬盘时每次最多能读127个扇区，大约是64K
 所以解决办法是，在调用int 13h的前后特么把所有寄存器push/pop一下
 
 于是现在实现高分辨率真彩色了(1024x768 24bit color)，显示了个妹子在屏幕上
+
+2017-09-03 13:35:23
+ATA(Advanced Technology Attachement)是IDE(Integrated Drive Electronics)的正式名称，十年前的硬盘应该都是ATA，后来有了SATA(Serial ATA)，不过它兼容ATA
+(SATA出现后ATA就被命名为PATA了-Parallel ATA，SATA用的线更少，但是因为频率更高所以传输速率更高)
+(AHCI是高级点的功能，暂时不管——这名字是不是我有了笔记本才听说的？)
+
+PIO(Programmed Input/Output)是一种CPU与硬盘之间的传输方式，通过读写IO Port来访问硬盘，比较慢而且占用CPU，默认模式Mode 0传输速率有2M/s
+相对的有DMA(Direct Memory Access)，CPU只给指令，然后数据在硬盘和内存间自己传，传好了告诉CPU
+
+但是对于第一步，ATA-PIO已经够了，，实模式下用int 13h，保护模式就用这个
+以后可能做到GUI开始放电影才会遇到速度瓶颈，那时候再研究DMA和AHCI等(比如SSD传输速率可以到300MB/s以上，ATA最高应该是百兆等级吧)
+
+https://en.wikipedia.org/wiki/Parallel_ATA
+http://wiki.osdev.org/ATA_PIO_Mode 
+
+2017-09-03 20:16:22
+设想一下文件系统的设计
+
+0扇区放MBR，后面留255个扇区放kernel(目前还不打算模块化)，这是256个扇区128K
+
+用bitmap来标记4K block的话，2T的硬盘需要64M大小的bitmap，512G的需要16M，1G的需要32K
+
+256后面跟一个meta data sector吧，关于硬盘的：
+    Offset  Size    Purpose
+    0x00    4       number of sectors - support 2T disk
+    0x04    4       LBA of bitmap
+    0x08    4       sectors of bitmap
+    0x0A    4       LBA of root directory
+    ... reserved
+
+紧接着就是bitmap了
+
+接下来就是file entries了，紧跟的第一个sector里第一个entry是root directory
+
+file entry的格式是：
+    4 file type (directory/file)
+    8 parent entry
+    8 first child entry
+    8 next sibling entry
+    4 data LBA
+
+data entry的格式是
+    4 file name length in bytes
+    4 next block
+    ... file name
+    ... actual data
+
+一些文件操作：
+
+bool is_file_exist(char* fpath)
+    
+    1. normalize the path and split to parts
+    2. begin at root
+    3. list its children
+    4. recursively traverse
+
+FILE* open_file_for_read(char* fpath)
+    
+    1. test existence
+    2. find the file entry
+    3. s
+
+[depracated on 2017-09-04 01:17:17]
+
+2017-09-04 01:17:18
+感觉开始触及到底层之上的部分了——就是那些科班课本上讲的东西，那时候学这些东西总感觉在空中，没有细节的支持总是不对味
+但是现在自底向上到地方了
+
+今天在那思索文件系统的实现时就忽然意识到，对于一个原型，根本不需要在真实的电脑/虚拟机上做，可以直接拿python写模拟
+只要提供一个read_sector一个write_sector，然后用个大文件模拟disk，其他的都可以在这层layer上实现
+然后意识到实现一个文件系统并没有想的那么简单，跑去瞅了瞅FAT，感觉还是麻烦，自己想了一个方案，，刚看到inode又感觉很新奇
+反正是有一些方面自己想的办法是跟现行实践一致的
+
+爬wiki正好碰到Morden Operating System这本书，都出了第四版了，里面还涉及了Android
+抽根烟看一小会儿，然后还得接着补中期报告

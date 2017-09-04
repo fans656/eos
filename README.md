@@ -19,9 +19,15 @@
 - ELF executable
 - Multi-processing
 - GUI
+  - Mouse
+  - Windows
+  - Font
+  - JPG/PNG/..
+  - Video
+  - Audio
 - Networking
-- Mouse
-- Audio
+- UTF-8
+- POSIX
 
 ## Develop Environment
 
