@@ -588,3 +588,23 @@ FILE* open_file_for_read(char* fpath)
 
 爬wiki正好碰到Morden Operating System这本书，都出了第四版了，里面还涉及了Android
 抽根烟看一小会儿，然后还得接着补中期报告
+
+2017-09-05 09:57:00
+断断续续看点《Modern Operating Systems (4th)》，嗯..发现我现在要采取的approach属于monolithic system——整个操作系统属于一个大的binary，任何function可以call别的function
+
+2017-09-05 15:39:29
+略微尝试了一下拿python写模拟的文件系统，卧槽...挺难的，一时写不正确
+莫非需要test driven development?
+
+2017-09-05 21:15:43
+糙糙地拿python实现了一个简单的文件系统，目前可以 ls, pwd, cd, touch, open, read, write
+原理是用一个disk.img的文件模拟硬盘，然后在这个“硬盘”上写meta data写file entry写数据
+尝试把把一个图片存进去然后读出来，存成本地的文件，可以正常打开
+
+我靠... 这个直接写了800行
+
+目前kernel是1900行
+
+缺的有 mv, rm 等等，，然后还可能有各种隐藏的bug
+结构上基本是用file entry中的指针把文件夹、文件组成一棵树，各种不考虑性能不考虑空间利用率
+也没有创建时间修改时间权限属性等等东西
