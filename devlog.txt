@@ -608,3 +608,129 @@ FILE* open_file_for_read(char* fpath)
 缺的有 mv, rm 等等，，然后还可能有各种隐藏的bug
 结构上基本是用file entry中的指针把文件夹、文件组成一棵树，各种不考虑性能不考虑空间利用率
 也没有创建时间修改时间权限属性等等东西
+
+2017-09-05 22:33:37
+800行的python移植成C得多少行？而且功能还不全
+在想能不能有更简单的实现方式
+
+设想了一个极简化的版本：
+只支持固定数目的文件
+没有文件夹的概念
+文件连续存储
+查找文件靠遍历
+
+应该很好实现了吧？
+搞起
+
+2017-09-05 23:40:08
+我擦，不行，也快写到200行了，估计写全得3、400行
+而且这种设计有个严重的缺陷：文件越写越大时怎么保证不写到后面的文件里去
+
+2017-09-06 01:26:08
+稍微查了查，感觉 keeping track of free blocks 的方式就两种：
+
+    1. linked list
+    2. bitmap
+
+各有优劣而且不是决定性的，所以感觉我就用bitmap也没什么问题，目前一个很大的优势就是简单
+其他的几个设计决定貌似也都没什么太大问题，树状结构可以支持 file hierarchy，4KB一个的entry可以支持较长的文件名(哪怕用中文也有差不多1000个字符了)，就是空间利用率低点
+
+之前每个data block对应一个file entry的做法搭配naive的block分配会造成一个文件在硬盘上entry和data block交错出现
+学习了inode的做法后一个4KB的entry可以支持大多小文件了，再大的话就链表指向更多的pointers block
+只是不知道linux的inode为什么还要一个额外的int table，可能目前我的文件系统想解决的问题还没有到int table要解决的地步吧
+
+不尝试更简单的approach了，就目前这个慢慢仔仔细细实现一下，不出意外能一直用到探路阶段完成（探路阶段就是囫囵吞枣地把所有主要特性都用相对简单的方式实现一遍）
+
+
+然后说下实现上的approach(上面是设计的approach)，折腾了几次发现并不简单后就感觉到了分层的重要性了
+比如硬件本身，是一堆io port操作和可能还加interrupt的层面
+需要封装成 read_sector / write_sector 两个简单的接口
+这一层往上，感觉最好能再封装出一层 read_bytes / write_bytes，目的是隐藏读写3个字节到sector时其实需要读写整个扇区，我需要拆分拼装扇区的数据
+再一层呢，就是希望能有一个handle对block使用与否进行标记的功能，这里就用到了bitmap，这一层提供的服务其实就是 malloc/free ，上层创建、删除数据结构时就不需要再操心bitmap的操作了
+(擦，怎么感觉这些并没有到分层的地步，而只是一些method而已，，先不管，然我把话说完)
+再就是数据结构了，使用的硬盘空间要以4KB为block分配/释放，写过之后要flush(包括entry block和data block)(咦，flush这里头其实就可以涉及进cache机制，减少disk io)
+这里的数据结构就几种：meta, directory entry, file entry, data block pointers，都继承自 Block 吧，Block在init的时候记录malloc的i_block，释放的时候通过这个i_block操作bitmap，Block提供了flush
+然后就是树状结构了(这个主要涉及directory)，new_directory内部是创建新的directory entry，add_child，flush所有相关节点的数据到disk
+(比如空directory创建第一个child的时候要flush的是父节点，因为改变了i_first_child，而非空的创建child要flush的是prev sibling，因为改变了i_next_sibling，当然child本身都是要flush的)
+到了叶节点就成了file entry，多了对 data block 的引用
+读写文件需要给出一个单独的抽象 File ，里面有对 entry 的引用从而能找到该文件所有data属于的blocks，然后维护一个 read/write position，写多了会在 entry 中增加 data block pointer 乃至 data block pointers block
+嗯，差不多就这些了，抽象成几个类：
+
+    class Disk
+        
+        meta_info()
+
+        read_bytes()
+        write_bytes()
+        
+        malloc()
+        free()
+
+        _read_sector()
+        _write_sector()
+        
+        _bitmap
+    
+    class Meta
+        
+        i_beg
+        i_end
+        i_meta
+        i_bitmap
+        i_root
+        bytes_per_sector
+        sectors_per_block
+    
+    class Block
+        
+        flush()
+    
+    class Directory : Block
+        
+        new_directory()
+        new_file()
+        get_parent()
+        get_first_child()
+        get_last_child()
+        get_child_by_name()
+        get_descedant_by_path()
+    
+    class FileEntry : Block
+        
+        get_data_block_by_offset()
+        new_block()
+    
+    class File
+    
+        read()
+        write()
+        seek()
+        tell()
+        
+        _pos
+        _entry
+    
+    class FileSystem
+        
+        File open()
+        close(File)
+
+        mkdir()
+        mv()
+        rm()
+
+        ls()
+        pwd()
+        cd()
+
+没写全，先这样吧
+
+2017-09-06 10:51:47
+写了个disk.py，封装了 read_bytes(i_byte, n_bytes) / write_bytes(i_byte, data)
+还写了相应的测试——果然还是要测试啊，一次写不对
+
+2017-09-06 16:45:35
+哎，可以了，还没写完但是应该可以了，，仔细地写，抽象出clean的封装，加测试
+之后直接上c吧
+
+虽然脑子里都知道代码一写就停不下来，但还是没忍住，，这两天本来应该去写中期报告的
