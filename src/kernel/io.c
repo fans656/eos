@@ -124,6 +124,23 @@ void print_int(int val) {
     }
 }
 
+void print_64(uint64_t val) {
+    if (val < 0) {
+        put_char('-');
+        val = -val;
+    }
+    uint64_t base = 1;
+    while (base * 10 <= val) {
+        base *= 10;
+    }
+    while (base) {
+        char ch = '0' + val / base;
+        val %= base;
+        base /= 10;
+        put_char(ch);
+    }
+}
+
 void clear_screen() {
     for (int i = 0; i < 25; ++i) {
         for (int j = 0; j < 80; ++j) {
@@ -176,6 +193,17 @@ void update_key_states(uint8_t scancode) {
     }
 }
 
+/*
+ * printf("%d", 656);
+ * printf("%s", "hello");
+ * printf("%p", &x);
+ * printf("%c", 'a');
+ *
+ * printf("%02x", 0x12);  // => 12
+ * printf("%04x", 0x12);  // => 0012
+ * printf("%08x", 0x12);  // => 00000012
+ * printf("%x", 0x12345678);  // => 12345678
+ */
 void printf(char* fmt, ...) {
     char* arg = (char*)&fmt + 4;
     for (char* p = fmt; *p; ++p) {
@@ -183,6 +211,24 @@ void printf(char* fmt, ...) {
             put_char(*p);
         } else {
             ++p;
+            int width = 8;
+            if ('0' <= *p && *p <= '9') {
+                switch (*(p + 1)) {
+                    case '2':
+                        width = 2;
+                        break;
+                    case '4':
+                        width = 4;
+                        break;
+                }
+                p += 2;
+            }
+            if (*p == 'l' && *(p + 1) == 'l' && *(p + 2) == 'd') {
+                p += 2;
+                print_64(*(uint64_t*)arg);
+                arg += 8;
+                continue;
+            }
             switch (*p) {
                 case 'c':
                     put_char(*(char*)arg);
@@ -197,11 +243,26 @@ void printf(char* fmt, ...) {
                     arg += 4;
                     break;
                 case 'x':
+                    if (width >= 8) {
+                        print_byte(*((char*)arg + 3));
+                        print_byte(*((char*)arg + 2));
+                    }
+                    if (width >= 4) {
+                        print_byte(*((char*)arg + 1));
+                    }
+                    if (width >= 2) {
+                        print_byte(*((char*)arg));
+                    }
+                    break;
                 case 'p':
                     print_str("0x");
                     print_byte(*((char*)arg + 3));
                     print_byte(*((char*)arg + 2));
                     print_byte(*((char*)arg + 1));
+                    print_byte(*((char*)arg));
+                    arg += 4;
+                    break;
+                case 'h':
                     print_byte(*((char*)arg));
                     arg += 4;
                     break;

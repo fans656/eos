@@ -59,8 +59,9 @@ void io_wait() {
     asm("nop;nop;nop;nop;");
 }
 
+// remap Programed Interrupt Controller
+// to avoid the 15 hardware interrupts overlap with software exceptions
 void pic_remap() {
-
 	outb(PIC1_COMMAND, ICW1_INIT+ICW1_ICW4);
 	io_wait();
 	outb(PIC2_COMMAND, ICW1_INIT+ICW1_ICW4);
@@ -80,6 +81,7 @@ void pic_remap() {
 	io_wait();
 }
 
+// send End of Interrupt to allow successive interrupts to come
 void send_eoi(uint8_t irq) {
     if (irq >= 8) {
         outb(PIC2_COMMAND, PIC_EOI);
@@ -101,6 +103,7 @@ uint16_t pic_get_interrupt_request_register() {
     return pic_get_status_register(PIC_READ_IRR);
 }
 
+// interrupt 0 service routine, the PIT timer
 void isr_pit_timer() {
     asm volatile ("pushad");
     
@@ -114,6 +117,7 @@ void isr_pit_timer() {
     asm volatile ("popad; leave; iret");
 }
 
+// interrupt 1 service routine, the keyboard
 void isr_keyboard() {
     asm volatile ("pushad");
     update_key_states(inb(0x60));
@@ -121,19 +125,36 @@ void isr_keyboard() {
     asm volatile ("popad; leave; iret");
 }
 
-void setup_idt() {
+void load_idt() {
     IDTR idtr;
     idtr.limit = 256 * 8 - 1;
     idtr.base = (uint32_t)idt;
     asm volatile ("mov eax, %0" :: "r"(&idtr));
     asm volatile ("lidt [eax]");
+}
 
+void remap_hardware_interrupts() {
+    pic_remap();
+    outb(0x21,
+            IRQ_MASK_TIMER
+            & IRQ_MASK_KEYBOARD
+            );
+    outb(0xa1, 0xff);
+}
+
+void fill_idt_entries() {
     fill_idt_entry(0x20, isr_pit_timer);
     fill_idt_entry(0x21, isr_keyboard);
 
-    pic_remap();
-    outb(0x21,
-            IRQ_MASK_TIMER & IRQ_MASK_KEYBOARD);
-    outb(0xa1, 0xff);
+    remap_hardware_interrupts();
+}
+
+void open_interrupt() {
     asm ("sti");
+}
+
+void setup_idt() {
+    load_idt();
+    fill_idt_entries();
+    open_interrupt();
 }

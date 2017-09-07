@@ -22,6 +22,16 @@ void outb(uint16_t port, uint8_t val) {
     asm volatile ("outb %0, %1" :: "dN"(port), "a"(val));
 }
 
+uint16_t inw(uint16_t port) {
+    uint16_t res;
+    asm volatile ("inw %0, %1" : "=a"(res) : "d"(port));
+    return res;
+}
+
+void outw(uint16_t port, uint16_t val) {
+    asm volatile ("outw %0, %1" :: "dN"(port), "a"(val));
+}
+
 void sleep(int ms) {
     if (ms < MS_PER_IRQ) {
         ms = MS_PER_IRQ + 1;

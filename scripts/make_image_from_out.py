@@ -183,16 +183,3 @@ try:
         f.write(struct.pack('<H', n_sectors))
 except Exception:
     pass
-
-if os.path.exists('bin/girl.raw'):
-    with open('bin/girl.raw') as f:
-        f.seek(0, os.SEEK_END)
-        size = f.tell()
-        assert size % 512 == 0
-        n_sectors = size // 512
-    with open('bin/eos.img', 'rb+') as f:
-        f.seek(END_OF_DAP - 32 - 2, os.SEEK_SET)
-        f.write(struct.pack('<H', n_sectors))
-        f.seek(END_OF_DAP - 32 + 8, os.SEEK_SET)
-        f.write(struct.pack('<I', n_kernel_sectors + 1))
-    os.system('cat bin/girl.raw >> bin/kernel.img')

@@ -734,3 +734,52 @@ FILE* open_file_for_read(char* fpath)
 之后直接上c吧
 
 虽然脑子里都知道代码一写就停不下来，但还是没忍住，，这两天本来应该去写中期报告的
+
+2017-09-07 00:49:38
+看Morden Operating Systems，忽然发现我擦原来实模式的 段:偏移 访问模式可以提供address space啊
+比如两个程序都有 jmp 28 ，但是加载到了内存的不同地方，如果我们把它俩放在不同的段中(每个段64K大小)，它们就相当于拥有了虚拟地址哎~~
+但是64K的大小限制是太不够用了——offset register只有16位，而且程序可以用 ds:di 的方式进行全局访问，可以随意修改别家进程的代码和数据，保护也是太不够了
+进入保护模式后内存引用都是绝对地址，段的存在只是限制了访存的范围，语义完全不一样了，，这时候地址空间是靠paging来提供的
+
+对于咱要写的这个操作系统来说，实模式显然只在bootloader里用了，更多的不用折腾，直接去保护模式做现代操作系统干的事情
+
+2017-09-07 11:59:52
+中期终于答完了，不管结果如何，至少这个周末可以自由支配一下
+开写文件系统！第一步，port io实现保护模式读写磁盘
+
+2017-09-08 01:38:01
+一晚上就搞定了一个 ATA Identify ，硬件驱动确实是难写啊，我这还是有明确standard的
+
+期间遇到的问题：
+
+1. inw
+
+    Identify命令执行到可以读数据之后，这里[1]说的是从 0x1f6 读 256 个 16bit word
+    于是我执行了512次inb，但是发现读来的数据全是 0xff，不对啊
+    后来才知道要执行 256 次 inw
+
+    [1]: http://wiki.osdev.org/ATA_PIO_Mode 
+
+2. C struct bit field
+    
+    Identify之后得到的512字节中的字段，有些长度是1位
+    比如 lba_supported, dma_supported
+    于是想用C struct的bit field来访问，但是读出来是0？
+    后来发现 bit field 的 semantic 是先声明的是低位
+    
+    struct T {
+        uint8_t bit0 : 1;
+        uint8_t bit12 : 2;
+        uint8_t bit3 : 1;
+    };
+
+2. using 64-bit arithmetics in gcc 32-bit target & printf("%lld")
+    
+    因为编译的kernel是32位的，然后发现Identify info里有64位的字段，用来在支持LBA48时表示硬盘扇区数的
+    于是要实现下 printf("%lld") ，于是要实现下 print_longlong(long long val)
+    把 val 转成 string 的过程中需要做一些 base 的除法、求模运算
+    然后编译就报错了，说什么 undefined reference of `_udivdi3`
+    估摸到是long long的问题，尝试了下写个简单的t.c去复现发现复现不了，正常生成 divq 之类的汇编指令
+    然后发现跟内核编译时的gcc参数不同，少了个 -m32，在这个电脑上gcc默认是编译 -m64 的
+    加上参数看汇编，源码里写除法时汇编果然出现了 `_udivdi3`，说明gcc认为32位系统没有 divq 指令，所以只好拿这个函数去实现64位加减乘除
+    google之找到说要 -static-libgcc -lgcc ，但是加完没求屌用，还是报错，后来各种尝试发现参数顺序也有关系...
