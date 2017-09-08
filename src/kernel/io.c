@@ -100,10 +100,19 @@ void print_word(uint16_t val) {
 void print_mem(void* addr, int n_bytes) {
     uint8_t* p = addr;
     for (int i = 0; i < n_bytes; ++i) {
-        if (i) {
+        if (i % 16 == 0) {
+            printf("%p  ", i);
+        }
+        if (i % 16) {
             put_char(' ');
         }
         print_byte(*p++);
+        if (i % 8 == 7) {
+            put_char(' ');
+        }
+        if (i % 16 == 15) {
+            put_char('\n');
+        }
     }
 }
 

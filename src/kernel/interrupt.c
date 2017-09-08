@@ -2,6 +2,9 @@
 http://wiki.osdev.org/8259_PIC
 http://wiki.osdev.org/IRQ
 http://wiki.osdev.org/I_Cant_Get_Interrupts_Working
+
+https://forum.arduino.cc/index.php?topic=65433.0
+there's automatically `cli` before entering ISR and `sti` after returning from ISR
  */
 #include <stdint.h>
 #include <stdbool.h>

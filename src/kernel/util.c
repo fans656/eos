@@ -48,7 +48,7 @@ void srand(uint32_t seed) {
 }
 
 uint32_t rand() {
-    g_current_random_value = (1238417 * g_current_random_value + 58262361) % RAND_MAX;
+    g_current_random_value = (22695477 * g_current_random_value + 1) % RAND_MAX;
     return g_current_random_value;
 }
 

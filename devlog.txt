@@ -783,3 +783,27 @@ FILE* open_file_for_read(char* fpath)
     然后发现跟内核编译时的gcc参数不同，少了个 -m32，在这个电脑上gcc默认是编译 -m64 的
     加上参数看汇编，源码里写除法时汇编果然出现了 `_udivdi3`，说明gcc认为32位系统没有 divq 指令，所以只好拿这个函数去实现64位加减乘除
     google之找到说要 -static-libgcc -lgcc ，但是加完没求屌用，还是报错，后来各种尝试发现参数顺序也有关系...
+
+2017-09-08 10:41:16
+读写sector有大约10%的概率出错，肯定是代码写的不严谨
+仔细过一下 http://wiki.osdev.org/ATA_PIO_Mode
+
+Master/Slave select
+    Device/Head register (0x1f6)
+    bit-4为0是Master，为1是Slave
+
+2017-09-08 13:21:02
+似乎找到原因了，是运算符优先级的问题 [facepalm]
+
+    void wait_for(uint16_t port, uint8_t mask, uint8_t val) {
+        while (inb(port) & mask != val) {
+            ;
+        }
+    }
+
+while 里那个表达式应该写成
+
+    while ((inb(port) & mask) != val)
+
+至少这样改了之后不会再卡住了，不过似乎写了之后读出来的数据不对？这可能是另外的原因
+啊，是 write_sector 后面跟的 flush 操作cmd码写错了，写成了write用的，，改过之后就能读出来了
