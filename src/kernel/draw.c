@@ -104,21 +104,38 @@ void fill_rect(int left, int top, int width, int height, uint32_t color) {
     }
 }
 
-//void main_draw_girl() {
-//    graphic_init();
-//
-//    int width = *(uint32_t*)0x20000;
-//    int height = *(uint32_t*)0x20004;
-//    
-//    int bytes_per_pixel = get_bytes_per_pixel();
-//    
-//    int left = (get_screen_width() - width) / 2;
-//    int top = (get_screen_height() - height) / 2;
-//    for (int y = 0; y < height; ++y) {
-//        for (int x = 0; x < width; ++x) {
-//            uint32_t offset = 0x20008 + (y * width + x) * bytes_per_pixel;
-//            uint32_t color = *(uint32_t*)offset & 0x00ffffff;
-//            draw_pixel(left + x, top + y, color);
-//        }
-//    }
-//}
+typedef struct __attribute__((packed)) {
+    char signature[2];
+    uint32_t file_size;
+    uint32_t _reserved;
+    uint32_t offset;
+} BitmapHeader;
+
+typedef struct __attribute__((packed)) {
+    uint32_t header_size;
+    uint32_t width;
+    uint32_t height;
+    uint8_t _notcare[28];
+} BitmapInfoHeader;
+
+void draw_bmp(uint8_t* bmp) {
+    BitmapHeader* bh = (BitmapHeader*)bmp;
+    BitmapInfoHeader* bih = (BitmapInfoHeader*)(bmp + sizeof(BitmapHeader));
+    uint8_t* pixels = (uint8_t*)(bmp + bh->offset);
+    int width = bih->width;
+    int height = bih->height;
+
+    int bytes_per_pixel = get_bytes_per_pixel();
+    int left = (get_screen_width() - width) / 2;
+    int top = (get_screen_height() - height) / 2;
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            uint32_t offset = (y * width + x) * bytes_per_pixel;
+            uint32_t color = *(uint32_t*)(pixels + offset) & 0x00ffffff;
+            // bmp pixels is stored upside down
+            // the bottom row of pixels is stored at the begining of memory
+            draw_pixel(left + x, top + (height - 1 - y), color);
+        }
+    }
+}

@@ -15,22 +15,15 @@ void kernel_entry() {
     hlt();
 }
 
+uint8_t* bmp = (uint8_t*)(1 * MB);
+
 void main() {
     init_disk();
-
-    uint8_t buffer[512];
-    uint8_t data[512];
-    for (int i = 0; i < 512; ++i) {
-        data[i] = 0x56;
+    graphic_init();
+    
+    int i_sector = 1 * MB / 512;
+    for (int i = 0; i < 4 * MB / 512; ++i) {
+        read_sector(i_sector++, bmp + i * 512);
     }
-
-    read_sector(0, buffer);
-    printf("Before write:\n");
-    print_mem(buffer, 16);
-
-    write_sector(0, data);
-
-    printf("\nAfter write:\n");
-    read_sector(0, buffer);
-    print_mem(buffer, 16);
+    draw_bmp(bmp);
 }

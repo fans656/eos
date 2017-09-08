@@ -115,16 +115,13 @@ def unpack(data, offset, size):
 def print_hex(s):
     print ' '.join('{:02x}'.format(ord(t)) for t in s)
 
-debugging = False
-try:
-    with open('bin/kernel.out', 'rb') as f:
-        data = f.read()
-except Exception:
-    debugging = True
-    with open('../bin/kernel.out', 'rb') as f:
-        data = f.read()
+# read kernel.out
+os.chdir('bin')
+with open('kernel.out', 'rb') as f:
+    data = f.read()
 elf = ELF(data)
 
+# parse ELF sections
 sections = elf.sections
 kernel_beg = KERNEL_END
 kernel_end = KERNEL_BEG
@@ -141,6 +138,7 @@ for section in sections:
         valid_sections.append(section)
 sections = valid_sections
 
+# generate kernel image
 image = ['\x00'] * (kernel_end - kernel_beg)
 for section in sections:
     offset = section.beg - elf.entry
@@ -150,36 +148,38 @@ for section in sections:
 image = ''.join(image)
 size = len(image)
 
-if debugging:
-    elf.sections = sections
-    elf.show()
-
-if debugging:
-    from f6 import human_size
-    print 'Kernel image unpadded size: {} ({} - {} sectors)'.format(
-        size, human_size(size), int(math.ceil(size / 512.0)))
-
+# align on sector
 if size % 512 != 0:
     padding_size = 512 - size % 512
     image += '\x00' * padding_size
+with open('kernel.img', 'wb') as f:
+    f.write(image)
 
-size = len(image)
-if debugging:
-    from f6 import human_size
-    print 'Kernel image padded size: {} ({} - {} sectors)'.format(
-        size, human_size(size), int(math.ceil(size / 512.0)))
-
+# rewrite MBR
 SIGNATURE_SIZE = 2
 PARTITION_TABLE_SIZE = 64
 PADDING_SIZE = 2
 END_OF_DAP = 512 - SIGNATURE_SIZE - PARTITION_TABLE_SIZE - PADDING_SIZE
-try:
-    with open('bin/kernel.img', 'wb') as f:
-        f.write(image)
-    n_kernel_sectors = n_sectors = len(image) // 512
-    # rewrite MBR code to load N sectors for kernel
-    with open('bin/eos.img', 'rb+') as f:
-        f.seek(END_OF_DAP - 16 + 2, os.SEEK_SET)
-        f.write(struct.pack('<H', n_sectors))
-except Exception:
-    pass
+
+# rewrite MBR code to load N sectors for kernel
+n_kernel_sectors = n_sectors = len(image) // 512
+with open('mbr.img', 'rb+') as f:
+    f.seek(END_OF_DAP - 16 + 2, os.SEEK_SET)
+    f.write(struct.pack('<H', n_sectors))
+
+# cat MBR and kernel
+os.system('cat mbr.img kernel.img > eos.img')
+
+# reserve 1M for MBR and kernel
+os.system('dd if=/dev/zero of=eos.img bs=1 count=0 seek=1M >/dev/null 2>&1')
+
+# append the snow-leopard.bmp image
+img_fpath = '../files/snow-leopard.bmp'
+os.system('cat {} >> eos.img'.format(img_fpath))
+
+# make image file (the disk to vm) twice as large
+size = os.stat(img_fpath).st_size
+size += 512 - size % 512
+size *= 2
+os.system('dd if=/dev/zero of=eos.img bs=1 count=0 seek={} >/dev/null 2>&1'.format(
+    size))
