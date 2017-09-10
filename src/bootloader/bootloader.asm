@@ -8,26 +8,8 @@ START:
     xor ax, ax
     mov ds, ax
     mov es, ax
-
-    mov dx, 0x0518  ; 1024x768 24bit color
-
-    ; query mode info
-    mov ax, 0x50
-    mov es, ax
-    mov cx, dx
-    mov ax, 0x4f01
-    int 0x10
-    cmp ax, 0x004f
-    jne Error
-
-    ; set SVGA video mode
-    mov ax, 0x50
-    mov es, ax
-    mov ax, 0x4f02
-    mov bx, dx
-    int 0x10
-    cmp ax, 0x004f
-    jne Error
+    
+    ;call SwithToVesaMode
 
     ; test LBA addressing
     mov ah, 0x41
@@ -63,6 +45,29 @@ START:
     mov cr0, eax
 
     jmp dword 8:0x8000
+
+SwithToVesaMode:
+    mov dx, 0x0518  ; 1024x768 24bit color
+
+    ; query mode info
+    mov ax, 0x50
+    mov es, ax
+    mov cx, dx
+    mov ax, 0x4f01
+    int 0x10
+    cmp ax, 0x004f
+    jne Error
+
+    ; set SVGA video mode
+    mov ax, 0x50
+    mov es, ax
+    mov ax, 0x4f02
+    mov bx, dx
+    int 0x10
+    cmp ax, 0x004f
+    jne Error
+    
+    ret
 
 Error:
     mov ax, 0xb800

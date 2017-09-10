@@ -12,6 +12,7 @@
 - 1024x768 24-bit true color VESA graphics
 - Simple malloc without free
 - Simple read-only file system
+- System call (int 0x80)
 
 ## Future
 

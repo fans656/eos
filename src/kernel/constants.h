@@ -18,4 +18,8 @@ Memory layout:
 #define HEAP_BEG STACK_END
 #define HEAP_END (32 * MB)
 
+enum {
+    SYSCALL_PRINTF = 0,
+};
+
 #endif

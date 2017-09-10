@@ -208,19 +208,9 @@ void update_key_states(uint8_t scancode) {
     }
 }
 
-/*
- * printf("%d", 656);
- * printf("%s", "hello");
- * printf("%p", &x);
- * printf("%c", 'a');
- *
- * printf("%02x", 0x12);  // => 12
- * printf("%04x", 0x12);  // => 0012
- * printf("%08x", 0x12);  // => 00000012
- * printf("%x", 0x12345678);  // => 12345678
- */
-void printf(char* fmt, ...) {
-    char* arg = (char*)&fmt + 4;
+void sys_printf(uint32_t fmt_addr) {
+    char* fmt = *(char**)fmt_addr;
+    char* arg = (char*)(fmt_addr + 4);
     for (char* p = fmt; *p; ++p) {
         if (*p != '%') {
             put_char(*p);
@@ -290,4 +280,19 @@ void printf(char* fmt, ...) {
             }
         }
     }
+}
+
+/*
+ * printf("%d", 656);
+ * printf("%s", "hello");
+ * printf("%p", &x);
+ * printf("%c", 'a');
+ *
+ * printf("%02x", 0x12);  // => 12
+ * printf("%04x", 0x12);  // => 0012
+ * printf("%08x", 0x12);  // => 00000012
+ * printf("%x", 0x12345678);  // => 12345678
+ */
+void printf(char* fmt, ...) {
+    sys_printf((uint32_t)&fmt);
 }

@@ -14,6 +14,7 @@ void kernel_entry() {
             "mov ds, ax;"
             "mov es, ax;"
             "mov ss, ax;"
+            "mov ebp, 0;"
             "mov esp, %0;" :: "i"(STACK_END)
             );
     clear_screen();
@@ -26,6 +27,9 @@ void kernel_entry() {
 }
 
 void main() {
-    printf("hello eos!\n");
-    draw_bmp("/images/snow-leopard.bmp");
+    FILE* fp = fopen("/a.img");
+    uint64_t size = fp->entry->size;
+    char* data = (char*)0xf00000;
+    fread(fp, size, data);
+    asm("call 0xf00000");
 }

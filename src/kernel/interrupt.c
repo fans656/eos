@@ -128,6 +128,25 @@ void isr_keyboard() {
     asm volatile ("popad; leave; iret");
 }
 
+// interrupt 0x80 service routine, system call
+void isr_system_call() {
+    uint32_t call_number;
+    asm volatile ("mov %0, eax" : "=m"(call_number));
+
+    uint32_t arg0;
+    asm volatile ("mov %0, ebx" : "=m"(arg0));
+
+    switch (call_number) {
+        case SYSCALL_PRINTF:
+            sys_printf(arg0);
+            break;
+        default:
+            printf("Unknown syscall\n");
+            break;
+    }
+    asm volatile ("leave; iret");
+}
+
 void load_idt() {
     IDTR idtr;
     idtr.limit = 256 * 8 - 1;
@@ -148,6 +167,7 @@ void remap_hardware_interrupts() {
 void fill_idt_entries() {
     fill_idt_entry(0x20, isr_pit_timer);
     fill_idt_entry(0x21, isr_keyboard);
+    fill_idt_entry(0x80, isr_system_call);
 
     remap_hardware_interrupts();
 }
