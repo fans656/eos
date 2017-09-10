@@ -8,37 +8,35 @@
 void main();
 
 void kernel_entry() {
-    clear_screen();
     setup_idt();
-    init_filesystem();
     init_memory();
+    graphic_init();
+    init_filesystem();
+    clear_screen();
     main();
     hlt();
 }
 
-typedef struct Node {
-    int val;
-    struct Node* next;
-} Node;
-
-Node* build_list(int a[], int n) {
-    Node* head = malloc(sizeof(Node));
-    Node* tail = head;
-    for (int i = 0; i < n; ++i) {
-        Node* node = (Node*)malloc(sizeof(Node));
-        node->val = a[i];
-        node->next = 0;
-        tail->next = node;
-        tail = node;
-    }
-    return head->next;
-}
+char* images[] = {
+    "/images/snow-leopard.bmp",
+    "/images/three-body.bmp",
+    "/images/girl.bmp",
+};
 
 void main() {
-    int a[] = {1,2,3,4,5};
-    Node* p = build_list(a, 5);
-    while (p) {
-        printf("%d\n", p->val);
-        p = p->next;
+    int n = sizeof(images) / sizeof(images[0]);
+    char* image_contents[n];
+    for (int i = 0; i < n; ++i) {
+        FILE* fp = fopen(images[i]);
+        uint64_t size = fp->entry->size;
+        image_contents[i] = malloc(size);
+        fread(fp, size, image_contents[i]);
+    }
+    int i = 0;
+    while (true) {
+        draw_bmp(image_contents[i]);
+        sleep(3000);
+        screen_fill_black();
+        i = (i + 1) % n;
     }
 }

@@ -3,7 +3,7 @@
 #include "io.h"
 #include "util.h"
 
-uint32_t cur = 0x100000;
+uint32_t cur = 1 * MB;
 
 void init_memory() {
 }

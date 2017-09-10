@@ -10,13 +10,13 @@
 - printf
 - 320x240 256-color VGA graphics
 - 1024x768 24-bit true color VESA graphics
+- Simple malloc without free
+- Simple read-only file system
 
 ## Future
 
-- File system
-- Memory Paging
-- malloc/free
 - ELF executable
+- Virtual memory
 - Multi-processing
 - GUI
   - Mouse

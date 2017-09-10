@@ -28,6 +28,7 @@ void print_byte(uint8_t val);
 void print_word(uint16_t val);
 void print_int(int val);
 void print_str(char* s);
+void print_strn(char* s, int n);
 void print_mem(void* addr, int n_bytes);
 void set_cursor_row_col(uint8_t row, uint8_t col);
 int get_char();

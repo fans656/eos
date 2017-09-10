@@ -104,6 +104,18 @@ void fill_rect(int left, int top, int width, int height, uint32_t color) {
     }
 }
 
+void screen_fill_black() {
+    int bpp = get_bytes_per_pixel();
+    int width = get_screen_width();
+    int height = get_screen_height();
+    uint32_t n_bytes = width * height * bpp;
+    uint32_t* p = (uint32_t*)graphic_video_mem;
+    while (n_bytes > 0) {
+        *p++ = 0;
+        n_bytes -= 4;
+    }
+}
+
 typedef struct __attribute__((packed)) {
     char signature[2];
     uint32_t file_size;
@@ -115,7 +127,10 @@ typedef struct __attribute__((packed)) {
     uint32_t header_size;
     uint32_t width;
     uint32_t height;
-    uint8_t _notcare[28];
+    uint16_t planes;
+    uint16_t bpp;
+    uint32_t compression;
+    uint8_t _notcare[20];
 } BitmapInfoHeader;
 
 void draw_bmp(uint8_t* bmp) {
@@ -124,18 +139,24 @@ void draw_bmp(uint8_t* bmp) {
     uint8_t* pixels = (uint8_t*)(bmp + bh->offset);
     int width = bih->width;
     int height = bih->height;
+    int bytes_per_row = width * bytes_per_pixel;
+    if (bytes_per_row % 4 != 0) {
+        bytes_per_row += 4 - bytes_per_row % 4;
+    }
+    int bpp = get_bytes_per_pixel();
 
-    int bytes_per_pixel = get_bytes_per_pixel();
-    int left = (get_screen_width() - width) / 2;
-    int top = (get_screen_height() - height) / 2;
+    int screen_width = get_screen_width();
+    int screen_height = get_screen_height();
+    int left = (screen_width - width) / 2;
+    int top = (screen_height - height) / 2;
 
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            uint32_t offset = (y * width + x) * bytes_per_pixel;
-            uint32_t color = *(uint32_t*)(pixels + offset) & 0x00ffffff;
-            // bmp pixels is stored upside down
-            // the bottom row of pixels is stored at the begining of memory
-            draw_pixel(left + x, top + (height - 1 - y), color);
-        }
+    uint16_t bytes_per_pixel = bih->bpp / 8;
+    uint32_t offset_data = (height - 1) * bytes_per_row;
+    uint32_t bytes_per_row_mem = screen_width * bpp;
+    uint32_t offset_mem = top * bytes_per_row_mem + left * bpp;
+    for (int i = 0; i < height; ++i) {
+        memcpy(pixels + offset_data, graphic_video_mem + offset_mem, bytes_per_row);
+        offset_data -= bytes_per_row;
+        offset_mem += bytes_per_row_mem;
     }
 }

@@ -894,3 +894,20 @@ data_blocks中每个uint32_t保存一个data block的指针
 
 2017-09-10 13:53:58
 有必要实现下 malloc/free ，不然文件系统的traversal太难写了
+
+2017-09-10 17:49:43
+搞定，简单的只读文件系统，可以加载一个bmp图片显示出来
+
+2017-09-10 19:26:13
+想做个幻灯片效果，但是为啥妹子的效果不对，斜了
+试验了下发现计算offset的时候改成 (y * (width + 1) + x) * bytes_per_pixel 就对了
+为什么要加那个1呢？就是说每行像素多了3个字节
+仔细翻了翻wiki发现这么一句：
+
+    The size of each row is rounded up to a multiple of 4 bytes by padding.
+
+啊呀呀
+
+
+改好了，还优化了下绘图效率——就是每次往video mem里写一行像素而不是一个一个像素地调用draw_pixel
+有效果，切换时的闪屏好多了

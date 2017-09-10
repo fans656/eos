@@ -28,5 +28,6 @@ uint32_t rand();
 int randint(int min, int max);
 
 void memcpy(void* src, void* dst, uint64_t n_bytes);
+int strncmp(char* src, char* dst, int n);
 
 #endif

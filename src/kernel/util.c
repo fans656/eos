@@ -70,3 +70,16 @@ void memcpy(void* src, void* dst, uint64_t n_bytes) {
         *qq++ = *pp++;
     }
 }
+
+int strncmp(char* src, char* dst, int n) {
+    while (n-- && *src && *dst) {
+        if (*src < *dst) {
+            return -1;
+        } else if (*src > *dst) {
+            return 1;
+        }
+        ++src;
+        ++dst;
+    }
+    return 0;
+}

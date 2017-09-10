@@ -82,6 +82,12 @@ void print_str(char* s) {
     }
 }
 
+void print_strn(char* s, int n) {
+    while (n--) {
+        put_char(*s++);
+    }
+}
+
 char four_bits_to_char(uint8_t bits) {
     return bits < 10 ? bits + '0' : bits - 10 + 'A';
 }

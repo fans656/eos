@@ -20,14 +20,14 @@ START:
     cmp ax, 0x004f
     jne Error
 
-    ;; set SVGA video mode
-    ;mov ax, 0x50
-    ;mov es, ax
-    ;mov ax, 0x4f02
-    ;mov bx, dx
-    ;int 0x10
-    ;cmp ax, 0x004f
-    ;jne Error
+    ; set SVGA video mode
+    mov ax, 0x50
+    mov es, ax
+    mov ax, 0x4f02
+    mov bx, dx
+    int 0x10
+    cmp ax, 0x004f
+    jne Error
 
     ; test LBA addressing
     mov ah, 0x41
