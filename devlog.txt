@@ -891,3 +891,6 @@ data_blocks中每个uint32_t保存一个data block的指针
 2017-09-10 00:18:00
 嗯，终于写出来可以把一个目录bundle到disk image里的Python版的文件系统了
 接下来就是移植到C咯，先能读再说
+
+2017-09-10 13:53:58
+有必要实现下 malloc/free ，不然文件系统的traversal太难写了

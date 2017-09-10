@@ -10,6 +10,8 @@
 #define MB (1024 * KB)
 #define GB (1024 * MB)
 
+#define panic hlt
+
 extern int sleep_count;
 
 void hlt();
@@ -24,5 +26,7 @@ void sleep(int cnt);
 void srand(uint32_t seed);
 uint32_t rand();
 int randint(int min, int max);
+
+void memcpy(void* src, void* dst, uint64_t n_bytes);
 
 #endif

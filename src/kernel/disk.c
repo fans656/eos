@@ -8,6 +8,7 @@ http://wiki.osdev.org/PCI_IDE_Controller
 #include <stdbool.h>
 #include "disk.h"
 #include "io.h"
+#include "util.h"
 
 #define DATA_PORT 0x1f0
 #define ERROR_PORT 0x1f1
@@ -37,6 +38,8 @@ http://wiki.osdev.org/PCI_IDE_Controller
 #define high_byte(x) (((x) >> 8) & 0xff)
 
 DiskMeta disk_meta;
+
+uint8_t sector_buffer[BPS];
 
 void wait_for(int port, uint8_t mask, uint8_t val) {
     while ((inb(port) & mask) != val) {
@@ -137,6 +140,32 @@ void init_disk() {
     clear_address_ports();
     do_identify(&disk_meta);
     asm("sti");
+}
+
+void read_bytes(uint64_t i_byte, uint64_t n_bytes, void* buffer) {
+    uint32_t i_sector = i_byte / BPS;
+    uint8_t* p = buffer;
+    if (i_byte % BPS != 0) {
+        read_sector(i_sector++, sector_buffer);
+        uint32_t n_left = i_byte % BPS;
+        uint32_t n_read = BPS - n_left;
+        memcpy(sector_buffer + n_left, p, n_read);
+        p += n_read;
+        n_bytes -= n_read;
+    }
+    while (n_bytes >= BPS) {
+        read_sector(i_sector++, p);
+        n_bytes -= BPS;
+        p += BPS;
+    }
+    if (n_bytes) {
+        read_sector(i_sector++, sector_buffer);
+        memcpy(sector_buffer, p, n_bytes);
+        p += n_bytes;
+    }
+}
+
+void write_bytes(uint64_t i_byte, uint64_t n_bytes, uint8_t* data) {
 }
 
 void read_sector(uint32_t i_sector, uint8_t* buffer) {

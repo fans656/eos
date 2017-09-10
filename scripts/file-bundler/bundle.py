@@ -7,6 +7,7 @@ from filesystem import Filesystem
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 fs = Filesystem()
+fs.format()
 fs.bundle_directory('../../files')
 
 with open('disk.img', 'rb') as src, open('../../bin/eos.img', 'rb+') as dst:

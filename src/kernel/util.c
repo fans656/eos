@@ -55,3 +55,18 @@ uint32_t rand() {
 int randint(int min, int max) {
     return min + rand() % (max - min + 1);
 }
+
+void memcpy(void* src, void* dst, uint64_t n_bytes) {
+    uint64_t n_dwords = n_bytes / 4;
+    n_bytes %= 4;
+    uint32_t* p = src;
+    uint32_t* q = dst;
+    while (n_dwords--) {
+        *q++ = *p++;
+    }
+    uint8_t* pp = (uint8_t*)p;
+    uint8_t* qq = (uint8_t*)q;
+    while (n_bytes--) {
+        *qq++ = *pp++;
+    }
+}

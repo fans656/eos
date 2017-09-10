@@ -281,16 +281,5 @@ class Bitmap(object):
 
 
 if __name__ == '__main__':
-    new = 1
-    fs = Filesystem(new=new)
-    disk = fs.disk
-    if new:
-        fs.bundle_directory('/home/fans656/test')
-        fs.tree()
-    else:
-        fs.tree()
-        print fs.root_directory.first_child
-
-        #f = fs.open('snow-leopard.bmp')
-        #with open('t.bmp', 'wb') as dst:
-        #    dst.write(f.read(f.size))
+    fs = Filesystem()
+    fs.tree()
