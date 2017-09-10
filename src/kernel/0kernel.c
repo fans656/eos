@@ -15,15 +15,13 @@ void kernel_entry() {
     hlt();
 }
 
-uint8_t* bmp = (uint8_t*)(1 * MB);
-
 void main() {
     init_disk();
-    graphic_init();
     
-    int i_sector = 1 * MB / 512;
-    for (int i = 0; i < 4 * MB / 512; ++i) {
-        read_sector(i_sector++, bmp + i * 512);
-    }
-    draw_bmp(bmp);
+    char buffer[512];
+    int i_sector = 0x106000 / 512;
+    //i_sector += 8 * 2;
+    printf("read %d sector\n", i_sector);
+    read_sector(i_sector, buffer);
+    print_mem(buffer, 256);
 }

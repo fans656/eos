@@ -3,6 +3,7 @@ import struct
 from disk import Disk
 from bitmap import Bitmap
 from directory import Directory
+from fileentry import File
 from meta import Meta
 from conf import *
 from util import *
@@ -35,7 +36,6 @@ class FileSystem(object):
 
     def mkdir(self, name):
         cur = self.cur
-        assert self.cur is self.root
         if name in cur.children_names:
             return
         cur.new_directory(name)
@@ -52,6 +52,36 @@ class FileSystem(object):
             if child and child.is_dir:
                 self.cur = child
 
+    def bundle(self, fpath):
+        pass
+
+    def touch(self, name):
+        self.cur.new_file(name)
+
+    def exists(self, path):
+        fpath = self.absolute_path(path)
+        entry = self.root.get_entry_by_fpath(fpath)
+        return bool(entry)
+
+    def open(self, path):
+        fpath = self.absolute_path(path)
+        entry = self.root.get_entry_by_fpath(fpath)
+        if not entry:
+            raise Exception('file not found')
+        if entry.is_dir:
+            raise Exception('can not open directory')
+        return File(entry)
+
+    def absolute_path(self, path):
+        if path.startswith('/'):
+            return path
+        else:
+            s = self.cur.fpath
+            if not s.endswith('/'):
+                s += '/'
+            s += path
+            return s
+
     def show(self):
         meta = self.meta
         print '=' * 40, 'meta', meta.i_meta
@@ -67,10 +97,61 @@ if __name__ == '__main__':
 
 
     fs = FileSystem()
-    fs.mkdir('foo')
-    fs.ls()
-    fs.cd('foo')
-    fs.ls()
-    fs.cd('..')
-    fs.ls()
-    fs.mkdir('bar')
+    fs.format()
+    #fs.mkdir('foo')
+    #fs.ls()
+    #fs.cd('foo')
+    #fs.ls()
+    #fs.cd('..')
+    #fs.ls()
+    #fs.mkdir('bar')
+    #fs.ls()
+
+    bitmap = fs.bitmap
+    #print 'Initial format'
+    #bitmap.show(64)
+
+    fs.touch('t.txt')
+    f = fs.open('/t.txt')
+    e = f.entry
+    #assert e.n_entries == 1
+    #assert e.n_blocks == 0
+
+    #print
+    #print 'After touch t.txt'
+    #bitmap.show(64)
+
+    #e.expand_to_size(4096)
+    #assert e.n_entries == 1
+    #assert e.n_blocks == 1
+    #print
+    #print 'After expand to 4096'
+    #bitmap.show(64)
+
+    #e.expand_to_size(4097)
+    #assert e.n_entries == 1
+    #assert e.n_blocks == 2
+    #print
+    #print 'After expand to 4097'
+
+    size = 4 * KB * 896
+    e.expand_to_size(size)
+    #print e.n_entries
+    #print e.n_blocks
+    exit()
+    assert e.n_entries == 3
+    assert e.n_blocks == 895 * 3
+    print
+    print 'After expand to {}'.format(size)
+    bitmap.show(512)
+    exit()
+
+    #fs.bitmap.show()
+    print 'Disk size', fs.meta.n_blocks * BYTES_PER_BLOCK
+    print bitmap.size_in_bytes
+    print bitmap.size_in_blocks
+
+    #e.expand_to_size(4 * KB * 252)
+    #fs.bitmap.show()
+    #assert e.n_entries == 1
+    #assert e.n_blocks == 894

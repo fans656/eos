@@ -18,3 +18,15 @@ class Entry(object):
     @property
     def is_dir(self):
         return self.type == TYPE_DIRECTORY
+
+    @property
+    def parent(self):
+        return self.get_entry_by_i_block(self.i_parent)
+
+    @property
+    def prev_sibling(self):
+        return self.get_entry_by_i_block(self.i_prev_sibling)
+
+    @property
+    def next_sibling(self):
+        return self.get_entry_by_i_block(self.i_next_sibling)

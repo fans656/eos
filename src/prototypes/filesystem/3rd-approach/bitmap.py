@@ -19,7 +19,9 @@ class Bitmap(object):
         self.size_in_bytes = size_in_bytes = len(self.a)
         self.size_in_blocks = size_in_blocks = (size_in_bytes + bpb - 1) // bpb
         self.i_block = meta.i_bitmap
-        self.alloc(meta.i_free, 0)
+        for i in xrange(0, meta.i_free, 8):
+            self.alloc(8, i)
+        self.flush()
 
     def load(self):
         meta = self.meta
@@ -31,6 +33,8 @@ class Bitmap(object):
         self.size_in_blocks = (size_in_bytes + bpb - 1) // bpb
 
     def alloc(self, n_blocks=1, desired_i_block=None):
+        if n_blocks > 8:
+            raise Exception('blocks larger than 32K is not allowed')
         valid = False
         if desired_i_block is not None:
             i_block = desired_i_block
@@ -38,17 +42,39 @@ class Bitmap(object):
             if self.available(i_block, n_blocks):
                 valid = True
         else:
-            for i_block in xrange(self.meta.i_free, len(self.a)):
-                if self.available(i_block, n_blocks):
-                    valid = True
-                    break
+            try:
+                i_block = self.find_free_stride(n_blocks)
+                valid = True
+            except Exception as e:
+                print e
+                valid = False
         if valid:
             for i in xrange(i_block, i_block + n_blocks):
                 self[i] = True
             return i_block
-        raise Exception(
-            'can not alloc the specified blocks: [{}, {})'.format(
-                i_block, i_block + n_blocks))
+        raise Exception('can not alloc')
+
+    def find_free_stride(self, n):
+        a = self.a
+        beg = self.meta.i_free
+        if n == 8:
+            try:
+                return next(i for i in xrange(beg // 8, len(self.a)) if a[i] == 0) * 8
+            except StopIteration:
+                raise Exception()
+        elif n < 8:
+            try:
+                i = next(i for i in xrange(beg // 8, len(self.a)) if 8 - bit_count(a[i]) >= n)
+                mask = (0xff >> (8 - n)) << (8 - n)
+                for i_bit in xrange(8):
+                    if a[i_bit] & mask == 0:
+                        break
+                    mask >>= 1
+                return i * 8 + i_bit
+            except StopIteration:
+                raise Exception()
+        else:
+            raise Exception()
 
     def free(self, i_block, n_blocks=1):
         self.validate(i_block, n_blocks)
@@ -90,19 +116,30 @@ class Bitmap(object):
 
     def available(self, i_block, n_blocks):
         a = self.a
-        for i_block in xrange(i_block, i_block + n_blocks):
-            i_byte = i_block // 8
-            i_bit = i_block % 8
-            if self.a[i_byte] & (1 << i_bit) != 0:
+        for i in xrange(i_block, i_block + n_blocks):
+            i_byte = i // 8
+            i_bit = i % 8
+            if (self.a[i_byte] & (1 << i_bit)) != 0:
                 return False
         return True
 
-    def show(self):
+    def successive_free_blocks_begin_with(self, i_block, n_blocks):
+        a = self.a
+        for i in xrange(i_block, i_block + n_blocks):
+            i_byte = i // 8
+            if a[i_byte] == 0xff:
+                return 0
+            i_bit = i % 8
+            if (a[i_byte] & (1 << i_bit)) != 0:
+                return i - i_block
+        return n_blocks
+
+    def show(self, n_bytes=64):
         meta = self.meta
         i_byte_bitmap = meta.i_bitmap * meta.bytes_per_block
         n_bytes_bitmap = meta.n_blocks // 8
         print '=' * 40, 'bitmap'
-        print_hex(self.disk.read_bytes(i_byte_bitmap, 64))
+        print_hex(self.disk.read_bytes(i_byte_bitmap, n_bytes))
         print '=' * 40, 'bitmap end'
 
 

@@ -1,6 +1,7 @@
 import struct
 
 from entry import Entry
+from fileentry import FileEntry, File
 from conf import *
 
 
@@ -23,13 +24,13 @@ class Directory(Entry):
         i += 4
         self.i_parent = struct.unpack('<I', data[i:i+4])[0]
         i += 4
-        self.i_first_child = struct.unpack('<I', data[i:i+4])[0]
-        i += 4
-        self.i_last_child = struct.unpack('<I', data[i:i+4])[0]
-        i += 4
         self.i_prev_sibling = struct.unpack('<I', data[i:i+4])[0]
         i += 4
         self.i_next_sibling = struct.unpack('<I', data[i:i+4])[0]
+        i += 4
+        self.i_first_child = struct.unpack('<I', data[i:i+4])[0]
+        i += 4
+        self.i_last_child = struct.unpack('<I', data[i:i+4])[0]
         i += 4
         name_len = struct.unpack('<I', data[i:i+4])[0]
         i += 4
@@ -41,10 +42,10 @@ class Directory(Entry):
         s = ''
         s += struct.pack('<I', self.type)
         s += struct.pack('<I', self.i_parent)
-        s += struct.pack('<I', self.i_first_child)
-        s += struct.pack('<I', self.i_last_child)
         s += struct.pack('<I', self.i_prev_sibling)
         s += struct.pack('<I', self.i_next_sibling)
+        s += struct.pack('<I', self.i_first_child)
+        s += struct.pack('<I', self.i_last_child)
         s += struct.pack('<I', len(self.name))
         s += self.name + '\0'
         return s
@@ -72,8 +73,10 @@ class Directory(Entry):
         self.add_child(child)
         return child
 
-    def get_child_by_name(self, name):
-        return next((c for c in self.children if c.name == name), None)
+    def new_file(self, name):
+        child = FileEntry(self.disk, self.allocator, self.allocator.alloc(), name=name)
+        self.add_child(child)
+        return child
 
     def add_child(self, child):
         tail = self.last_child
@@ -136,30 +139,37 @@ class Directory(Entry):
         return [c.name for c in self.children]
 
     @property
-    def parent(self):
-        return self.get_entry(self.i_parent)
-
-    @property
     def first_child(self):
-        return self.get_entry(self.i_first_child)
+        return self.get_entry_by_i_block(self.i_first_child)
 
     @property
     def last_child(self):
-        return self.get_entry(self.i_last_child)
+        return self.get_entry_by_i_block(self.i_last_child)
 
-    @property
-    def prev_sibling(self):
-        return self.get_entry(self.i_prev_sibling)
-
-    @property
-    def next_sibling(self):
-        return self.get_entry(self.i_next_sibling)
-
-    def get_entry(self, i_block):
+    def get_entry_by_i_block(self, i_block):
         if i_block:
-            return Directory(self.disk, self.allocator, i_block, load=True)
+            d = Directory(self.disk, self.allocator, i_block, load=True)
+            if d.is_dir:
+                return d
+            else:
+                return FileEntry(self.disk, self.allocator, i_block, load=True)
         else:
             return None
+
+    def get_entry_by_fpath(self, fpath):
+        names = fpath[1:].split('/')
+        cur = self
+        for name in names:
+            child = cur.get_child_by_name(name)
+            if not child:
+                return None
+            cur = child
+            if not cur:
+                return None
+        return cur
+
+    def get_child_by_name(self, name):
+        return next((c for c in self.children if c.name == name), None)
 
 
 if __name__ == '__main__':

@@ -169,17 +169,3 @@ with open('mbr.img', 'rb+') as f:
 
 # cat MBR and kernel
 os.system('cat mbr.img kernel.img > eos.img')
-
-# reserve 1M for MBR and kernel
-os.system('dd if=/dev/zero of=eos.img bs=1 count=0 seek=1M >/dev/null 2>&1')
-
-# append the snow-leopard.bmp image
-img_fpath = '../files/snow-leopard.bmp'
-os.system('cat {} >> eos.img'.format(img_fpath))
-
-# make image file (the disk to vm) twice as large
-size = os.stat(img_fpath).st_size
-size += 512 - size % 512
-size *= 2
-os.system('dd if=/dev/zero of=eos.img bs=1 count=0 seek={} >/dev/null 2>&1'.format(
-    size))

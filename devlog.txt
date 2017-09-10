@@ -814,3 +814,80 @@ while 里那个表达式应该写成
 
 刚才想着要不要setup一下用C++来写，想想还是先算了，现在连 malloc/free 都还没有，C++的一堆特性要搞清楚怎么支持就得费很久
 可能到实现线程之后再考虑吧，等到写GUI的时候肯定严重有必要用C++来搞
+
+2017-09-09 00:05:43
+发现bitmap找free block的算法很慢，这是可以抽象出一个clean problem的细部，试试
+
+2017-09-09 01:53:44
+妈的，需要仔细写一下文件系统的设计文档，给自己的思路理一理
+
+
+前1MB空间预留给MBR和kernel image，第一个sector是MBR，其后是kernel image
+    
+    因为kernel image是实模式下加载到0x8000，所以其实用不了1MB，这里[1]给出的结果是480KB左右
+    应该没问题，因为之后各种功能可以放在别的module里
+    
+    [1]: http://wiki.osdev.org/Memory_Map_(x86)
+
+固定认为 BYTES_PER_SECTOR = 512, BYTES_PER_BLOCK = 4096
+
+从1MB处开始，第一个block(注意是block, 4K)存meta data，目前有：
+
+    uint32_t n_blocks;  // 硬盘总block数目
+    uint32_t i_bitmap;  // bitmap起始block
+    uint32_t i_root;  // root entry起始block
+    
+    使用LBA28寻址，支持的最大硬盘容量是128GB，对于探路阶段够用了
+    n_blocks == n_sectors / SECTORS_PER_BLOCK ，多出来的sector不用
+
+使用bitmap标记硬盘block的使用
+
+    16MB硬盘需要512B的bitmap
+    128GB硬盘需要4MB的bitmap
+
+文件夹以Directory表示，占用一个block
+文件以FileEntry链表 + DataBlock 表示，至少占用一个block(空文件)
+Directory和FileEntry都属于Entry，Entry是树状结构中的节点，成员有：
+    
+    uint32_t i_parent;          // 0
+    uint32_t i_first_child;     // 4
+    uint32_t i_last_child;      // 8
+    uint32_t i_prev_sibling;    // 12
+    uint32_t i_next_sibling;    // 16
+    uint32_t n_bytes_name;      // 20
+    char name[512 - 24];
+
+对于FileEntry，name之后还有一些field
+    
+    ...
+    uint64_t size;
+    uint32_t i_next_entry;
+    uint32_t n_data_blocks;     // 此entry中的data_blocks个数
+    char reserved[512 - 16];
+
+    uint32_t data_blocks[768];  // (4096 - 512 * 2) / 4
+
+data_blocks中每个uint32_t保存一个data block的指针
+    
+
+一些类的接口：
+
+    class Disk:
+        
+        read_bytes(i_byte, n_bytes)
+        
+        write_bytes(i_byte, data)
+
+    class Bitmap:
+        
+        allocate()
+        分配一个block，如需多个则调用多次
+        这是为了避免一次要求n_blocks个时没那么大的连续空间，
+        而如果要返回非连续结果那就得是个数组，还是让caller自己操心好了
+
+        __setitem__(i_block, used)
+        为了标记 MBR + kernel + meta + bitmap + root 等初始就占用空间的blocks
+
+2017-09-10 00:18:00
+嗯，终于写出来可以把一个目录bundle到disk image里的Python版的文件系统了
+接下来就是移植到C咯，先能读再说
