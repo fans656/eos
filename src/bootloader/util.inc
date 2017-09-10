@@ -1,3 +1,5 @@
+; http://wiki.osdev.org/Global_Descriptor_Table
+
 %macro Descriptor 3  ; base, limit, attr
     dw %2 & 0ffffh  ; limit 0:15 bytes
     dw %1 & 0ffffh  ; base 0:15 bytes
@@ -7,7 +9,7 @@
     db (%1 >> 24) & 0ffh  ; base 24:31
 %endmacro
 
-DA_OS_CODE equ 409ah
-DA_OS_DATA equ 0092h
+DA_OS_CODE equ 0x409a
+DA_OS_DATA equ 0x4092
 __ equ 0
 NULL equ 0

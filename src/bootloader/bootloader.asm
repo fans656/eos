@@ -61,8 +61,7 @@ START:
     mov eax, cr0
     or eax, 1
     mov cr0, eax
-    mov ax, 16
-    mov ds, ax
+
     jmp dword 8:0x8000
 
 Error:

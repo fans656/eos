@@ -3,12 +3,7 @@
 
 #include <stdint.h>
 #include "util.h"
-
-#define RAND_MAX 65536
-
-#define KB (1024)
-#define MB (1024 * KB)
-#define GB (1024 * MB)
+#include "constants.h"
 
 #define panic hlt
 

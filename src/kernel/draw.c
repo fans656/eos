@@ -1,24 +1,9 @@
 #include "draw.h"
+#include "filesystem.h"
+#include "malloc.h"
 #include "io.h"
 
 // http://www.delorie.com/djgpp/doc/rbinter/ix/10/4F.html
-
-typedef struct __attribute__((packed)) {
-    char signature[4];
-    uint16_t version;
-    uint32_t oem_name;
-    uint32_t flags;
-    uint16_t* modes;
-    uint16_t size;
-    uint16_t oem_version;
-    char* vendor_name;
-    char* product_name;
-    char* product_revision;
-    uint16_t vbe_af_version;
-    void* acc_modes;
-    char _[216];
-    char oem_data[256];
-} SVGAInfo;
 
 typedef struct  __attribute__ ((packed)) {
    uint16_t attributes;  // deprecated
@@ -133,7 +118,12 @@ typedef struct __attribute__((packed)) {
     uint8_t _notcare[20];
 } BitmapInfoHeader;
 
-void draw_bmp(uint8_t* bmp) {
+void draw_bmp(char* fpath) {
+    FILE* fp = fopen(fpath);
+    uint64_t size = fp->entry->size;
+    char* bmp = malloc(size);
+    fread(fp, size, bmp);
+
     BitmapHeader* bh = (BitmapHeader*)bmp;
     BitmapInfoHeader* bih = (BitmapInfoHeader*)(bmp + sizeof(BitmapHeader));
     uint8_t* pixels = (uint8_t*)(bmp + bh->offset);

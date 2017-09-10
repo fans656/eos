@@ -2,8 +2,9 @@
 #include "malloc.h"
 #include "io.h"
 #include "util.h"
+#include "constants.h"
 
-uint32_t cur = 1 * MB;
+uint32_t cur = HEAP_BEG;
 
 void init_memory() {
 }
