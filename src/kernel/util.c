@@ -56,6 +56,32 @@ int randint(int min, int max) {
     return min + rand() % (max - min + 1);
 }
 
+int strcmp(char* src, char* dst) {
+    while (*src && *dst) {
+        if (*src < *dst) {
+            return -1;
+        } else if (*src > *dst) {
+            return 1;
+        }
+        ++src;
+        ++dst;
+    }
+    return *src - *dst;
+}
+
+int strncmp(char* src, char* dst, int n) {
+    while (n-- && *src && *dst) {
+        if (*src < *dst) {
+            return -1;
+        } else if (*src > *dst) {
+            return 1;
+        }
+        ++src;
+        ++dst;
+    }
+    return 0;
+}
+
 void memcpy(void* src, void* dst, uint64_t n_bytes) {
     uint64_t n_dwords = n_bytes / 4;
     n_bytes %= 4;
@@ -71,15 +97,9 @@ void memcpy(void* src, void* dst, uint64_t n_bytes) {
     }
 }
 
-int strncmp(char* src, char* dst, int n) {
-    while (n-- && *src && *dst) {
-        if (*src < *dst) {
-            return -1;
-        } else if (*src > *dst) {
-            return 1;
-        }
-        ++src;
-        ++dst;
+void memset(void* beg, uint32_t size, uint8_t val) {
+    char* p = (char*)beg;
+    for (int i = 0; i < size; ++i) {
+        *p++ = val;
     }
-    return 0;
 }

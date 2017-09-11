@@ -133,17 +133,19 @@ void isr_system_call() {
     uint32_t call_number;
     asm volatile ("mov %0, eax" : "=m"(call_number));
 
-    uint32_t arg0;
-    asm volatile ("mov %0, ebx" : "=m"(arg0));
+    uint32_t ebp;
+    asm volatile ("mov %0, ebp" : "=m"(ebp));
+    uint32_t* arg = ((uint32_t*)*(uint32_t*)ebp) + 2;
 
     switch (call_number) {
         case SYSCALL_PRINTF:
-            sys_printf(arg0);
+            sys_printf(arg);
             break;
         default:
             printf("Unknown syscall\n");
             break;
     }
+
     asm volatile ("leave; iret");
 }
 

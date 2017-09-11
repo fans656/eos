@@ -218,12 +218,17 @@ void fclose(FILE* fp) {
 }
 
 void fseek(FILE* fp, uint64_t offset, int anchor) {
+    fp->pos = offset;
 }
 
 uint64_t ftell(FILE* fp) {
 }
 
-void fread(FILE* fp, uint64_t n_bytes, char* buffer) {
+uint64_t fsize(FILE* fp) {
+    return fp->entry->size;
+}
+
+void fread(FILE* fp, uint64_t n_bytes, void* buffer) {
     uint64_t pos = fp->pos;
     n_bytes = min(fp->entry->size - fp->pos, n_bytes);
     while (n_bytes) {

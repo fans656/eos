@@ -5,6 +5,7 @@
 #include "filesystem.h"
 #include "malloc.h"
 #include "constants.h"
+#include "loader.h"
 
 void main();
 
@@ -27,9 +28,5 @@ void kernel_entry() {
 }
 
 void main() {
-    FILE* fp = fopen("/a.img");
-    uint64_t size = fp->entry->size;
-    char* data = (char*)0xf00000;
-    fread(fp, size, data);
-    asm("call 0xf00000");
+    execute("/bin/ls");
 }

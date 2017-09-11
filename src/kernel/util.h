@@ -22,7 +22,10 @@ void srand(uint32_t seed);
 uint32_t rand();
 int randint(int min, int max);
 
-void memcpy(void* src, void* dst, uint64_t n_bytes);
+int strcmp(char* src, char* dst);
 int strncmp(char* src, char* dst, int n);
+
+void memcpy(void* src, void* dst, uint64_t n_bytes);
+void memset(void* beg, uint32_t size, uint8_t val);
 
 #endif

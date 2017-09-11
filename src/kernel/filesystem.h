@@ -36,6 +36,8 @@ void fclose(struct FILE* fp);
 void fseek(struct FILE* fp, uint64_t offset, int anchor);
 uint64_t ftell(struct FILE* fp);
 
-void fread(struct FILE* fp, uint64_t n_bytes, char* buffer);
+void fread(struct FILE* fp, uint64_t n_bytes, void* buffer);
+
+uint64_t fsize(FILE* fp);
 
 #endif

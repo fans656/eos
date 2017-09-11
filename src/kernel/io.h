@@ -34,7 +34,7 @@ void set_cursor_row_col(uint8_t row, uint8_t col);
 int get_char();
 void update_key_states(uint8_t scancode);
 int get_char_nonblocking();
-void sys_printf(uint32_t base);
+void sys_printf(void* p_arg0);
 void printf(char* fmt, ...);
 
 #endif

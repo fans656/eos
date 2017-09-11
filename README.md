@@ -13,10 +13,11 @@
 - Simple malloc without free
 - Simple read-only file system
 - System call (int 0x80)
+- ELF executable
 
 ## Future
 
-- ELF executable
+- Console
 - Virtual memory
 - Multi-processing
 - GUI

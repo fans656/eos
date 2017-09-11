@@ -208,9 +208,9 @@ void update_key_states(uint8_t scancode) {
     }
 }
 
-void sys_printf(uint32_t fmt_addr) {
-    char* fmt = *(char**)fmt_addr;
-    char* arg = (char*)(fmt_addr + 4);
+void sys_printf(void* p_arg0) {
+    char* fmt = *(char**)p_arg0;
+    char* arg = (char*)(p_arg0 + 4);
     for (char* p = fmt; *p; ++p) {
         if (*p != '%') {
             put_char(*p);
@@ -258,6 +258,7 @@ void sys_printf(uint32_t fmt_addr) {
                     if (width >= 2) {
                         print_byte(*((char*)arg));
                     }
+                    arg += 4;
                     break;
                 case 'p':
                     print_str("0x");
@@ -294,5 +295,5 @@ void sys_printf(uint32_t fmt_addr) {
  * printf("%x", 0x12345678);  // => 12345678
  */
 void printf(char* fmt, ...) {
-    sys_printf((uint32_t)&fmt);
+    sys_printf(&fmt);
 }

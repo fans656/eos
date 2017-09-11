@@ -19,7 +19,7 @@ Memory layout:
 #define HEAP_END (32 * MB)
 
 enum {
-    SYSCALL_PRINTF = 0,
+    SYSCALL_PRINTF = 1,
 };
 
 #endif

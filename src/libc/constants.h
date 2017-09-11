@@ -2,7 +2,7 @@
 #define CONSTANTS_H
 
 enum {
-    SYSCALL_PRINTF = 0,
+    SYSCALL_PRINTF = 1,
 };
 
 #endif
