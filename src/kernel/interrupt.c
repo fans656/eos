@@ -112,8 +112,8 @@ void isr_pit_timer() {
     
     ++g_clock_counter;
     
-    if (sleep_count >= 0) {
-        --sleep_count;
+    if (g_sleep_count > 0) {
+        --g_sleep_count;
     }
 
     send_eoi(IRQ_PIT_TIMER);

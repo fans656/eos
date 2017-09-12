@@ -6,6 +6,7 @@
 #include "malloc.h"
 #include "constants.h"
 #include "loader.h"
+#include "time.h"
 
 void main();
 
@@ -19,6 +20,7 @@ void kernel_entry() {
             "mov esp, %0;" :: "i"(STACK_END)
             );
     clear_screen();
+    init_pit();
     setup_idt();
     init_memory();
     graphic_init();
@@ -28,5 +30,8 @@ void kernel_entry() {
 }
 
 void main() {
-    execute("/bin/ls");
+    for (int i = 0;; ++i) {
+        printf("%d\n", i);
+        sleep(1000);
+    }
 }

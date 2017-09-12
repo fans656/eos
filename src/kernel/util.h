@@ -17,7 +17,6 @@ void outb(uint16_t port, uint8_t val);
 uint16_t inw(uint16_t port);
 void outw(uint16_t port, uint16_t val);
 
-void sleep(int cnt);
 void srand(uint32_t seed);
 uint32_t rand();
 int randint(int min, int max);
