@@ -46,7 +46,7 @@ void draw(Snake* snake) {
         }
         for (int x = pt1->x, y = pt1->y; x != pt2->x || y != pt2->y; x += dx, y+= dy) {
             set_cursor_row_col(y, x);
-            put_char('*');
+            putchar('*');
         }
     }
     set_cursor_row_col(0, 0);
@@ -135,7 +135,7 @@ int snake_dead(Snake* snake) {
 }
 
 void get_direction_from_user(int* dx, int* dy) {
-    int key = get_char_nonblocking();
+    int key = async_getchar();
     int prev_dx = *dx, prev_dy = *dy;
     switch (key) {
         case KEY_UP:
@@ -160,7 +160,7 @@ void get_direction_from_user(int* dx, int* dy) {
 void draw_food(int x, int y) {
     if (x >= 0) {
         set_cursor_row_col(y, x);
-        put_char('o');
+        putchar('o');
         set_cursor_row_col(y, x);
     }
 }
@@ -180,7 +180,7 @@ void snake_game() {
         print_str("Press any key to start");
         set_cursor_row_col(snake.points[0].y, snake.points[0].x + 1);
         print_str(">");
-        get_char();
+        getchar();
 
         srand(clock());
 
@@ -201,7 +201,7 @@ void snake_game() {
         set_cursor_row_col(10, 30);
         print_str("  YOU ARE DEAD!!!  ");
         sleep(100);
-        get_char();
+        getchar();
         sleep(50);
     }
 }

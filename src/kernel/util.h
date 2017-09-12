@@ -26,5 +26,6 @@ int strncmp(char* src, char* dst, int n);
 
 void memcpy(void* src, void* dst, uint64_t n_bytes);
 void memset(void* beg, uint32_t size, uint8_t val);
+void strcpy(char* src, char* dst);
 
 #endif

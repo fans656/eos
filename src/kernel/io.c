@@ -15,34 +15,71 @@ uint8_t N_COLS = 80;
 uint8_t cursor_cur_row = 0;
 uint8_t cursor_cur_col = 0;
 
+bool inputting;
+
+uint8_t input_beg_row;
+uint8_t input_beg_col;
+
+uint8_t input_end_row;
+uint8_t input_end_col;
+
 uint16_t* VIDEO_MEM = (uint16_t*)0xb8000;
 uint16_t* VGA_INDEX_BASE_PORT_ADDR = (uint16_t*)0x0463;
 
 uint8_t SCANCODE_TO_KEY[128] = {
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I',
-    'O', 'P',   0,   0,   0,   0, 'A', 'S',
+    0, KEY_ESC,
+    '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', KEY_BACKSPACE,
+    KEY_TAB, 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', KEY_ENTER,
+    KEY_LCTRL, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',
+    KEY_LSHIFT,  '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', KEY_RSHIFT, 0,
 
-    'D', 'F', 'G', 'H', 'J', 'K', 'L',   0,
-      0,   0,   0,   0, 'Z', 'X', 'C', 'V',
-    'B', 'N', 'M',   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
+    KEY_LALT,   ' ',   0,   0,   0,   0,   0,   0,
 
-      0,   0,   0,   0,   0,   0,   0,   0,
-      KEY_UP,   0,   0,   KEY_LEFT,   0,   KEY_RIGHT,   0,   0,
-      KEY_DOWN,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,
+    KEY_UP,   0,   0,   KEY_LEFT,   0,   KEY_RIGHT,   0,   0,
+    KEY_DOWN,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,
 
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,
+    0,   0,   0,   0,   0,   0,   0,   0,
 };
+
+uint8_t NUM_SHIFTED[] = {'!', '@', '#', '$', '%', '^', '&', '*', '('};
 
 int current_key = -1;
 int num_key_pressed = 0;
 bool key_states[128];
+
+#define KEY_BUFFER_SIZE 4096
+int key_buffer[KEY_BUFFER_SIZE];
+int key_buffer_beg = 0;
+int key_buffer_end = 0;
+
+void key_buffer_push(int key) {
+    int next_end = (key_buffer_end + 1) % KEY_BUFFER_SIZE;
+    if (next_end == key_buffer_beg) {
+        key_buffer_beg = (key_buffer_beg + 1) % KEY_BUFFER_SIZE;
+    }
+    key_buffer[key_buffer_end] = key;
+    key_buffer_end = next_end;
+}
+
+void key_buffer_pop() {
+    if (key_buffer_beg != key_buffer_end) {
+        key_buffer_end = (key_buffer_end + KEY_BUFFER_SIZE - 1) % KEY_BUFFER_SIZE;
+    }
+}
+
+int key_buffer_deque() {
+    while (key_buffer_beg == key_buffer_end) {
+        asm("hlt");
+    }
+    int res = key_buffer[key_buffer_beg];
+    key_buffer_beg = (key_buffer_beg + 1) % KEY_BUFFER_SIZE;
+    return res;
+}
 
 void scroll_down_one_line() {
     for (int i = 0; i < N_ROWS - 1; ++i) {
@@ -64,27 +101,85 @@ void put_newline() {
     cursor_cur_col = 0;
 }
 
-void put_char(char ch) {
+void setchar(int ch) {
+    VIDEO_MEM[cursor_cur_row * N_COLS + cursor_cur_col] = GRAY_FG | ch;
+}
+
+void cursor_back() {
+    if (!(cursor_cur_row > input_beg_row || cursor_cur_col > input_beg_col)) {
+        return;
+    }
+    if (cursor_cur_col == 0) {
+        if (cursor_cur_row) {
+            --cursor_cur_row;
+            cursor_cur_col = N_COLS - 1;
+        }
+    } else {
+        --cursor_cur_col;
+    }
+    set_cursor_row_col(cursor_cur_row, cursor_cur_col);
+}
+
+void cursor_forwrad() {
+    if (!(cursor_cur_row < input_end_row || cursor_cur_col < input_end_col)) {
+        return;
+    }
+    if (cursor_cur_col == N_COLS - 1) {
+        if (cursor_cur_row < N_ROWS - 1) {
+            ++cursor_cur_row;
+            cursor_cur_col = 0;
+        }
+    } else {
+        ++cursor_cur_col;
+    }
+    set_cursor_row_col(cursor_cur_row, cursor_cur_col);
+}
+
+void begin_input() {
+    inputting = true;
+    input_beg_row = cursor_cur_row;
+    input_beg_col = cursor_cur_col;
+}
+
+void end_input() {
+    inputting = false;
+}
+
+void put_backspace() {
+    if (cursor_cur_row > input_beg_row
+            || cursor_cur_col > input_beg_col) {
+        cursor_back();
+        setchar(' ');
+    }
+}
+
+void putchar(int ch) {
     if (ch == '\n') {
         put_newline();
+    } else if (ch == '\b') {
+        put_backspace();
     } else {
-        VIDEO_MEM[cursor_cur_row * N_COLS + cursor_cur_col] = GRAY_FG | ch;
+        setchar(ch);
         if (++cursor_cur_col == N_COLS) {
             put_newline();
         }
     }
     set_cursor_row_col(cursor_cur_row, cursor_cur_col);
+    if (inputting) {
+        input_end_row = cursor_cur_row;
+        input_end_col = cursor_cur_col;
+    }
 }
 
 void print_str(char* s) {
     while (*s) {
-        put_char(*s++);
+        putchar(*s++);
     }
 }
 
 void print_strn(char* s, int n) {
     while (n--) {
-        put_char(*s++);
+        putchar(*s++);
     }
 }
 
@@ -93,13 +188,13 @@ char four_bits_to_char(uint8_t bits) {
 }
 
 void print_byte(uint8_t val) {
-    put_char(four_bits_to_char(val >> 4));
-    put_char(four_bits_to_char(val & 0x0f));
+    putchar(four_bits_to_char(val >> 4));
+    putchar(four_bits_to_char(val & 0x0f));
 }
 
 void print_word(uint16_t val) {
     print_byte(val & 0xff);
-    put_char(' ');
+    putchar(' ');
     print_byte(val >> 8);
 }
 
@@ -110,21 +205,21 @@ void print_mem(void* addr, int n_bytes) {
             printf("%p  ", i);
         }
         if (i % 16) {
-            put_char(' ');
+            putchar(' ');
         }
         print_byte(*p++);
         if (i % 8 == 7) {
-            put_char(' ');
+            putchar(' ');
         }
         if (i % 16 == 15) {
-            put_char('\n');
+            putchar('\n');
         }
     }
 }
 
 void print_int(int val) {
     if (val < 0) {
-        put_char('-');
+        putchar('-');
         val = -val;
     }
     int base = 1;
@@ -135,13 +230,13 @@ void print_int(int val) {
         char ch = '0' + val / base;
         val %= base;
         base /= 10;
-        put_char(ch);
+        putchar(ch);
     }
 }
 
 void print_64(uint64_t val) {
     if (val < 0) {
-        put_char('-');
+        putchar('-');
         val = -val;
     }
     uint64_t base = 1;
@@ -152,7 +247,7 @@ void print_64(uint64_t val) {
         char ch = '0' + val / base;
         val %= base;
         base /= 10;
-        put_char(ch);
+        putchar(ch);
     }
 }
 
@@ -176,19 +271,62 @@ void set_cursor_row_col(uint8_t row, uint8_t col) {
     outb(port + 1, (offset >> 8) & 0xff);
 }
 
-int get_char() {
-    while (1) {
-        int ch = get_char_nonblocking();
-        if (ch != -1) {
-            return ch;
-        } else {
-            asm("hlt");
-        }
-    }
+int getchar() {
+    return key_buffer_deque();
 }
 
-int get_char_nonblocking() {
+int async_getchar() {
     return current_key;
+}
+
+void on_key_down(int key) {
+    if (0 < key && key < 128 || key == '`') {
+        if (key_states[KEY_LSHIFT] || key_states[KEY_RSHIFT]) {
+            if ('a' <= key && key <= 'z') {
+                key &= ~0x20;
+            } else if ('1' <= key && key <= '9') {
+                key = NUM_SHIFTED[key - '1'];
+            }
+            switch (key) {
+                case '0': key = ')'; break;
+                case '-': key = '_'; break;
+                case '=': key = '+'; break;
+                case '[': key = '{'; break;
+                case ']': key = '}'; break;
+                case ';': key = ':'; break;
+                case '\'': key = '"'; break;
+                case ',': key = '<'; break;
+                case '.': key = '>'; break;
+                case '/': key = '?'; break;
+                case '`': key = '~'; break;
+            }
+        }
+        key_buffer_push(key);
+    } else {
+        if (inputting) {
+            switch (key) {
+                case KEY_BACKSPACE:
+                    key_buffer_pop();
+                    put_backspace();
+                    break;
+                case KEY_ENTER:
+                    key_buffer_push(key);
+                    break;
+                case KEY_LEFT:
+                    cursor_back();
+                    break;
+                case KEY_RIGHT:
+                    cursor_forwrad();
+                    break;
+                //case KEY_UP:
+                //    cursor_up();
+                //    break;
+                //case KEY_DOWN:
+                //    cursor_down();
+                //    break;
+            }
+        }
+    }
 }
 
 void update_key_states(uint8_t scancode) {
@@ -205,6 +343,7 @@ void update_key_states(uint8_t scancode) {
         }
         key_states[key] = 1;
         current_key = key;
+        on_key_down(key);
     }
 }
 
@@ -213,7 +352,7 @@ void sys_printf(void* p_arg0) {
     char* arg = (char*)(p_arg0 + 4);
     for (char* p = fmt; *p; ++p) {
         if (*p != '%') {
-            put_char(*p);
+            putchar(*p);
         } else {
             ++p;
             int width = 8;
@@ -236,7 +375,7 @@ void sys_printf(void* p_arg0) {
             }
             switch (*p) {
                 case 'c':
-                    put_char(*(char*)arg);
+                    putchar(*(char*)arg);
                     arg += 4;
                     break;
                 case 'd':
@@ -273,7 +412,7 @@ void sys_printf(void* p_arg0) {
                     arg += 4;
                     break;
                 case '%':
-                    put_char('%');
+                    putchar('%');
                     break;
                 default:
                     printf("%%%c", *p);

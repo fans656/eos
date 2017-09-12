@@ -29,9 +29,40 @@ void kernel_entry() {
     hlt();
 }
 
+char cmd[4096];
+int i_cmd;
+
+char exe_fpath[256];
+
 void main() {
-    for (int i = 0;; ++i) {
-        printf("%d\n", i);
-        sleep(1000);
+    printf("\n");
+    execute("/bin/art");
+    while (true) {
+        printf("\n$ ");
+
+        begin_input();
+        i_cmd = 0;
+        while (true) {
+            int ch = getchar();
+            if (ch == KEY_ENTER) {
+                putchar('\n');
+                cmd[i_cmd] = 0;
+                break;
+            }
+            cmd[i_cmd++] = ch;
+            putchar(ch);
+        }
+        end_input();
+        
+        int bin_end = 0;
+        while (cmd[bin_end] != ' ') {
+            ++bin_end;
+        }
+        cmd[bin_end] = 0;
+        
+        strcpy("/bin/", exe_fpath);
+        strcpy(cmd, exe_fpath + 5);
+
+        execute(exe_fpath);
     }
 }

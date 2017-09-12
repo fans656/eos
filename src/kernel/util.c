@@ -84,6 +84,12 @@ void memcpy(void* src, void* dst, uint64_t n_bytes) {
     }
 }
 
+void strcpy(char* src, char* dst) {
+    while (*src) {
+        *dst++ = *src++;
+    }
+}
+
 void memset(void* beg, uint32_t size, uint8_t val) {
     char* p = (char*)beg;
     for (int i = 0; i < size; ++i) {

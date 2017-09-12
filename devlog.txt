@@ -922,3 +922,17 @@ data_blocks中每个uint32_t保存一个data block的指针
 PIT可以设置irq0的频率，现在设到10ms精度了——之前是50ms
 10ms用来做time slice足够小了么？
 先不管，之后写到了再说——而且可能是很后面了，也许音视频这种有实时性要求的程序
+
+2017-09-12 21:50:22
+之前忽然想shell可以写成user application，但是今儿又意识到想错了，不能：
+目前没有支持虚拟内存，那么除非user app把entry地址放到不同的地方，否则shell和shell要execute的app都会被加载到同一段内存，就覆盖了
+
+所以还是先把shell写到kernel里
+
+然后，其实想试试这种very primitive的环境能走多远
+
+    - 无虚拟内存
+    - 单进程
+
+至少应该是能做到DOS那样的，有耐心的话可以写出vim这样的editor
+加上保护模式下切换vesa mode的话，可以做出mspaint乃至各种图形程序——不过同一时间只能有一个在运行，，也许做一个超级玛丽，那么看上去就非常像小学三年级记忆里的DOS了
