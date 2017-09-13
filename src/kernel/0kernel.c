@@ -25,6 +25,7 @@ void kernel_entry() {
     init_memory();
     graphic_init();
     init_filesystem();
+    enable_paging();
     main();
     hlt();
 }
@@ -34,7 +35,7 @@ int i_cmd;
 
 char exe_fpath[256];
 
-void main() {
+void console() {
     printf("\n");
     execute("/bin/art");
     while (true) {
@@ -65,4 +66,16 @@ void main() {
 
         execute(exe_fpath);
     }
+}
+
+void main() {
+    char* addr0 = (char*)0;
+    printf("Content at vaddr 0x00000000:\n");
+    print_mem(addr0, 128);
+
+    printf("\n");
+
+    printf("Content at vaddr 0x40000000:\n");
+    char* addr1 = (char*)(1 * GB);
+    print_mem(addr1, 128);
 }
