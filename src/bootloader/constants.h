@@ -15,11 +15,10 @@ Memory layout:
     16-32MB     heap
     3.95GB      graphic video memory
  */
-#define KERNEL_BEG ((uint32_t)3 * GB)
-#define KERNEL_END (1 * MB + KERNEL_BEG)
-#define STACK_END (16 * MB + KERNEL_BEG)
+#define KERNEL_END (1 * MB)
+#define STACK_END (16 * MB)
 #define HEAP_BEG STACK_END
-#define HEAP_END (32 * MB + KERNEL_BEG)
+#define HEAP_END (32 * MB)
 
 enum {
     SYSCALL_PRINTF = 1,

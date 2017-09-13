@@ -52,7 +52,7 @@ typedef void (*ISR)();
 void fill_idt_entry(int idx, ISR isr) {
     uint32_t addr = (uint32_t)isr;
     idt[idx].offset1 = addr & 0x0000ffff;
-    idt[idx].offset2 = addr & 0xffff0000;
+    idt[idx].offset2 = (addr & 0xffff0000) >> 16;
     idt[idx].selector = 8;
     idt[idx].zero = 0;
     idt[idx].attr = isr ? 0x8e : 0x00;

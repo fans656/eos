@@ -11,6 +11,6 @@ for fname in os.listdir('.'):
         cmd = ('gcc {name}/*.c ../libc/*.c '
                + '-m32 -masm=intel -nostdlib -ffreestanding -static-libgcc -lgcc '
                + '-I../libc '
-               + '-Wl,-Ttext=0x2000000 -Wl,-emain '
+               + '-Wl,-Ttext=0x4000000 -Wl,-emain '
                + '-o ../../files/bin/{name}').format(name=fname)
         os.system(cmd)

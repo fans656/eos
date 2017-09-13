@@ -936,3 +936,20 @@ PIT可以设置irq0的频率，现在设到10ms精度了——之前是50ms
 
 至少应该是能做到DOS那样的，有耐心的话可以写出vim这样的editor
 加上保护模式下切换vesa mode的话，可以做出mspaint乃至各种图形程序——不过同一时间只能有一个在运行，，也许做一个超级玛丽，那么看上去就非常像小学三年级记忆里的DOS了
+
+2017-09-13 21:26:46
+populate了页表，做了个4GB的identity mapping，cr0, cr3开启了分页，可以正常跑
+但是进一步有很多盲点，比如：
+
+    - 怎样把kernel加载到higher half?
+        这样才方便不指定入口编译出的elf文件可以所有section都加载进内存——比如 .comment 的起始地址是 0
+        kernel编译时的入口地址得写 0xc0000000
+    - Page Fault handler 是怎么写的?
+    - 开启了虚拟内存之后怎么修改 page table?
+    - 怎么切换不同进程的 page table?
+
+一样样来
+
+2017-09-14 00:30:06
+哇，搞定了 higher half kernel
+能重现之前的console效果，能运行程序
