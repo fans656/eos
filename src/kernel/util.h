@@ -5,7 +5,9 @@
 #include "util.h"
 #include "constants.h"
 
-#define panic hlt
+#define assert(val) if (!(val)) panic("Assertion failed: %s, line %d, %s\n", __FILE__, __LINE__, __func__)
+
+void panic(char* fmt, ...);
 
 extern int sleep_count;
 

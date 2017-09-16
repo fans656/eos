@@ -44,8 +44,7 @@ void read_bitmap() {
 void init_filesystem() {
     init_disk();
     if (disk_meta.bytes_per_sector != BYTES_PER_SECTOR) {
-        printf("Unsupported bytes per sector: %d\n", disk_meta.bytes_per_sector);
-        panic();
+        panic("Unsupported bytes per sector: %d\n", disk_meta.bytes_per_sector);
     }
     read_meta();
     read_bitmap();
@@ -236,8 +235,7 @@ void fread(FILE* fp, uint64_t n_bytes, void* buffer) {
         uint32_t i_byte_in_entry = pos % BYTES_PER_ENTRY;
         if (fp->ith_entry != ith_entry) {
             if (fp->ith_entry > ith_entry) {
-                printf("back seek not supported\n");
-                panic();
+                panic("back seek not supported\n");
             }
             for (int i = fp->ith_entry; i < ith_entry; ++i) {
                 fp->cur_pos_entry = next_file_entry(fp->cur_pos_entry);

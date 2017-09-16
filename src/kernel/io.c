@@ -23,8 +23,8 @@ uint8_t input_beg_col;
 uint8_t input_end_row;
 uint8_t input_end_col;
 
-uint16_t* VIDEO_MEM = (uint16_t*)0xb8000;
-uint16_t* VGA_INDEX_BASE_PORT_ADDR = (uint16_t*)0x0463;
+uint16_t* VIDEO_MEM = (uint16_t*)(0xb8000 + VADDR_BASE);
+uint16_t* VGA_INDEX_BASE_PORT_ADDR = (uint16_t*)(0x0463 + VADDR_BASE);
 
 uint8_t SCANCODE_TO_KEY[128] = {
     0, KEY_ESC,
@@ -166,8 +166,8 @@ void putchar(int ch) {
     }
     set_cursor_row_col(cursor_cur_row, cursor_cur_col);
     if (inputting) {
-        input_end_row = cursor_cur_row;
-        input_end_col = cursor_cur_col;
+        //input_end_row = cursor_cur_row;
+        //input_end_col = cursor_cur_col;
     }
 }
 
@@ -434,5 +434,75 @@ void sys_printf(void* p_arg0) {
  * printf("%x", 0x12345678);  // => 12345678
  */
 void printf(char* fmt, ...) {
-    sys_printf(&fmt);
+    char* arg = (char*)&fmt;
+    for (char* p = fmt; *p; ++p) {
+        if (*p != '%') {
+            putchar(*p);
+        } else {
+            ++p;
+            int width = 8;
+            if ('0' <= *p && *p <= '9') {
+                switch (*(p + 1)) {
+                    case '2':
+                        width = 2;
+                        break;
+                    case '4':
+                        width = 4;
+                        break;
+                }
+                p += 2;
+            }
+            if (*p == 'l' && *(p + 1) == 'l' && *(p + 2) == 'd') {
+                p += 2;
+                print_64(*(uint64_t*)arg);
+                arg += 8;
+                continue;
+            }
+            switch (*p) {
+                case 'c':
+                    putchar(*(char*)arg);
+                    arg += 4;
+                    break;
+                case 'd':
+                    print_int(*(int*)arg);
+                    arg += 4;
+                    break;
+                case 's':
+                    print_str((char*)(*(char**)arg));
+                    arg += 4;
+                    break;
+                case 'x':
+                    if (width >= 8) {
+                        print_byte(*((char*)arg + 3));
+                        print_byte(*((char*)arg + 2));
+                    }
+                    if (width >= 4) {
+                        print_byte(*((char*)arg + 1));
+                    }
+                    if (width >= 2) {
+                        print_byte(*((char*)arg));
+                    }
+                    arg += 4;
+                    break;
+                case 'p':
+                    print_str("0x");
+                    print_byte(*((char*)arg + 3));
+                    print_byte(*((char*)arg + 2));
+                    print_byte(*((char*)arg + 1));
+                    print_byte(*((char*)arg));
+                    arg += 4;
+                    break;
+                case 'h':
+                    print_byte(*((char*)arg));
+                    arg += 4;
+                    break;
+                case '%':
+                    putchar('%');
+                    break;
+                default:
+                    printf("%%%c", *p);
+                    break;
+            }
+        }
+    }
 }

@@ -4,41 +4,121 @@
 #include "util.h"
 #include "constants.h"
 
-uint32_t cur = HEAP_BEG;
+typedef struct {
+    uint32_t* frames_top;
+} MemoryMeta;
 
-uint32_t* page_directory = (uint32_t*)(1 * MB);
-uint32_t* page_table = (uint32_t*)(1 * MB + 4 * KB);
+typedef struct {
+    uint32_t tables_p[1024];
+    uint32_t tables_v[1024];
+    uint32_t paddr;
+} PageDirectory;
 
-void enable_paging() {
-    for (int i = 0; i < 1024; ++i) {
-        uint32_t address = ((uint32_t)(page_table) + i * 4 * KB) | 3;
-        page_directory[i] = address;
-    }
-    for (int i_table = 0; i_table < 1024; ++i_table) {
-        for (int i_entry = 0; i_entry < 1024; ++i_entry) {
-            uint32_t address = i_table * 4 * MB + i_entry * 4 * KB;
-            *(uint32_t*)((uint32_t)page_table + i_table * 4 * KB + i_entry * 4) = address | 3;
+MemoryMeta* memory_meta = (MemoryMeta*)MEMORY_META_ADDR;
+
+PageDirectory* page_directory = (PageDirectory*)PAGE_DIRECTORY_ADDR;
+
+uint32_t* frames_top;
+
+static uint32_t heap_end = HEAP_BEG;
+static uint32_t mapped_heap_end = HEAP_BEG;
+
+void reload_cr3() {
+    asm volatile("mov eax, %0; mov cr3, eax" :: "m"(page_directory->paddr));
+}
+
+void show_memory_map() {
+    PageDirectory* page_directory = (PageDirectory*)PAGE_DIRECTORY_ADDR;
+    uint32_t vaddr = 0;
+    uint32_t paddr_beg = 0, paddr_end = 0;
+    bool found = false;
+    for (int i = 0; i < 1024 * 1024;) {
+        int i_pde = (vaddr & 0xffc00000) >> 22;
+        int i_pte = (vaddr & 0x003ff000) >> 12;
+        if ((page_directory->tables_p)[i_pde]) {
+            uint32_t* page_table = (uint32_t*)(page_directory->tables_v)[i_pde];
+            uint32_t pte = page_table[i_pte] & 0xfffff000;
+            if (!found) {
+                if (page_table[i_pte]) {
+                    paddr_beg = pte;
+                    paddr_end = paddr_beg + 4 * KB;
+                    found = true;
+                }
+            } else {
+                if (pte == paddr_end) {
+                    paddr_end = pte + 4 * KB;
+                } else {
+                    if (found) {
+                        printf("%x-%x: %x-%x\n",
+                                vaddr - (paddr_end - paddr_beg), vaddr,
+                                paddr_beg, paddr_end);
+                    }
+                    found = false;
+                }
+            }
+            vaddr += 4 * KB;
+            ++i;
+        } else {
+            if (found) {
+                printf("%x-%x: %x-%x\n",
+                        vaddr - (paddr_end - paddr_beg), vaddr,
+                        paddr_beg, paddr_end);
+            }
+            found = false;
+            vaddr += 4 * MB;
+            i += 1024;
         }
     }
-    *(uint32_t*)((uint32_t)page_table + 4 * KB * 256) = 3;
-    asm volatile(
-            "mov eax, %0;"
-            "mov cr3, eax;"
-            "mov eax, cr0;"
-            "or eax, 0x80000001;"
-            "mov cr0, eax;"
-            :: "g"((uint32_t)page_directory)
-            );
+    if (found) {
+        printf("%x-%x: %x-%x\n",
+                vaddr - (paddr_end - paddr_beg), vaddr,
+                paddr_beg, paddr_end);
+    }
+}
+
+void unmap_pages(uint32_t vaddr, uint32_t size) {
+    return;
+    PageDirectory* page_directory = (PageDirectory*)PAGE_DIRECTORY_ADDR;
+    while (size >= 4 * MB) {
+        int i_pde = (vaddr & 0xffc00000) >> 22;
+        (page_directory->tables_p)[i_pde] = 0;
+        size -= 4 * MB;
+        vaddr += 4 * MB;
+    }
+    int i_pde = (vaddr & 0xffc00000) >> 22;
+    int i_pte = (vaddr & 0x003ff000) >> 12;
+    uint32_t* pte = (uint32_t*)((page_directory->tables_v)[i_pde] + i_pte * 4);
+    while (size) {
+        *pte++ = 0;
+        size -= 4 * KB;
+    }
+    reload_cr3();
 }
 
 void init_memory() {
+    *(uint32_t*)PAGE_DIRECTORY_ADDR = 0;
+    asm("invlpg [0]");
+    asm("mov word ptr [0xc00b8000], 0x0f41");
+    hlt();
+    
+    //uint32_t eip;
+    //asm volatile("mov eax, [ebp + 4]; mov %0, eax" : "=m"(eip));
+    //panic("%x\n", eip);
+
+    printf("hi\n");
+}
+
+uint32_t alloc_frame() {
 }
 
 void* malloc(uint32_t size) {
-    uint32_t res = cur;
-    cur += size;
-    return (void*)res;
+    if (heap_end >= mapped_heap_end) {
+        uint32_t frame_paddr = alloc_frame();
+    }
 }
 
 void free(void* p) {
+}
+
+void* syscall_sbrk(int shift) {
 }

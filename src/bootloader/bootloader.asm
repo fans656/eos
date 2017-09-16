@@ -8,6 +8,26 @@ START:
     xor ax, ax
     mov ds, ax
     mov es, ax
+    mov fs, ax
+    mov gs, ax
+    
+    ; get memory info
+    ; http://www.uruk.org/orig-grub/mem64mb.html
+;    mov di, 0x7c00 - 0x0400
+;    mov ebx, 0
+;Next:
+;    mov eax, 0xe820
+;    mov ecx, 0x0400
+;    mov edx, 0x534d4150
+;    int 0x15
+;    jc Error
+;    cmp eax, 0x534d4150
+;    jne Error
+;    add di, cx
+;    cmp ebx, 0
+;    jne Next
+;    sub di, 0x7c00 - 0x0400
+;    mov [0x0600], di
     
     ;call SwithToVesaMode
 
@@ -72,7 +92,7 @@ SwithToVesaMode:
 Error:
     mov ax, 0xb800
     mov ds, ax
-    mov word [ds:0], 0x0f41
+    mov word [ds:(12 * 80 + 39) * 2], 0x0f45
     jmp $
 
 GDT:

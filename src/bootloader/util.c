@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include "util.h"
-
-uint32_t g_current_random_value;
+#include "io.h"
 
 void hlt() {
     while (1) {
@@ -27,20 +26,6 @@ uint16_t inw(uint16_t port) {
 
 void outw(uint16_t port, uint16_t val) {
     asm volatile ("outw %0, %1" :: "dN"(port), "a"(val));
-}
-
-void srand(uint32_t seed) {
-    g_current_random_value = seed;
-    rand();
-}
-
-uint32_t rand() {
-    g_current_random_value = (22695477 * g_current_random_value + 1) % RAND_MAX;
-    return g_current_random_value;
-}
-
-int randint(int min, int max) {
-    return min + rand() % (max - min + 1);
 }
 
 int strcmp(char* src, char* dst) {
@@ -95,4 +80,9 @@ void memset(void* beg, uint32_t size, uint8_t val) {
     for (int i = 0; i < size; ++i) {
         *p++ = val;
     }
+}
+
+void panic(char* fmt, ...) {
+    sys_printf(&fmt);
+    hlt();
 }

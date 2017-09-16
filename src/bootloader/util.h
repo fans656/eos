@@ -2,10 +2,9 @@
 #define UTIL_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "util.h"
 #include "constants.h"
-
-#define panic hlt
 
 extern int sleep_count;
 
@@ -27,5 +26,9 @@ int strncmp(char* src, char* dst, int n);
 void memcpy(void* src, void* dst, uint64_t n_bytes);
 void memset(void* beg, uint32_t size, uint8_t val);
 void strcpy(char* src, char* dst);
+
+void panic(char* fmt, ...);
+
+#define assert(val) if (!(val)) panic("Assertion failed: %s, line %d, %s\n", __FILE__, __LINE__, __func__)
 
 #endif

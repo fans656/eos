@@ -10,6 +10,10 @@
 
 void main();
 
+void f(char* s, int row);
+void setchar(int ch);
+void g(char* s);
+
 void kernel_entry() {
     asm volatile (
             "mov ax, 16;"
@@ -17,15 +21,14 @@ void kernel_entry() {
             "mov es, ax;"
             "mov ss, ax;"
             "mov ebp, 0;"
-            "mov esp, %0;" :: "i"(STACK_END)
+            "mov esp, %0;" :: "i"(0xc0000000 + 16 * MB)
             );
     clear_screen();
     init_pit();
     setup_idt();
     init_memory();
-    graphic_init();
-    init_filesystem();
-    main();
+    //init_filesystem();
+    //main();
     hlt();
 }
 

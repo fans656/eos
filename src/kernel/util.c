@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "util.h"
+#include "io.h"
 
 uint32_t g_current_random_value;
 
@@ -95,4 +96,9 @@ void memset(void* beg, uint32_t size, uint8_t val) {
     for (int i = 0; i < size; ++i) {
         *p++ = val;
     }
+}
+
+void panic(char* fmt, ...) {
+    sys_printf(&fmt);
+    hlt();
 }

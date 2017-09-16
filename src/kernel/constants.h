@@ -7,19 +7,16 @@
 #define MB (1024 * KB)
 #define GB (1024 * MB)
 
-/*
-Memory layout:
-    0-1MB       kernel, IDT
-    1-8MB       page table
-    8-16MB      stack
-    16-32MB     heap
-    3.95GB      graphic video memory
- */
-#define KERNEL_BEG ((uint32_t)3 * GB)
-#define KERNEL_END (1 * MB + KERNEL_BEG)
-#define STACK_END (16 * MB + KERNEL_BEG)
-#define HEAP_BEG STACK_END
-#define HEAP_END (32 * MB + KERNEL_BEG)
+#define VADDR_BASE 0xc0000000
+
+#define KERNEL_BEG (0xc0100000)
+#define FRAMES_ADDR (KERNEL_BEG + 4 * MB - 12 * KB)
+#define MEMORY_META_ADDR (FRAMES_ADDR - 1 * KB)
+#define PAGE_DIRECTORY_ADDR (FRAMES_ADDR + 4 * MB)
+#define HEAP_BEG (KERNEL_BEG + 12 * MB)
+
+#define STACK_BEG (0xffffffff - 4 * MB + 1)
+#define STACK_END (0xffffffff - 4 + 1)
 
 enum {
     SYSCALL_PRINTF = 1,

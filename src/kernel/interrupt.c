@@ -106,6 +106,32 @@ uint16_t pic_get_interrupt_request_register() {
     return pic_get_status_register(PIC_READ_IRR);
 }
 
+// interrupt default
+void isr_default1() {
+    printf("\nisr_default 1\n");
+    hlt();
+}
+
+void isr_default2() {
+    printf("\nisr_default 2\n");
+    hlt();
+}
+
+// exception 14, page fault
+void isr_page_fault(uint32_t errno) {
+    asm("mov word ptr [0xc00b8000], %0; hlt" :: "g"(0x0f00 | 'p'));
+    hlt();
+    asm volatile ("pushad");
+    asm volatile ("mov eax, [ebp + 4]");
+    asm volatile ("mov %0, eax" : "=m"(errno));
+    uint32_t addr;
+    asm("mov word ptr [0xc00b8000], 0x0f42");
+    hlt();
+    asm volatile ("mov eax, cr2; mov %0, eax" : "=m"(addr));
+    panic("Page fault: %x, address: %x\n", errno, addr);
+    asm volatile ("popad; leave; add esp, 4; iret");
+}
+
 // interrupt 0 service routine, the PIT timer
 void isr_pit_timer() {
     asm volatile ("pushad");
@@ -167,9 +193,10 @@ void remap_hardware_interrupts() {
 }
 
 void fill_idt_entries() {
-    fill_idt_entry(0x20, isr_pit_timer);
-    fill_idt_entry(0x21, isr_keyboard);
-    fill_idt_entry(0x80, isr_system_call);
+    fill_idt_entry(14, isr_page_fault);
+    //fill_idt_entry(0x20, isr_pit_timer);
+    //fill_idt_entry(0x21, isr_keyboard);
+    //fill_idt_entry(0x80, isr_system_call);
 
     remap_hardware_interrupts();
 }

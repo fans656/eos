@@ -953,3 +953,42 @@ populate了页表，做了个4GB的identity mapping，cr0, cr3开启了分页，
 2017-09-14 00:30:06
 哇，搞定了 higher half kernel
 能重现之前的console效果，能运行程序
+
+2017-09-14 21:40:05
+走到分页机制这儿被虐了，那个模型一直在脑子里想不明白，好多东西纠缠在一起
+要不还是慢下来吧，今儿就随便翻翻intel manual，，这几天一直睡不够，困得慌
+
+
+今儿想到的几个问题：
+
+- CR3和PDE(Page Directory Entry)中存的是phisical address还是virtual address？
+- 开启paging后怎么修改Page Table的内容？(访存都变成virtual address了)
+
+2017-09-15 22:28:42
+http://www.inf.udec.cl/~leo/Malloc_tutorial.pdf
+这里很好地讲了malloc的实现
+
+但是现在还缺怎样从分页机制到brk的实现
+
+https://vorpus.org/blog/why-does-calloc-exist/
+这个也很有意思，calloc is cheating
+
+另外一些mark
+http://www.jamesmolloy.co.uk/tutorial_html/7.-The%20Heap.html
+http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html
+
+2017-09-16 18:52:59
+操，整了一天，感觉慢慢找到root cause了
+绝壁是printf写得有问题
+
+2017-09-16 20:45:09
+我靠，还是搞不定，，死活没法正常地把前1MB内存释放掉
+忽然想要不就先不释放了，反正用户程序也是自己编的
+
+2017-09-16 21:09:03
+sigh... 感觉要告一段落了，接下来的路子不知道怎么走
+
+2017-09-16 21:36:17
+xv6不错，代码不多而且挺清晰(至少我找得到boot.asm，main.c这种，可以顺着入口一路看下去)
+嗯...自己摸索太容易掉坑里了，而且总是一种不知道什么地方有盲点的感觉
+所以跟一个足迹走吧
