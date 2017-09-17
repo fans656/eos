@@ -96,10 +96,10 @@ void unmap_pages(uint32_t vaddr, uint32_t size) {
 }
 
 void init_memory() {
-    *(uint32_t*)PAGE_DIRECTORY_ADDR = 0;
-    asm("invlpg [0]");
-    asm("mov word ptr [0xc00b8000], 0x0f41");
-    hlt();
+    //*(uint32_t*)PAGE_DIRECTORY_ADDR = 0;
+    //asm("invlpg [0]");
+    //asm("mov word ptr [0xc00b8000], 0x0f41");
+    //hlt();
     
     //uint32_t eip;
     //asm volatile("mov eax, [ebp + 4]; mov %0, eax" : "=m"(eip));

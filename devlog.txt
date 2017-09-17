@@ -992,3 +992,105 @@ sigh... 感觉要告一段落了，接下来的路子不知道怎么走
 xv6不错，代码不多而且挺清晰(至少我找得到boot.asm，main.c这种，可以顺着入口一路看下去)
 嗯...自己摸索太容易掉坑里了，而且总是一种不知道什么地方有盲点的感觉
 所以跟一个足迹走吧
+
+2017-09-17 22:43:48
+嗯，先读读xv6的源码吧(这是MIT操作系统课6.828配套的教学用OS源码)
+
+刚尝试编译了一下，放到qemu上跑了一下，OK
+
+按问题来走：
+
+) 为啥需要俩硬盘？
+
+    Makefile里运行qemu的命令是
+        
+        qemu-system-i386 -drive file=fs.img,index=1,media=disk,format=raw \
+            -drive file=xv6.img,index=0,media=disk,format=raw -m 512
+    
+    (没有打全，但这个命令已经可以跑了)
+    
+    之前make完用hexdump看了一眼xv6.img，这个是启动盘(512字节结尾处有0xaa55)
+    (嗯？忽然想到只是0xaa55还不能确定是启动盘，不过那个index=0应该提示了)
+    
+    那么fs.img里是什么？
+
+) 为啥需要512MB内存？
+
+
+擦... 感觉这些问题暂时搞不明白呃，第一步应该是先把Makefile看懂
+
+
+make xv6.img 的命令第一条是
+
+    dd if=/dev/zero of=xv6.img count=10000
+
+尝试了一下
+
+    dd if=/dev/zero of=t count=1
+
+然后 ll (ls - l) 发现文件大小是512
+man一下dd看到参数里头 ibs obs (input block size / output block size) 默认都是512
+bs (block size) 可以同时指定 ibs 和 obs
+所以dd的行为是按block操作，然后count=N指定的是block的个数
+那么10000个512字节的block就是5000KB，大约5MB大小
+
+
+第二条
+
+    dd if=bootblock of=xv6.img conv=notrunc
+
+这相当于往xv6.img的开头写上bootblock的内容，但是之后的内容不变
+
+第三条
+
+    dd if=kernel of=xv6.img seek=1 conv=notrunc
+
+就是往第二个扇区写上kernel的内容
+
+
+然后我们看看 bootblock 是怎么编译的，这个应该挺简单，就是启动扇区MBR(512字节)
+    
+    bootblock: bootasm.S bootmain.c
+        ...
+
+bootasm.S 里头做了这几件事：
+
+    - 关中断
+    - 初始化段寄存器为0(ds,es,ss)
+    - 打开A20
+    - 加载GDT(一样简单的3个descriptor: null, code, data)
+    - 开保护模式(cr0第0位)
+    - 用一个long jmp来给cs设置正确的选择子(开始执行32bit代码段)
+
+        cs不能直接 mov cs, ax ，必须由 jmp/call/ret 这样的指令来设置
+        因为开了保护模式之后cs的值为0(顺便一提，xv6的bootasm.s里没有像别地儿建议的那样第一条指令jmp 0:START来保证cs为0)
+        而这作为selector是null selector，而我们需要它是 code selector
+
+    - 初始化保护模式下的段寄存器(ds,es,ss都置为data selector，fs,gs为0)
+        
+        这些是我在0bootloader.c里拿汇编做的，其实呢，这些都可以属于bootloader做的事儿
+    
+    - 设置栈指针esp
+    - 跳转到C的bootloader
+
+        xv6的做法是bootloader源码由两部分组成，一个bootasm.s, 一个bootmain.c
+        bootmain.c做的事儿是解析kernel的elf文件(从第二个扇区读来的，囧)，这里有保护模式下的简单的硬盘驱动
+        (而我是写好了文件系统后直接放在0bootloader.c里头了，so heavy...~)
+        嗯..大概看了眼，这里是先读进足够的字节包含ELF的头部，然后根据头部内容再算出相应该读的更多数据去读盘
+        然后根据ELF里的entry就跳转过去了，这才进入了真正的kernel
+
+嗯，这么大略一趟已经把 bootloader (bootasm.s, bootmain.c) 粗粗看懂了
+接下来再仔细看一看，比如xv6开启A20的细节，解析ELF和读盘的细节
+还有那些段寄存器设置——自己可能在有盲点的时候忽略了一些事情，虽然程序能正常跑但这只是巧合
+
+我靠，bootasm.s 加 bootmain.c 都编译进了512字节，实际上它们的代码一共占了432字节
+嗯...不过如果还要加上partion table和别的什么信息的话，这可能就不够了
+
+所以我的在512里读盘后续再进行别的操作的办法还是更feasible一些
+让512里头的代码可以很简单，足够小
+
+然后，sign.pl 应该是给bootblock写上0xaa55用的，，咱不懂perl，同样的功能用python写就好了
+这里用脚本的原因是如果编译出的代码太大(510字节以上)的话方便报错
+其实直接用shell脚本也能做到，但似乎是哈哈他们也觉得还是一个正统语言更好用
+
+最后编译出的512字节bootblock就用来生成xv6.img了

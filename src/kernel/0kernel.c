@@ -25,7 +25,7 @@ void kernel_entry() {
             );
     clear_screen();
     init_pit();
-    setup_idt();
+    //setup_idt();
     init_memory();
     //init_filesystem();
     //main();
