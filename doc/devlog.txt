@@ -1,0 +1,1141 @@
+2017-08-20 22:02:30
+http://wiki.osdev.org/Rolling_Your_Own_Bootloader
+
+Q: what is a bootloader?
+A: the code executed on computer start up to load kernel from disk to memory
+
+
+https://en.wikipedia.org/wiki/Real_mode
+
+实模式和保护模式是x86系列CPU的历史遗留问题，80286引入保护模式之前只有实模式的存在，之后也为了兼容，开机首先还是进入实模式，然后通过代码(bootloader?)开启保护模式
+
+保护模式提供访存限制、代码权限等功能——作为现代操作系统实现多任务进程隔离之类的基础
+
+居然还有 long mode , 64位系统用的
+
+https://en.wikipedia.org/wiki/A20_line
+打开A20的故事
+
+
+https://stackoverflow.com/questions/13132138/purest-way-to-assemble-compile-a-file-with-no-other-elf-object-bloat
+gcc编译汇编代码
+
+
+http://wiki.osdev.org/GDT
+http://wiki.osdev.org/GDT_Tutorial
+啊，实模式的时候就要设置GDT——用来描述segments的，比如哪些可执行，ring level是多少... 这些都是进入保护模式后就直接要用的
+还要设置IDT，用来描述中断以及它们的handler的
+
+2017-08-22 00:02:56
+电脑启动后先执行BIOS的自检程序，然后加载硬盘的第一个扇区——如果这个扇区被视为bootable的话（即512字节的最后两个字节为0xaa55）
+加载到内存的0x7c00处，然后跳转到这里开始继续执行
+
+那么现阶段目标明确了：
+在这512字节内实现一下INT 10H调用，在屏幕上显示点儿字儿
+
+明儿应该就能搞出来吧，，之后各种捣鼓进保护模式，，保护模式之后就终于能往多任务、文件系统走了
+
+2017-08-23 23:54:00
+https://en.wikipedia.org/wiki/INT_10H
+
+int 10h 还能画图啊，要不要在bootloader这儿多玩儿几天呢？用汇编去搞事情，画个 bad apple 什么的
+
+https://everything2.com/title/Interrupt+10h
+
+2017-08-24 23:25:03
+https://en.wikibooks.org/wiki/X86_Assembly/Bootloaders
+
+看这里的汇编想实践一下，不知道有啥好办法，，来看用gdb debug qemu
+
+https://en.wikibooks.org/wiki/QEMU/Debugging_with_QEMU
+
+2017-08-25 00:28:42
+搞定了
+    在虚拟机ubuntu里写asm
+    nasm编译
+    ndisasm + hexdump 瞅瞅
+    curl 把 eos.img 发送给物理机(物理机上跑个python脚本拿flask接POST存文件)
+    物理机手动运行debug.bat以debug模式启动qemu
+    ubuntu里gdb target remote host:1234连上物理机
+        layout asm
+        layout regs
+        continue
+        si ... si si
+
+看到 lodsb 原来除了把 ds:si 的内容移到 al 而且会自动把 si 加 1
+然后 cld (clear direction，对应的是 std - set direction) 是保证这个 si 加1而不是减1
+
+明儿把这个过程再自动化一点，不着急，慢慢来，总能把 int 10h 搞定的
+
+之后应该是读盘的 int ，否则512字节蹦跶不了几天，，然后之后准备实模式的代码应该许多其实可以用C写了，，当然也免不了汇编
+
+2017-08-26 00:10:30
+达成成就：实模式下用 int 10h 显示 "hello eos!"
+我擦，又过12点了，睡
+
+2017-08-26 02:00:29
+昨儿在卫生间看了点儿
+原来实模式去保护模式要搞那么复杂的原因(setup一大堆什么descriptor)是两者访问内存的机制不同
+实模式很简单，就是一个段寄存器+偏移寄存器，，然而保护模式下的段(segment)不能只用一个寄存器来描述了，
+而要用一整个descriptor——一段8字节长的内存，里面存着段起始地址、privilege、executable、writable等信息
+所以原理上就是用来描述 segment 的家伙从寄存器变成了descriptor
+寄存器是直接硬件就有的，descriptor却需要我们自己去在内存里写相应的值，所以会麻烦
+但理解了原理之后，剩下的就都是细节了
+
+http://www.jamesmolloy.co.uk/tutorial_html/3.-The%20Screen.html
+mark screen write
+
+2017-08-26 14:07:05
+https://stackoverflow.com/questions/14441215/bits-16-and-bits-32-in-nasm
+nasm [bits 16] [bits 32]
+
+http://www.rcollins.org/Productivity/NullDescriptor.html
+GDT的第一个descriptor应该是null descriptor，这是规定，但是INTEL又说CPU永远不会reference这个descriptor
+所以可以直接用它来存 lgdt 命令的数据：2字节GDT表的长度(减1)，4字节GDT表的首地址
+(减1的原因是这里的长度取值 [0, 65536]，是用 [0,65535] 映射过去的)
+
+2017-08-26 15:26:07
+http://wiki.osdev.org/Global_Descriptor_Table
+填充GDT entry时需要严重参考这个图
+
+2017-08-26 15:56:39
+达成成就：进入保护模式
+
+2017-08-26 22:41:52
+. understand assembly function
+    call/ret/push/pop
+. write a simple printf able to output
+    . null ended string
+    x arguments in stack
+
+为什么stack是从高地址往低地址生长的呢？
+可能根本原因是push指令被设计成是减sp吧~~
+另外，是不是stack segment可以用上descriptor中那个direction属性了呢？空栈的话ss跟esp相等？
+
+2017-08-27 10:17:56
+为了想调函数(printf)于是需要用到栈，于是需要知道7c00的时候内存布局是什么样的：
+哪些地方是BIOS？哪些地方是显存？那些地方是我可以用的？
+
+http://wiki.osdev.org/Memory_Map_(x86)
+这里说的很清楚
+
+结论是至少从 7c00 的那512字节之后一直到 7ffff 统共480多k都是可以用的
+
+2017-08-27 11:49:08
+debug了半天——其实是人肉找错，有几个需要注意的地方：
+    1. lodsb用的是 ds:esi，所以写显存时候另用一套 es:edi
+    2. 不能在callee里直接 pop esi ，因为这时候栈顶存的是返回地址！参数都被压在返回地址下面呢，所以应该 mov esi, [esp + 4] (这也是c编译出来的汇编访问局部变量访问arguments的方法)
+    3. 因为你的 CodeDescriptor 里 base 直接是 bits 32 部分的偏移量，所以引用 Message 的时候要用 Message - CODE_SEGMENT，即32位段里的相对偏移而不是你汇编里头的绝对偏移
+别的没啥了，搞了个能显示 null ended 字符串的 printf
+
+2017-08-27 13:44:40
+) write code in C
+) load sectors in 512B bootloader
+
+2017-08-27 15:46:51
+想用C来接着写，但是怎么把 kernel.c 变成可以由 bootloader 跳转过去的 raw binary 成为一个问题
+查了好久没有好的解决办法，似乎正路是直接使用ELF格式——那么去(再度)看看ELF吧
+
+2017-08-27 17:48:54
+我靠，发现只需要一个code descriptor就好了额，，显存可以直接
+    mov eax, 0b8000h
+    mov word [eax], 0f41h
+来写啊
+
+2017-08-27 17:52:32
+接下来试试把c编译出来的binary加载到内存，然后去执行
+
+2017-08-27 21:16:09
+实现了C语言写显存，爽！
+整体过程是：
+    bootloader.asm => 512B
+    kernel.c => kernel.o => kernel.out (这一步要指定 .text 和 .data 的 org，具体方法见 build.sh)
+    从 kernel.o 里 objcopy 出来所有的section拼成一个 kernel.img (小麻烦，要用dd在 .eh_frame 之后填充一定字节保证 .data 出现在 0x9000 的内存，因为 .text 里有引用)
+    跟 bootloader 的 512字节 一块儿拼成 eos.img
+    运行的时候 bootloader 加载其后的10个sector到内存0x8000，进入保护模式，跳转过去
+C语言里就能直接写
+    VIDEO_MEM[i] = 0x0f | ('0' + i);
+啦~~
+
+2017-08-27 21:53:10
+接下来有无数方向，选什么样的路走呢？
+暂觉这样：
+先搞出来提示符 "> _"
+和键盘输入
+——键盘输入这一步就得涉及中断了，这个估计就得捣鼓一阵子
+之后呢，嗯，应该开始支持跑程序，就得有文件系统
+然后最好是能兼容ELF格式
+这就是一堆操作系统需要提供的系统调用了
+
+到了这里就是一个基本的DOS雏形
+接下来就该是进程了
+(虚拟内存是在这里么？)
+
+进程完了，可以试试图形界面
+
+到这里估摸着得一年了吧
+
+再往后，网络协议栈
+
+再往后呢？完善各种细节估计就可以搞很久，到时候看意愿吧
+走到网络这一步，我们的mint也可以重拾起来了
+
+那么，单机中的一个网络世界，乃至分布式，啥都可以搞
+mint里支撑出的几个项目(redis? hadoop? kafka? p2p? ...)，以后也可以作为转行的资本了(如果毕业真的是在Amazon搞Android的话)
+
+回到现实：命令行提示符，哈
+> _
+
+2017-08-30 08:50:40
+protected mode 下不能用 BIOS，所以想改变光标位置得自己写 port 了 
+
+http://wiki.osdev.org/Memory_Map_(x86)#BIOS_Data_Area_.28BDA.29
+C语言写printf就简单多了，来写一个看一看EBDA有多大
+
+2017-08-30 09:47:30
+写的 print_str 在输出
+    "_123456789_123456789_12345678"
+时正常，但是输出
+    "_123456789_123456789_123456789"
+就奇怪了，前面缺了3个字符，输出成了
+    3456789_123456789_123456789
+
+看代码不该有这种现象啊，检查了下 ld 的 kernel.out
+发现 .text 跟 .rodata 不是紧挨着的，.text 缺了3个字节，而 .rodata 是16字节对齐的
+
+我擦，不是16字节对齐，是4字节对齐的
+
+目前的这个跑c代码的方法只是临时hack，是根据 ld 的行为自己拼出来的 kernel image
+之后肯定需要处理一下这儿的方法
+
+0x40e处的word存的是EBDA的结束地址，开始地址是固定的0x9fc0
+然后打印出来发现结束地址也是0x9fc0，那就是没有呗
+
+我靠，也不是4字节，有时候还是2字节... nm你这到底是什么规律
+不能猜了
+
+2017-08-30 11:02:41
+可以设置光标位置了
+
+2017-08-30 12:21:03
+.rodata 的起始位置确实没规律，得把C源码 => kernel image 这一步处理一下
+正确做法大约就是在 bootloader 里解析 ELF 格式
+
+2017-08-30 13:52:13
+拿汇编解析ELF格式会是一场噩梦啊，拿python都那么麻烦了
+刚厕所蹲一会儿忽然就想到，gcc输出ELF之后拿python提取所有section然后贴到合适的位置上去
+生成的kernel image还是raw binary的
+
+就这么搞
+
+2017-08-30 14:47:18
+拼的kernel image感觉没问题，但是跑不出效果，似乎是 .data 访问不到
+检查了下地址，发现大于8K了，也就是说需要16个sector，而之前bootloader写的是加载10个sector
+之前能跑是因为固定把.data放在0x9000的位置，10个sector就够
+
+果然好了，，目前就把加载的sector个数固定写大点吧，64个sector支持32K的kernel
+之后一切完成了回头再说支持第三方bootloader或者自己写能解析elf的bootloader
+
+2017-08-30 16:55:47
+https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#Extended-Asm
+在C语言里写汇编
+
+http://www.osdev.org/howtos/2/
+inb/outb
+
+2017-08-30 22:20:53
+https://stackoverflow.com/questions/3215878/what-are-in-out-instructions-in-x86-used-for/33444273#33444273
+https://stackoverflow.com/questions/22054578/how-to-run-a-program-without-an-operating-system/32483545#32483545
+mark一下这个答案，这个答主应该在一系列答案里其中某篇提到keyboard IO
+
+2017-08-30 23:08:15
+正确的读键盘输入的办法是用中断，即收到中断后去执行
+    in 60, al
+把scancode的byte读进来
+
+但这里我先简单起见用polling的方式实现一下吧
+先
+    uint8_t status = inb(0x64);
+    if (status & 0x01) {
+        uint8_t scancode = inb(0x60);
+    }
+0x01 是 Output Buffer Status
+(这里的input/output是相对于keyboard来说的，output就是keyboard产生了按键等待CPU去读)
+
+http://wiki.osdev.org/%228042%22_PS/2_Controller
+http://www.computer-engineering.org/ps2keyboard/scancodes1.html
+
+2017-08-30 23:58:26
+目前的源码文件：
+    io.c
+    kernel.c
+    util.c
+因为忽然多了io.c而编译的时候是 gcc *.c
+于是编出来的 .text 里第一个函数不是 kernel_entry 了，于是崩了
+
+所以hack之：把kernel.c重命名为0kernel.c，囧
+
+2017-08-31 00:08:53
+感觉下一步应该写个 printf / scanf
+然后把 scancode set 1 完善一下(目前只处理了A-Z)
+就能做一个简单的console了
+甚至能做一个fake的贪吃蛇——一个写在内核里的贪吃蛇
+(fake的意思是这货不是user space的程序)
+
+嗯...要写贪吃蛇可能会需要涉及
+    - 时钟
+        sleep(100)
+    - 中断
+        poll key的while循环不能放在游戏逻辑里了
+        否则玩家按一下“上”，小蛇是得能持续往上走的，这时不能在那while循环等输入
+
+2017-08-31 08:21:38
+实现一下中断
+
+http://wiki.osdev.org/Interrupt_Descriptor_Table
+
+2017-08-31 12:27:42
+感觉知道上午interrupt搞不定是什么原因了：code descriptor 的 base 以前写的是 0x8000
+而这里ISR的地址是(绝对)线性地址，就错了
+在bootloader里把descriptor的base改成0x0000，就对了
+
+http://wiki.osdev.org/Inline_Assembly/Examples#I.2FO_access
+inb/outb
+
+2017-08-31 13:39:27
+http://wiki.osdev.org/8259_PIC
+想开硬件中断的话得先初始化8259A，因为这货的IRQ是0-15跟除0错误之类的exceptions重了
+但是我是不是可以先试试直接就用这些IRQ？
+
+http://wiki.osdev.org/IRQ
+IRQ
+
+2017-08-31 21:13:02
+我擦，C语言里的bool不能乱用...
+几个变量换一下位置bug就消失了
+暂时无力追寻root cause——编译出来的kernel已经15K了
+
+2017-09-01 01:10:48
+接下来要实现的这个功能涉及到的东西相当复杂，而且必须都到位，这个功能才能实现：
+运行一个正常编译出来的应用程序（比如ls）
+
+正常编译是什么意思呢，就是面向比如linux编译的应用程序
+
+    #include <cstdio>
+    
+    int main() {
+        printf("hello world\n");
+    }
+
+这样一段C++源码，执行 `gcc main.cpp` 生成了 a.out ，然后我们想要这个 a.out 能运行在我们的OS上
+
+首先，a.out 是个文件，我们需要有个【文件系统】来存这货
+而且，OS起来时，显示给用户一个console，在console中打 `./a.out` 也需要对文件系统的支持，这样系统才知道去找到 a.out 这个文件，加载入内存，执行
+怎么加载呢？a.out是一个ELF格式的文件，于是需要【ELF解析器】，找到a.out中的代码段、数据段(.text / .data / .rodata这些)
+各个段加载到内存的什么位置呢？不能自己定，程序编译后机器码对变量的引用使的是(绝对的)线性地址，假如程序入口在 0xb80000，引用了一个 `x` 变量在 0xb810c2
+那么我们就得保证 .text 代码段加载在 0xb80000 ，.data 数据段在相应的位置以使 `x` 位于 0xb810c2
+这些地址是不管我们OS占用了哪些内存的，所以最好的办法是开启【分页机制】以支持虚拟内存
+
+然后，开始运行了，正常的 `char c = 'a'`，`for (int i = 0; ...)` 这些都是 naive 的汇编指令，跑起来没问题
+但 printf 里头会发生什么呢？这货在链接的时候是用的 libc 里的机器码，最里头发生的是【系统调用】
+而系统调用是有一定规范的，比如 eax 里放啥，stack上放啥，执行哪个中断(int 80h)
+这些如果咱自己的OS不遵循的话，程序跑出来效果就不对
+
+还有，对于正常的OS来说，应用程序应该跑在用户态，否则跑在核心态的用户程序自己就能干各种OS不让干的事儿，比如把OS的代码替换掉，或者自己霸占网络IO
+所以还应该实现【特权级】
+
+总结一下：
+    - 文件系统
+    - ELF解析器
+    - 分页机制
+    - 系统调用
+    - 特权级
+
+这显然是很麻烦的，每一个东西就可能搞很久，而且最终到达的时候，恐怕代码已经混乱不堪，对于原理的理解也被各种细节混淆了
+所以打算另走一条简单的路子，舍弃所有暂时可以舍弃的，用最直接的方法实现
+
+比如文件系统，不考虑兼容，就自己写个玩具型的，支持目录和文件就好了——管它算法里是不是遍历所有inode呢，这样就能最快地实现一个文件系统
+比如ELF解析器，我可以直接让应用程序编译成raw binary，或者我自己定义的一个简单的格式，这样就不必写ELF解析
+比如分页机制，我可以gcc时指定entry的offset，约定应用程序用哪部分的内存，这样目前线性地址=物理地址的现状就够了
+比如系统调用，我可以不用libc，而是自己提供一系列头文件和库文件，编译过程多加几个参数而已，，这样就不必研究标准的系统调用做法
+比如特权级，我直接就先不做，让应用程序也跑在内核态，就是内存中寻常的ring 0代码而已
+
+这样子，就可以最快地实现：在我们的OS中跑单独编译的应用程序（而不是跟内核编译在一起）
+效果上就是，系统启动后 console 是一个应用程序，可以在里头 ls 一下，cd 一下，打开一个 snake 玩会儿贪吃蛇
+
+这时候是单任务的，接下来就可以直接上多进程了——可以完全按自己的想法去实现
+多进程之后呢，搞GUI吧(GUI严重需要多进程，否则两个窗口一个画东西另一个就死了)
+GUI搞一点点(窗口中显示个妹子图片)就可以回头去搞网络协议栈
+
+等自己囫囵前行一路到这里的时候，整个体系中大部分事物的原理至少都用自己的方式实现了一遍，踩过哪些坑有哪些痛点也有概念了
+然后，再去实现更艰难的目标：兼容linux的应用程序，以及把事情做得“更正确”(比如特权级以实现对系统的保护)
+这时候再看别人的做法，就会更大概率明白这些做法的原因，究竟解决了哪些痛点
+
+2017-09-01 10:14:59
+ok，先实现一个文件系统，然后写个console应用程序
+protected mode下没法直接int 13h，得自己写driver了
+
+2017-09-01 10:51:19
+研究了下之前bool有关的那个bug
+看到num_key_pressed在机器码里地址超过了.data惊了，然后意识到初始化为0或者未初始化的那些变量是不占用executable空间的(错了？)
+那么是没写在section里，而是segment信息里有——确实，引用地址 0xb9a0 ，而 RW segment 的 end 是 0xb9a4
+
+2017-09-01 12:45:14
+写成这样都没有给我初始化
+
+    int a[128] = {
+        0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,
+        // ... 128 zeros
+        0,0,0,0,0,0,0,0,
+    };
+
+但是a.out执行是正确的，再看C标准里说的，all global variables and static variables are initialized as 0
+忽然意识到，卧槽这个initialize莫不是操作系统做的？或者是进入 main() 函数之前的那些 libc 里的东西做的？
+反正不是天生就有的
+
+而我现在写的是个操作系统，编译的kernel又被我stripe掉任何libc的东西了(实际上是 -ffreestanding)
+我不去zero这些内存空间，没人会给我做的
+
+果然，甚至之前用来记录当前光标位置的 `cursor_cur_row` 和 `cursor_cur_col` 都是位于 .data 段之外的
+之前在代码里赋初值为0跑着没问题只是纯粹运气好
+
+所有被赋值为0的global/static variables都不会放在 .data 里头，赋值非0的会(对于一个数组来说，只要有一个值为0，整个数组都会放在.data段里)
+所以感觉根本的解决办法还是... 在拼 kernel.img 的时候就把 .data 段给填充上0
+更正确的做法呢，是 bootloader 解析ELF格式的kernel，帮忙给这些内存赋0
+之后kernel自己启动进程的时候，也是负责给人进程把这些内存赋0——满足C语言的标准
+
+哎要解析segment，那么暂时用糙点儿的办法吧，直接给kernel.img padding上16K的0
+
+2017-09-01 14:53:32
+现在的问题是，MBR里“加载内核文件到内存”的代码写得并不大对——它是直接指定int 13h加载64个sector
+但是很可能硬盘的一道track根本都没有64个sector，所以如果kernel涨到大于这个值，就崩了
+而且，目前kernel可能只有十几K，但MBR还是去blindly加载了32K(如前所说，估计没有32K)
+所以正确的做法应该是，bootloader要检测文件系统，然后根据文件系统的信息去加载恰好大小的kernel进内存
+而且要解析ELF格式以正确地把global/static内存空间初始化为0
+
+但是加上文件系统和ELF解析后的bootloader还能维持在512字节吗？不能的话应该怎么做？
+MBR的512字节究竟应该完成哪些功能？
+
+感觉应该研究下GRUB的做法，一种方式是，在disk image上安装一个grub，然后瞅瞅它的MBR里写了啥
+
+https://en.wikipedia.org/wiki/Master_boot_record
+MBR的前446个字节是用来放代码的，接下来有4个16字节的Partition Table Entry，然后是0xaa55
+
+目前我的bootloader直接不看分区，默认kernel被放在从第2个sector开始的N个sectors里
+
+貌似可以在partition table entry中写上kernel image的start和size
+
+wiki里说：
+
+    Due to the restricted size of the MBR's code section, it typically contains only a small program that copies additional code (such as a boot loader) from the storage device into memory.
+
+所以512字节一般只做一件事：把真正干活的bootloader从硬盘加载到内存中
+可以认为这个加载入内存的bootloader开始执行还是real mode，然后再去干各种文件系统找kernel image，解析ELF，初始化uninitialized data memory等事儿
+
+还是wiki，说512该做的是：扫描partition table，找到bootable的那个(第一个字节是0x80)，然后把这个bootable partition的第一个sector加载入内存，执行之
+partition的第一个sector叫做VBR - Volume Boot Record
+
+4个partition并不一定要占据所有的磁盘空间，比如第一磁道上的所有sector就可以空出来放bootloader，而512可以默认加载这里的代码，由这里的代码来处理文件系统/ELF/memory init
+一个磁道至多31个sector(CHS中的s只有5 bit，又是从1开始的)，也就是差不多16K，完全够了，bootloader需要多大嘛
+之后的kernel作为正常文件系统中的文件，好办多了
+
+所以其实目前的做法有一定正确性，只是要改一改
+目前是512直接加载了kernel并且进了protected mode
+应该改成加载bootloader，然后bootloader通过文件系统加载kernel再进protected mode
+
+MBR加载VBR最好也是加载在7c00的位置，这样才叫chain loading
+于是问题来了——MBR调用int 13h以及jmp的这几句代码执行的时候不能位于7c00的那512字节里
+所以MBR得想办法把这部分代码挪到另一个位置，然后跳过去执行
+https://en.wikipedia.org/wiki/Master_boot_record
+搜 relocate itself 有真相
+
+2017-09-01 17:29:13
+https://stackoverflow.com/questions/18873346/how-does-bootloadere-g-grub-lilo-find-kernel-image
+忽然又有了一个想法：bootloader就放在512里(没有stage-2)，在生成eos.img的时候，用脚本改写512里的部分数据
+比如
+    dd __  ; kernel beg (LBA - Logical Block Address)
+    dd __  ; kernel size
+    dd __  ; kernel global/static memory beg
+    dd __  ; kernel global/static memory size
+    dw 0xaa55
+然后bootloader不需要理解文件系统也不需要解析ELF，这样就可以512字节搞定，然后这512直接欢快地加载kernel到内存中
+kernel自己呢再去处理文件系统
+
+然后关于int 13h，可以用 ah=08h 来查询硬盘信息：多少个cylinders，多少个heads，多少个sectors
+
+2017-09-01 22:28:31
+https://reverseengineering.stackexchange.com/questions/4230/why-i-can-not-directly-get-the-content-of-bss-section
+哎呀妈蛋的，原来是 kernel.out 里新增了 .bss 段，但是objdump是显示不出来的——这个段在文件总不占空间
+
+2017-09-01 23:07:58
+https://en.wikipedia.org/wiki/.bss
+
+但是我这里gcc编译出来的kernel.out中.bss确实是占用空间的，用脚本把这段数据改写成0
+然后bootloader加载入内存后就相当于初始化为0了
+反正这段空间不会很大(全局变量能有多少嘛)
+以后写加载应用程序的loader时再实现动态初始化——应用程序可能开辟很大的全局变量空间，比如做题时一个20000的dp数组...
+
+2017-09-01 23:26:37
+《Orange's: 一个操作系统的实现》里头有hard disk driver的写法，之后跟一跟就好了，无非是操作IO port，只是细节很繁琐
+等可以读写硬盘之后，就可以在OS的代码里实现文件系统了——自己设计一个，oh yeah!~
+
+有了文件，就可以着手实现一个console和几个命令行应用程序，比如：
+    - ls 列出文件
+    - cd 切换目录
+    - cat 打出文件内容
+    - hexdump 打出文件内容
+    - echo 写入文件
+
+然后实现多进程
+
+然后，GUI!
+
+2017-09-02 00:53:49
+https://stackoverflow.com/questions/14419088/how-to-draw-a-pixel-on-the-screen-in-protected-mode-in-x86-assembly
+video mode 13h 提供 320x200 256色的绘制，可以在保护模式下通过写内存画图
+我要实现一下把我的avatar画出来~~
+
+2017-09-02 02:59:20
+http://www.drdobbs.com/programming-with-vesa-bios-extensions/184403213
+尝试一下VESA mode，如果成功可以支持1280x720这种分辨率，32bit true color
+
+http://www.delorie.com/djgpp/doc/rbinter/ix/10/4F.html
+
+http://forum.osdev.org/viewtopic.php?f=2&t=30186
+
+2017-09-02 16:26:24
+一个bug折腾了好久！！
+int 13h 42h LBA 读硬盘时每次最多能读127个扇区，大约是64K
+但是我的图片可以有300多K
+所以需要多次调用，在汇编里维护变量真是个噩梦
+加载进内存的数据总是不对，最后发现是我把要加载的内存offset存在edx里，而int 13h会修改edx的内容
+所以解决办法是，在调用int 13h的前后特么把所有寄存器push/pop一下
+
+于是现在实现高分辨率真彩色了(1024x768 24bit color)，显示了个妹子在屏幕上
+
+2017-09-03 13:35:23
+ATA(Advanced Technology Attachement)是IDE(Integrated Drive Electronics)的正式名称，十年前的硬盘应该都是ATA，后来有了SATA(Serial ATA)，不过它兼容ATA
+(SATA出现后ATA就被命名为PATA了-Parallel ATA，SATA用的线更少，但是因为频率更高所以传输速率更高)
+(AHCI是高级点的功能，暂时不管——这名字是不是我有了笔记本才听说的？)
+
+PIO(Programmed Input/Output)是一种CPU与硬盘之间的传输方式，通过读写IO Port来访问硬盘，比较慢而且占用CPU，默认模式Mode 0传输速率有2M/s
+相对的有DMA(Direct Memory Access)，CPU只给指令，然后数据在硬盘和内存间自己传，传好了告诉CPU
+
+但是对于第一步，ATA-PIO已经够了，，实模式下用int 13h，保护模式就用这个
+以后可能做到GUI开始放电影才会遇到速度瓶颈，那时候再研究DMA和AHCI等(比如SSD传输速率可以到300MB/s以上，ATA最高应该是百兆等级吧)
+
+https://en.wikipedia.org/wiki/Parallel_ATA
+http://wiki.osdev.org/ATA_PIO_Mode 
+
+2017-09-03 20:16:22
+设想一下文件系统的设计
+
+0扇区放MBR，后面留255个扇区放kernel(目前还不打算模块化)，这是256个扇区128K
+
+用bitmap来标记4K block的话，2T的硬盘需要64M大小的bitmap，512G的需要16M，1G的需要32K
+
+256后面跟一个meta data sector吧，关于硬盘的：
+    Offset  Size    Purpose
+    0x00    4       number of sectors - support 2T disk
+    0x04    4       LBA of bitmap
+    0x08    4       sectors of bitmap
+    0x0A    4       LBA of root directory
+    ... reserved
+
+紧接着就是bitmap了
+
+接下来就是file entries了，紧跟的第一个sector里第一个entry是root directory
+
+file entry的格式是：
+    4 file type (directory/file)
+    8 parent entry
+    8 first child entry
+    8 next sibling entry
+    4 data LBA
+
+data entry的格式是
+    4 file name length in bytes
+    4 next block
+    ... file name
+    ... actual data
+
+一些文件操作：
+
+bool is_file_exist(char* fpath)
+    
+    1. normalize the path and split to parts
+    2. begin at root
+    3. list its children
+    4. recursively traverse
+
+FILE* open_file_for_read(char* fpath)
+    
+    1. test existence
+    2. find the file entry
+    3. s
+
+[depracated on 2017-09-04 01:17:17]
+
+2017-09-04 01:17:18
+感觉开始触及到底层之上的部分了——就是那些科班课本上讲的东西，那时候学这些东西总感觉在空中，没有细节的支持总是不对味
+但是现在自底向上到地方了
+
+今天在那思索文件系统的实现时就忽然意识到，对于一个原型，根本不需要在真实的电脑/虚拟机上做，可以直接拿python写模拟
+只要提供一个read_sector一个write_sector，然后用个大文件模拟disk，其他的都可以在这层layer上实现
+然后意识到实现一个文件系统并没有想的那么简单，跑去瞅了瞅FAT，感觉还是麻烦，自己想了一个方案，，刚看到inode又感觉很新奇
+反正是有一些方面自己想的办法是跟现行实践一致的
+
+爬wiki正好碰到Morden Operating System这本书，都出了第四版了，里面还涉及了Android
+抽根烟看一小会儿，然后还得接着补中期报告
+
+2017-09-05 09:57:00
+断断续续看点《Modern Operating Systems (4th)》，嗯..发现我现在要采取的approach属于monolithic system——整个操作系统属于一个大的binary，任何function可以call别的function
+
+2017-09-05 15:39:29
+略微尝试了一下拿python写模拟的文件系统，卧槽...挺难的，一时写不正确
+莫非需要test driven development?
+
+2017-09-05 21:15:43
+糙糙地拿python实现了一个简单的文件系统，目前可以 ls, pwd, cd, touch, open, read, write
+原理是用一个disk.img的文件模拟硬盘，然后在这个“硬盘”上写meta data写file entry写数据
+尝试把把一个图片存进去然后读出来，存成本地的文件，可以正常打开
+
+我靠... 这个直接写了800行
+
+目前kernel是1900行
+
+缺的有 mv, rm 等等，，然后还可能有各种隐藏的bug
+结构上基本是用file entry中的指针把文件夹、文件组成一棵树，各种不考虑性能不考虑空间利用率
+也没有创建时间修改时间权限属性等等东西
+
+2017-09-05 22:33:37
+800行的python移植成C得多少行？而且功能还不全
+在想能不能有更简单的实现方式
+
+设想了一个极简化的版本：
+只支持固定数目的文件
+没有文件夹的概念
+文件连续存储
+查找文件靠遍历
+
+应该很好实现了吧？
+搞起
+
+2017-09-05 23:40:08
+我擦，不行，也快写到200行了，估计写全得3、400行
+而且这种设计有个严重的缺陷：文件越写越大时怎么保证不写到后面的文件里去
+
+2017-09-06 01:26:08
+稍微查了查，感觉 keeping track of free blocks 的方式就两种：
+
+    1. linked list
+    2. bitmap
+
+各有优劣而且不是决定性的，所以感觉我就用bitmap也没什么问题，目前一个很大的优势就是简单
+其他的几个设计决定貌似也都没什么太大问题，树状结构可以支持 file hierarchy，4KB一个的entry可以支持较长的文件名(哪怕用中文也有差不多1000个字符了)，就是空间利用率低点
+
+之前每个data block对应一个file entry的做法搭配naive的block分配会造成一个文件在硬盘上entry和data block交错出现
+学习了inode的做法后一个4KB的entry可以支持大多小文件了，再大的话就链表指向更多的pointers block
+只是不知道linux的inode为什么还要一个额外的int table，可能目前我的文件系统想解决的问题还没有到int table要解决的地步吧
+
+不尝试更简单的approach了，就目前这个慢慢仔仔细细实现一下，不出意外能一直用到探路阶段完成（探路阶段就是囫囵吞枣地把所有主要特性都用相对简单的方式实现一遍）
+
+
+然后说下实现上的approach(上面是设计的approach)，折腾了几次发现并不简单后就感觉到了分层的重要性了
+比如硬件本身，是一堆io port操作和可能还加interrupt的层面
+需要封装成 read_sector / write_sector 两个简单的接口
+这一层往上，感觉最好能再封装出一层 read_bytes / write_bytes，目的是隐藏读写3个字节到sector时其实需要读写整个扇区，我需要拆分拼装扇区的数据
+再一层呢，就是希望能有一个handle对block使用与否进行标记的功能，这里就用到了bitmap，这一层提供的服务其实就是 malloc/free ，上层创建、删除数据结构时就不需要再操心bitmap的操作了
+(擦，怎么感觉这些并没有到分层的地步，而只是一些method而已，，先不管，然我把话说完)
+再就是数据结构了，使用的硬盘空间要以4KB为block分配/释放，写过之后要flush(包括entry block和data block)(咦，flush这里头其实就可以涉及进cache机制，减少disk io)
+这里的数据结构就几种：meta, directory entry, file entry, data block pointers，都继承自 Block 吧，Block在init的时候记录malloc的i_block，释放的时候通过这个i_block操作bitmap，Block提供了flush
+然后就是树状结构了(这个主要涉及directory)，new_directory内部是创建新的directory entry，add_child，flush所有相关节点的数据到disk
+(比如空directory创建第一个child的时候要flush的是父节点，因为改变了i_first_child，而非空的创建child要flush的是prev sibling，因为改变了i_next_sibling，当然child本身都是要flush的)
+到了叶节点就成了file entry，多了对 data block 的引用
+读写文件需要给出一个单独的抽象 File ，里面有对 entry 的引用从而能找到该文件所有data属于的blocks，然后维护一个 read/write position，写多了会在 entry 中增加 data block pointer 乃至 data block pointers block
+嗯，差不多就这些了，抽象成几个类：
+
+    class Disk
+        
+        meta_info()
+
+        read_bytes()
+        write_bytes()
+        
+        malloc()
+        free()
+
+        _read_sector()
+        _write_sector()
+        
+        _bitmap
+    
+    class Meta
+        
+        i_beg
+        i_end
+        i_meta
+        i_bitmap
+        i_root
+        bytes_per_sector
+        sectors_per_block
+    
+    class Block
+        
+        flush()
+    
+    class Directory : Block
+        
+        new_directory()
+        new_file()
+        get_parent()
+        get_first_child()
+        get_last_child()
+        get_child_by_name()
+        get_descedant_by_path()
+    
+    class FileEntry : Block
+        
+        get_data_block_by_offset()
+        new_block()
+    
+    class File
+    
+        read()
+        write()
+        seek()
+        tell()
+        
+        _pos
+        _entry
+    
+    class FileSystem
+        
+        File open()
+        close(File)
+
+        mkdir()
+        mv()
+        rm()
+
+        ls()
+        pwd()
+        cd()
+
+没写全，先这样吧
+
+2017-09-06 10:51:47
+写了个disk.py，封装了 read_bytes(i_byte, n_bytes) / write_bytes(i_byte, data)
+还写了相应的测试——果然还是要测试啊，一次写不对
+
+2017-09-06 16:45:35
+哎，可以了，还没写完但是应该可以了，，仔细地写，抽象出clean的封装，加测试
+之后直接上c吧
+
+虽然脑子里都知道代码一写就停不下来，但还是没忍住，，这两天本来应该去写中期报告的
+
+2017-09-07 00:49:38
+看Morden Operating Systems，忽然发现我擦原来实模式的 段:偏移 访问模式可以提供address space啊
+比如两个程序都有 jmp 28 ，但是加载到了内存的不同地方，如果我们把它俩放在不同的段中(每个段64K大小)，它们就相当于拥有了虚拟地址哎~~
+但是64K的大小限制是太不够用了——offset register只有16位，而且程序可以用 ds:di 的方式进行全局访问，可以随意修改别家进程的代码和数据，保护也是太不够了
+进入保护模式后内存引用都是绝对地址，段的存在只是限制了访存的范围，语义完全不一样了，，这时候地址空间是靠paging来提供的
+
+对于咱要写的这个操作系统来说，实模式显然只在bootloader里用了，更多的不用折腾，直接去保护模式做现代操作系统干的事情
+
+2017-09-07 11:59:52
+中期终于答完了，不管结果如何，至少这个周末可以自由支配一下
+开写文件系统！第一步，port io实现保护模式读写磁盘
+
+2017-09-08 01:38:01
+一晚上就搞定了一个 ATA Identify ，硬件驱动确实是难写啊，我这还是有明确standard的
+
+期间遇到的问题：
+
+1. inw
+
+    Identify命令执行到可以读数据之后，这里[1]说的是从 0x1f6 读 256 个 16bit word
+    于是我执行了512次inb，但是发现读来的数据全是 0xff，不对啊
+    后来才知道要执行 256 次 inw
+
+    [1]: http://wiki.osdev.org/ATA_PIO_Mode 
+
+2. C struct bit field
+    
+    Identify之后得到的512字节中的字段，有些长度是1位
+    比如 lba_supported, dma_supported
+    于是想用C struct的bit field来访问，但是读出来是0？
+    后来发现 bit field 的 semantic 是先声明的是低位
+    
+    struct T {
+        uint8_t bit0 : 1;
+        uint8_t bit12 : 2;
+        uint8_t bit3 : 1;
+    };
+
+2. using 64-bit arithmetics in gcc 32-bit target & printf("%lld")
+    
+    因为编译的kernel是32位的，然后发现Identify info里有64位的字段，用来在支持LBA48时表示硬盘扇区数的
+    于是要实现下 printf("%lld") ，于是要实现下 print_longlong(long long val)
+    把 val 转成 string 的过程中需要做一些 base 的除法、求模运算
+    然后编译就报错了，说什么 undefined reference of `_udivdi3`
+    估摸到是long long的问题，尝试了下写个简单的t.c去复现发现复现不了，正常生成 divq 之类的汇编指令
+    然后发现跟内核编译时的gcc参数不同，少了个 -m32，在这个电脑上gcc默认是编译 -m64 的
+    加上参数看汇编，源码里写除法时汇编果然出现了 `_udivdi3`，说明gcc认为32位系统没有 divq 指令，所以只好拿这个函数去实现64位加减乘除
+    google之找到说要 -static-libgcc -lgcc ，但是加完没求屌用，还是报错，后来各种尝试发现参数顺序也有关系...
+
+2017-09-08 10:41:16
+读写sector有大约10%的概率出错，肯定是代码写的不严谨
+仔细过一下 http://wiki.osdev.org/ATA_PIO_Mode
+
+Master/Slave select
+    Device/Head register (0x1f6)
+    bit-4为0是Master，为1是Slave
+
+2017-09-08 13:21:02
+似乎找到原因了，是运算符优先级的问题 [facepalm]
+
+    void wait_for(uint16_t port, uint8_t mask, uint8_t val) {
+        while (inb(port) & mask != val) {
+            ;
+        }
+    }
+
+while 里那个表达式应该写成
+
+    while ((inb(port) & mask) != val)
+
+至少这样改了之后不会再卡住了，不过似乎写了之后读出来的数据不对？这可能是另外的原因
+啊，是 write_sector 后面跟的 flush 操作cmd码写错了，写成了write用的，，改过之后就能读出来了
+
+2017-09-08 16:11:30
+把bmp文件放到kernel image的固定位置(1M处)，可以用 read_sector 来加载，并显示
+不过速度有点儿慢哎，加载4M的内容要读8192个扇区，用了1s左右——有待优化哈，不过等以后成为瓶颈再说
+
+刚才想着要不要setup一下用C++来写，想想还是先算了，现在连 malloc/free 都还没有，C++的一堆特性要搞清楚怎么支持就得费很久
+可能到实现线程之后再考虑吧，等到写GUI的时候肯定严重有必要用C++来搞
+
+2017-09-09 00:05:43
+发现bitmap找free block的算法很慢，这是可以抽象出一个clean problem的细部，试试
+
+2017-09-09 01:53:44
+妈的，需要仔细写一下文件系统的设计文档，给自己的思路理一理
+
+
+前1MB空间预留给MBR和kernel image，第一个sector是MBR，其后是kernel image
+    
+    因为kernel image是实模式下加载到0x8000，所以其实用不了1MB，这里[1]给出的结果是480KB左右
+    应该没问题，因为之后各种功能可以放在别的module里
+    
+    [1]: http://wiki.osdev.org/Memory_Map_(x86)
+
+固定认为 BYTES_PER_SECTOR = 512, BYTES_PER_BLOCK = 4096
+
+从1MB处开始，第一个block(注意是block, 4K)存meta data，目前有：
+
+    uint32_t n_blocks;  // 硬盘总block数目
+    uint32_t i_bitmap;  // bitmap起始block
+    uint32_t i_root;  // root entry起始block
+    
+    使用LBA28寻址，支持的最大硬盘容量是128GB，对于探路阶段够用了
+    n_blocks == n_sectors / SECTORS_PER_BLOCK ，多出来的sector不用
+
+使用bitmap标记硬盘block的使用
+
+    16MB硬盘需要512B的bitmap
+    128GB硬盘需要4MB的bitmap
+
+文件夹以Directory表示，占用一个block
+文件以FileEntry链表 + DataBlock 表示，至少占用一个block(空文件)
+Directory和FileEntry都属于Entry，Entry是树状结构中的节点，成员有：
+    
+    uint32_t i_parent;          // 0
+    uint32_t i_first_child;     // 4
+    uint32_t i_last_child;      // 8
+    uint32_t i_prev_sibling;    // 12
+    uint32_t i_next_sibling;    // 16
+    uint32_t n_bytes_name;      // 20
+    char name[512 - 24];
+
+对于FileEntry，name之后还有一些field
+    
+    ...
+    uint64_t size;
+    uint32_t i_next_entry;
+    uint32_t n_data_blocks;     // 此entry中的data_blocks个数
+    char reserved[512 - 16];
+
+    uint32_t data_blocks[768];  // (4096 - 512 * 2) / 4
+
+data_blocks中每个uint32_t保存一个data block的指针
+    
+
+一些类的接口：
+
+    class Disk:
+        
+        read_bytes(i_byte, n_bytes)
+        
+        write_bytes(i_byte, data)
+
+    class Bitmap:
+        
+        allocate()
+        分配一个block，如需多个则调用多次
+        这是为了避免一次要求n_blocks个时没那么大的连续空间，
+        而如果要返回非连续结果那就得是个数组，还是让caller自己操心好了
+
+        __setitem__(i_block, used)
+        为了标记 MBR + kernel + meta + bitmap + root 等初始就占用空间的blocks
+
+2017-09-10 00:18:00
+嗯，终于写出来可以把一个目录bundle到disk image里的Python版的文件系统了
+接下来就是移植到C咯，先能读再说
+
+2017-09-10 13:53:58
+有必要实现下 malloc/free ，不然文件系统的traversal太难写了
+
+2017-09-10 17:49:43
+搞定，简单的只读文件系统，可以加载一个bmp图片显示出来
+
+2017-09-10 19:26:13
+想做个幻灯片效果，但是为啥妹子的效果不对，斜了
+试验了下发现计算offset的时候改成 (y * (width + 1) + x) * bytes_per_pixel 就对了
+为什么要加那个1呢？就是说每行像素多了3个字节
+仔细翻了翻wiki发现这么一句：
+
+    The size of each row is rounded up to a multiple of 4 bytes by padding.
+
+啊呀呀
+
+
+改好了，还优化了下绘图效率——就是每次往video mem里写一行像素而不是一个一个像素地调用draw_pixel
+有效果，切换时的闪屏好多了
+
+2017-09-11 22:54:16
+把ebp解引用两次就能定位到上一个caller的frame，用来写syscall的实现挺帅
+不过这个只适用于isr跟进程共用一个堆栈的情况，对于有特权级转移的情况，堆栈不一样，就不能这么搞了
+
+我的情况暂时可以先这样
+
+2017-09-12 16:12:03
+PIT可以设置irq0的频率，现在设到10ms精度了——之前是50ms
+10ms用来做time slice足够小了么？
+先不管，之后写到了再说——而且可能是很后面了，也许音视频这种有实时性要求的程序
+
+2017-09-12 21:50:22
+之前忽然想shell可以写成user application，但是今儿又意识到想错了，不能：
+目前没有支持虚拟内存，那么除非user app把entry地址放到不同的地方，否则shell和shell要execute的app都会被加载到同一段内存，就覆盖了
+
+所以还是先把shell写到kernel里
+
+然后，其实想试试这种very primitive的环境能走多远
+
+    - 无虚拟内存
+    - 单进程
+
+至少应该是能做到DOS那样的，有耐心的话可以写出vim这样的editor
+加上保护模式下切换vesa mode的话，可以做出mspaint乃至各种图形程序——不过同一时间只能有一个在运行，，也许做一个超级玛丽，那么看上去就非常像小学三年级记忆里的DOS了
+
+2017-09-13 21:26:46
+populate了页表，做了个4GB的identity mapping，cr0, cr3开启了分页，可以正常跑
+但是进一步有很多盲点，比如：
+
+    - 怎样把kernel加载到higher half?
+        这样才方便不指定入口编译出的elf文件可以所有section都加载进内存——比如 .comment 的起始地址是 0
+        kernel编译时的入口地址得写 0xc0000000
+    - Page Fault handler 是怎么写的?
+    - 开启了虚拟内存之后怎么修改 page table?
+    - 怎么切换不同进程的 page table?
+
+一样样来
+
+2017-09-14 00:30:06
+哇，搞定了 higher half kernel
+能重现之前的console效果，能运行程序
+
+2017-09-14 21:40:05
+走到分页机制这儿被虐了，那个模型一直在脑子里想不明白，好多东西纠缠在一起
+要不还是慢下来吧，今儿就随便翻翻intel manual，，这几天一直睡不够，困得慌
+
+
+今儿想到的几个问题：
+
+- CR3和PDE(Page Directory Entry)中存的是phisical address还是virtual address？
+- 开启paging后怎么修改Page Table的内容？(访存都变成virtual address了)
+
+2017-09-15 22:28:42
+http://www.inf.udec.cl/~leo/Malloc_tutorial.pdf
+这里很好地讲了malloc的实现
+
+但是现在还缺怎样从分页机制到brk的实现
+
+https://vorpus.org/blog/why-does-calloc-exist/
+这个也很有意思，calloc is cheating
+
+另外一些mark
+http://www.jamesmolloy.co.uk/tutorial_html/7.-The%20Heap.html
+http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html
+
+2017-09-16 18:52:59
+操，整了一天，感觉慢慢找到root cause了
+绝壁是printf写得有问题
+
+2017-09-16 20:45:09
+我靠，还是搞不定，，死活没法正常地把前1MB内存释放掉
+忽然想要不就先不释放了，反正用户程序也是自己编的
+
+2017-09-16 21:09:03
+sigh... 感觉要告一段落了，接下来的路子不知道怎么走
+
+2017-09-16 21:36:17
+xv6不错，代码不多而且挺清晰(至少我找得到boot.asm，main.c这种，可以顺着入口一路看下去)
+嗯...自己摸索太容易掉坑里了，而且总是一种不知道什么地方有盲点的感觉
+所以跟一个足迹走吧
+
+2017-09-17 22:43:48
+嗯，先读读xv6的源码吧(这是MIT操作系统课6.828配套的教学用OS源码)
+
+刚尝试编译了一下，放到qemu上跑了一下，OK
+
+按问题来走：
+
+) 为啥需要俩硬盘？
+
+    Makefile里运行qemu的命令是
+        
+        qemu-system-i386 -drive file=fs.img,index=1,media=disk,format=raw \
+            -drive file=xv6.img,index=0,media=disk,format=raw -m 512
+    
+    (没有打全，但这个命令已经可以跑了)
+    
+    之前make完用hexdump看了一眼xv6.img，这个是启动盘(512字节结尾处有0xaa55)
+    (嗯？忽然想到只是0xaa55还不能确定是启动盘，不过那个index=0应该提示了)
+    
+    那么fs.img里是什么？
+
+) 为啥需要512MB内存？
+
+
+擦... 感觉这些问题暂时搞不明白呃，第一步应该是先把Makefile看懂
+
+
+make xv6.img 的命令第一条是
+
+    dd if=/dev/zero of=xv6.img count=10000
+
+尝试了一下
+
+    dd if=/dev/zero of=t count=1
+
+然后 ll (ls - l) 发现文件大小是512
+man一下dd看到参数里头 ibs obs (input block size / output block size) 默认都是512
+bs (block size) 可以同时指定 ibs 和 obs
+所以dd的行为是按block操作，然后count=N指定的是block的个数
+那么10000个512字节的block就是5000KB，大约5MB大小
+
+
+第二条
+
+    dd if=bootblock of=xv6.img conv=notrunc
+
+这相当于往xv6.img的开头写上bootblock的内容，但是之后的内容不变
+
+第三条
+
+    dd if=kernel of=xv6.img seek=1 conv=notrunc
+
+就是往第二个扇区写上kernel的内容
+
+
+然后我们看看 bootblock 是怎么编译的，这个应该挺简单，就是启动扇区MBR(512字节)
+    
+    bootblock: bootasm.S bootmain.c
+        ...
+
+bootasm.S 里头做了这几件事：
+
+    - 关中断
+    - 初始化段寄存器为0(ds,es,ss)
+    - 打开A20
+    - 加载GDT(一样简单的3个descriptor: null, code, data)
+    - 开保护模式(cr0第0位)
+    - 用一个long jmp来给cs设置正确的选择子(开始执行32bit代码段)
+
+        cs不能直接 mov cs, ax ，必须由 jmp/call/ret 这样的指令来设置
+        因为开了保护模式之后cs的值为0(顺便一提，xv6的bootasm.s里没有像别地儿建议的那样第一条指令jmp 0:START来保证cs为0)
+        而这作为selector是null selector，而我们需要它是 code selector
+
+    - 初始化保护模式下的段寄存器(ds,es,ss都置为data selector，fs,gs为0)
+        
+        这些是我在0bootloader.c里拿汇编做的，其实呢，这些都可以属于bootloader做的事儿
+    
+    - 设置栈指针esp
+    - 跳转到C的bootloader
+
+        xv6的做法是bootloader源码由两部分组成，一个bootasm.s, 一个bootmain.c
+        bootmain.c做的事儿是解析kernel的elf文件(从第二个扇区读来的，囧)，这里有保护模式下的简单的硬盘驱动
+        (而我是写好了文件系统后直接放在0bootloader.c里头了，so heavy...~)
+        嗯..大概看了眼，这里是先读进足够的字节包含ELF的头部，然后根据头部内容再算出相应该读的更多数据去读盘
+        然后根据ELF里的entry就跳转过去了，这才进入了真正的kernel
+
+嗯，这么大略一趟已经把 bootloader (bootasm.s, bootmain.c) 粗粗看懂了
+接下来再仔细看一看，比如xv6开启A20的细节，解析ELF和读盘的细节
+还有那些段寄存器设置——自己可能在有盲点的时候忽略了一些事情，虽然程序能正常跑但这只是巧合
+
+我靠，bootasm.s 加 bootmain.c 都编译进了512字节，实际上它们的代码一共占了432字节
+嗯...不过如果还要加上partion table和别的什么信息的话，这可能就不够了
+
+所以我的在512里读盘后续再进行别的操作的办法还是更feasible一些
+让512里头的代码可以很简单，足够小
+
+然后，sign.pl 应该是给bootblock写上0xaa55用的，，咱不懂perl，同样的功能用python写就好了
+这里用脚本的原因是如果编译出的代码太大(510字节以上)的话方便报错
+其实直接用shell脚本也能做到，但似乎是哈哈他们也觉得还是一个正统语言更好用
+
+最后编译出的512字节bootblock就用来生成xv6.img了
+
+2017-09-18 21:40:31
+http://www.nasm.us/doc/nasmdoc6.html
+nasm的bits 16和bits 32用来指定process mode，就是说，我这段编译出的代码将来是要运行在16位模式的处理器下呢还是32位的
+比如一条 mov ax, 3 的指令，16位的时候机器码是
+    
+    b8 03 00
+
+32位的时候是
+
+    b8 03 00 00 00
+
+如果我们想在16位模式下用32位的指令，比如 mov eax, 3，机器码前面要加prefix
+
+    66 b8 03 00 00 00
+
+反过来，如果在32位模式下要用16位的指令，prefix的含义就成了：后面这条是16位指令
+
+    66 b8 03 00
+
+
+电脑刚启动的时候处于实模式，处理器运行在16位模式下，所以我们写
+
+    [bits 16]
+        xor ax, ax  ; 31 c0
+        mov ds, ax  ; 8e d8
+        mov es, ax  ; 8e c0
+        mov ss, ax  ; 8e d0
+        ...
+
+当开启了保护模式，处理器就运行在了32位模式下，要写
+
+    [bits 32]
+        xor ax, ax  ; 66 31 c0
+        mov ds, ax  ; 8e d8
+        mov es, ax  ; 8e c0
+        mov ss, ax  ; 8e d0
+
+哇，原来66是切换的语义，从此之后所有指令的语义都被切换，而不是每条指令前都prefix
+
+2017-09-18 23:36:27
+xv6的bootmain.c里不能用全局变量，因为它生成bootblock的做法是先编译成elf然后objcopy出.text段
+呃，似乎我之前的做法更间接呃，自己拿python写了个elf解析脚本抽出来.text .data .rodata .bss
+
+嗯，先不管，先就按xv6的做法走吧

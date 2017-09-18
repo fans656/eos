@@ -1,0 +1,12 @@
+http://wiki.osdev.org/Memory_Map_(x86)
+
+Here is the first 1MB memory layout when computer boots up,
+it tells you which part is usable and which is not.
+The unsable parts are things like
+    
+    - Real Mode Interrupt Vector Table
+    - BIOS Data Area
+    - Extended BIOS Data Area
+    - Video memory
+
+What we got available is about 500KB, enough for a simple kernel even.
