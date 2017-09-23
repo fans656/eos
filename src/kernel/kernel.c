@@ -1,10 +1,8 @@
-#include <stdint.h>
+#include "types.h"
+#include "stdio.h"
+
+extern uint* kernel_end;
 
 void main() {
-    for (int i = 0; i < 25; ++i) {
-        for (int j = 0; j < 80; ++j) {
-            *(uint16_t*)(0xb8000 + (i * 80 + j) * 2) = 0x0300 | '.';
-        }
-    }
-    asm("hlt");
+    printf("%x", *kernel_end);
 }

@@ -22,6 +22,7 @@ Clobbers:
 #define VIDEO_MEM 0xb8000
 
 #define SECTOR_SIZE 512
+#define STACK_SIZE 4096
 
 #define HEX(c) ((c) <= 9 ? ((c) + '0') : ((c) - 10 + 'A'))
 
@@ -69,6 +70,7 @@ void bootmain() {
 
     ProgramHeader* ph = (ProgramHeader*)((uint8_t*)elf + elf->phoff);
     ProgramHeader* eph = ph + elf->phnum;
+    char* end = 0;
     for (; ph < eph; ph++) {
         if (ph->type == 1 && ph->vaddr >= KERNEL_BASE) {
             char* addr = (char*)(ph->vaddr - KERNEL_BASE);
@@ -76,8 +78,14 @@ void bootmain() {
             if (ph->memsz > ph->filesz) {
                 stosb(addr + ph->filesz, ph->memsz - ph->filesz, 0);
             }
+            if ((char*)(ph->vaddr + ph->memsz) > end) {
+                end = (char*)(ph->vaddr + ph->memsz);
+            }
         }
     }
+    end += STACK_SIZE;
+    end += 4096 - (uint32_t)end % 4096;
+    asm volatile("movl %0, 0x500" :: "r"(end));
     
     asm volatile("jmp *%0" :: "r"(elf->entry - KERNEL_BASE));
 }
