@@ -1139,3 +1139,99 @@ xv6的bootmain.c里不能用全局变量，因为它生成bootblock的做法是�
 呃，似乎我之前的做法更间接呃，自己拿python写了个elf解析脚本抽出来.text .data .rodata .bss
 
 嗯，先不管，先就按xv6的做法走吧
+
+2017-09-21 20:57:08
+ld 把 relocable 的 objs link 成一个 executable 的 elf 文件后，在 file header 中指定了 entry
+可以用
+    readelf -h a.out
+看 file header
+
+relocable的文件就是里面的地址引用都留空，然后有符号表指示哪些地址需要relocate
+链接成elf后所有的地址就都根据 -Ttext=0x7c00 这种计算出绝对值
+
+
+https://ftp.gnu.org/old-gnu/Manuals/make-3.79.1/html_chapter/make_10.html
+Makefile里不必写全，make有默认的从 .c 生成 .o 的规则
+
+
+https://blogs.oracle.com/ali/inside-elf-symbol-tables
+entry.S 里头引用了 entrypgdir 怎么还能编译出来？——主要是编译出来的地址应用并不是0?
+readelf -s 可以看到是有 entrypgdir 这个 symbol 的，标着UND(undefine?)，所以没问题
+
+
+http://web.mit.edu/gnu/doc/html/as_7.html
+.comm stack, STACK_SIZE 用来在 .bss 段中预留 STACK_SIZE 大小的空间
+靠这种方法在 .text 后面留出了栈空间
+
+
+http://faydoc.tripod.com/cpu/stosb.htm
+https://stackoverflow.com/questions/33480999/how-can-the-rep-stosb-instruction-execute-faster-than-the-equivalent-loop
+stosb是比自己拿loop实现的memset更快的存在，因为...嗯，不涉及内存变量
+
+
+bootmain.c 把 kernel 的 elf 加载到1MB位置，然后跳到elf指定的entry，开始执行kernel
+(这里的细节还有待澄清，kernel base是 0x80000000，但是elf的entry写的是0x10000c，跟kernel.ld有关)
+
+然后呢，entry.S 里头开启了分页机制，是把前4MB vaddr映射到前4MB paddr，kernel base的4MB vaddr也映射到前4MB paddr
+entrypgdir定义在main.c中，用的是4MB页面，第0项赋了值，第256项(对应1GB位置)赋了值
+
+然后跳转到main.c的main()
+先调了kinit() -> freerange() , 这应该是释放掉了前4MB中kernel之后的内存
+那个神奇的 end 是在 kernel.ld 中定义的
+    PROVIDE(end = .);
+这是 .bss 段的结尾
+
+kfree里头就开始操作linked list了，嗯...这里明天再仔细看吧
+今天早点睡
+
+啊，kinit2里头释放了从4MB开始到PHYSTOP结束的内存，这样整个内存空间就只前1MB和kernel占的部分标记为已用啦
+(所以其实它也没释放前1MB么？不，还得仔细看看这俩init完了之后的page table是什么样的，我的是只要把前1MB的identity map搞掉，系统就崩)
+
+PHYSTOP是写死在memlayout.h中的0xe000000 ——224MB，嗯...？
+
+2017-09-23 00:16:26
+. AT&T的那几个inline assembly(inb/outb/rep insl)编译出来的机器码是什么样的
+. xv6的read sector跟咱之前写的有哪些不同？咱做的哪些是多余的？
+
+
+我写的asm.h里那些函数没被inline，导致mbr体积剧增，超过512字节了
+嗯...gcc加上-O2就可以了
+
+2017-09-23 16:43:59
+哎妈的，终于到了kernel了
+
+现在的做法是：
+
+    nasm mbr.asm => mbr.img
+        int 13h 加载 sector 1-7
+        jmp 0x8000
+    
+    gcc boot.c & objcopy boot.o => boot.img
+        ata read sector 8-.. (kernel elf)
+        jmp 0x100000
+    
+    gcc kernel/*.c => kernel.img
+
+
+详细一点：
+    eos/
+        boot/
+            mbr.asm
+            boot.c
+        kernel/
+            kernel.c
+
+boot/mbr.asm => nasm编译成512B MBR
+    调用bios 13h读取sector 1-7的tage-2 bootloader (boot.c)到0x8000
+    加载GDT (null, code, data)
+    进入保护模式
+    设置stack (0x7c00)
+    跳转到 0x8000
+boot/boot.c => gcc + objcopy 编译成 raw binary (只有.text段)
+    利用ATA读取sector 8的 elf header
+    根据program header加载kernel的LOAD segment到 0x100000 (.bss置0)
+    跳转到 0x100000
+kernel/kernel.c => gcc 编译成 elf (-Ttext=0xc0100000)
+    todo 开启分页
+    todo 设置stack
+    todo 开中断

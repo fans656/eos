@@ -1,3 +1,5 @@
+    org 0x7c00
+
     global _start
     extern bootmain
 
@@ -16,6 +18,16 @@ START16:
     mov es, ax
     mov ss, ax
     
+    ; load 2-stage bootloader
+    push ds
+    xor ax, ax
+    mov ds, ax
+    mov si, DiskAddressPacket
+    mov ah, 0x42
+    mov dl, 0x80
+    int 0x13
+    pop ds
+    
     ; open A20  http://wiki.osdev.org/A20
     ; this method is not perfect, but simple and reliable enough
     in al, 0x92
@@ -33,6 +45,14 @@ START16:
     ; long jump to 32-bit code
     jmp (1 << 3):START32
 
+DiskAddressPacket:
+    db 16  ; size of this packet
+    db 0  ; reserved
+    dw 7  ; number of sectors
+    dd 0x08000000  ; base:offset
+    dd 1  ; LBA low
+    dd 0  ; LBA high
+
 [bits 32]
 START32:
     ; init data segments
@@ -43,9 +63,8 @@ START32:
     mov fs, ax
     mov gs, ax
 
-    mov esp, $  ; setup stack
-    call bootmain
-    hlt  ; we shouldn't be here
+    mov esp, _start  ; setup stack
+    jmp (1 << 3):0x8000
 
 ; Global Descriptor Table  http://wiki.osdev.org/GDT
 %macro Descriptor 3  ; base, limit, attr
@@ -64,3 +83,6 @@ GDT:
 GDTDesc:
     dw GDTDesc - GDT
     dd GDT
+
+    times 510 - ($ - $$) db 0
+    dw 0xaa55
