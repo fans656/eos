@@ -1,13 +1,6 @@
 #include "types.h"
 #include "stdio.h"
-
-#define KERNEL_BASE 0xc0000000
-
-#define PAGE_SIZE 4096
-
-#define PTE_P 0x001
-#define PTE_W 0x002
-#define PTE_PS 0x080
+#include "conf.h"
 
 __attribute__((__aligned__(PAGE_SIZE))) uint page_dir[1024] = {
     [0] = 0 | PTE_P | PTE_W | PTE_PS,
@@ -34,8 +27,6 @@ void entry() {
             // setup stack
             "mov 0x500, %%eax;"
             "mov %%eax, %%esp;"
-            :: "c"((uint)page_dir - KERNEL_BASE));
-    clear_console();
-    main();
-    asm("hlt");
+            "movl %1, %%eax; jmp *%%eax"
+            :: "c"((uint)page_dir - KERNEL_BASE), "i"(main));
 }

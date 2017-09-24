@@ -1,11 +1,29 @@
 #include "types.h"
+#include "conf.h"
 
-#define VIDEO_MEM 0xc00b8000
+#define CHAR(row, col) (*((ushort*)VIDEO_MEM + (row) * 80 + (col)))
+
+#define GRAY(ch) (0x0700 | (ch))
 
 int cur_row = 0, cur_col = 0;
 
+void scroll_down() {
+    for (int row = 0; row < 25; ++row) {
+        for (int col = 0; col < 80; ++col) {
+            if (row < 24) {
+                CHAR(row, col) = CHAR(row + 1, col);
+            } else {
+                CHAR(row, col) = GRAY(' ');
+            }
+        }
+    }
+}
+
 void newline() {
-    ++cur_row;
+    if (++cur_row == 25) {
+        scroll_down();
+        --cur_row;
+    }
     cur_col = 0;
 }
 
@@ -15,11 +33,9 @@ void putchar(char ch) {
             newline();
             return;
     }
-    ushort* mem = (ushort*)VIDEO_MEM + cur_row * 80 + cur_col++;
-    *mem = 0x0700 | ch;
+    CHAR(cur_row, cur_col++) = GRAY(ch);
     if (cur_col == 80) {
-        ++cur_row;
-        cur_col = 0;
+        newline();
     }
 }
 
@@ -37,14 +53,32 @@ void print_hex_4(uint val) {
     print_hex_1(val & 0xff);
 }
 
-void printf(char* fmt, ...) {
-    uint* arg = (uint*)&fmt + 1;
-    for (char* p = fmt; *p; ++p) {
+void print_int(int val) {
+    if (val < 0) {
+        putchar('-');
+    }
+    uint base = 1;
+    while (base * 10 < val) {
+        base *= 10;
+    }
+    while (base) {
+        putchar(val / base + '0');
+        val %= base;
+        base /= 10;
+    }
+}
+
+void _printf(char** pfmt) {
+    uint* arg = (uint*)pfmt + 1;
+    for (char* p = *pfmt; *p; ++p) {
         switch (*p) {
             case '%':
                 switch (*++p) {
                     case 'x':
-                        print_hex_4(*arg);
+                        print_hex_4(*arg++);
+                        break;
+                    case 'd':
+                        print_int(*arg++);
                         break;
                 }
                 break;
@@ -55,10 +89,21 @@ void printf(char* fmt, ...) {
     }
 }
 
-void clear_console() {
-    for (int i = 0; i < 25; ++i) {
-        for (int j = 0; j < 80; ++j) {
-            *((ushort*)VIDEO_MEM + i * 80 + j) = 0x0700 | ' ';
+void printf(char* fmt, ...) {
+    _printf(&fmt);
+}
+
+void clear_screen() {
+    for (int row = 0; row < 25; ++row) {
+        for (int col = 0; col < 80; ++col) {
+            CHAR(row, col) = GRAY(' ');
         }
+    }
+}
+
+void panic(char* fmt, ...) {
+    _printf(&fmt);
+    while (true) {
+        asm("hlt");
     }
 }

@@ -1235,3 +1235,18 @@ kernel/kernel.c => gcc 编译成 elf (-Ttext=0xc0100000)
     todo 开启分页
     todo 设置stack
     todo 开中断
+
+2017-09-23 21:14:33
+xv6管理physical frame的方式是用链表
+每个free frame的第一个uint用作指向下一个frame的指针
+另外kernel的.data里有一个 uint* freelist 指向第一个free frame
+
+kfree() 在list头插入一个frame，kalloc() 从list头拿掉一个frame
+
+刚进入kernel时，page table中有两项：0-4MB paddr被 0-4MB 和 2GB-2GB+4MB 映射
+然后kinit1()先把这4MB中kernel之后(stack之后，视为heap)的frames加到了freelist中
+
+2017-09-24 09:48:31
+卧槽，分页这一关终于过了，，之前的难关是一只没法在开启分页之后把前4MB的identity mapping去掉
+现在终于搞定了，而原因其实跟分页部分的代码没关系，而是开启分页后的那个往高地址的跳转
+——一定要保证汇编出来的指令是绝对跳转，否则指令还是在低地址fetch，一去掉identity mapping就崩了
