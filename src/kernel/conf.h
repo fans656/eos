@@ -1,13 +1,27 @@
+#ifndef CONF_H
+#define CONF_H
+
+#include "types.h"
+
 #define KB 1024
 #define MB (1024 * KB)
 #define GB (1024 * MB)
 
 #define KERNEL_BASE 0xc0000000
 
-#define VIDEO_MEM (0xb8000 + KERNEL_BASE)
+#define V2P(x) ((uint)(x) - KERNEL_BASE)
+#define P2V(x) ((uint)(x) + KERNEL_BASE)
+
+#define VIDEO_MEM ((ushort*)P2V(0xb8000))
 
 #define PAGE_SIZE 4096
 
 #define PTE_P 0x001
 #define PTE_W 0x002
 #define PTE_PS 0x080
+
+enum {
+    SYSCALL_PRINTF = 1,
+};
+
+#endif

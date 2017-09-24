@@ -2,7 +2,7 @@
 #include "stdio.h"
 #include "conf.h"
 
-__attribute__((__aligned__(PAGE_SIZE))) uint page_dir[1024] = {
+__attribute__((__aligned__(PAGE_SIZE))) uint pgdir[1024] = {
     [0] = 0 | PTE_P | PTE_W | PTE_PS,
     [KERNEL_BASE >> 22] = 0 | PTE_P | PTE_W | PTE_PS
 };
@@ -14,19 +14,21 @@ void main();
 void entry() {
     asm volatile(
             // enable 4M page
-            "mov %%cr4, %%eax;"
-            "orl $0x10, %%eax;"
-            "mov %%eax, %%cr4;"
+            "mov eax, cr4;"
+            "or eax, 0x10;"
+            "mov cr4, eax;"
             // load page directory
-            "mov %0, %%eax;"
-            "mov %%eax, %%cr3;"
+            "mov eax, %0;"
+            "mov cr3, eax;"
             // enable paging
-            "mov %%cr0, %%eax;"
-            "orl $0x80010000, %%eax;"
-            "mov %%eax, %%cr0;"
+            "mov eax, cr0;"
+            "or eax, 0x80010000;"
+            "mov cr0, eax;"
             // setup stack
-            "mov 0x500, %%eax;"
-            "mov %%eax, %%esp;"
-            "movl %1, %%eax; jmp *%%eax"
-            :: "c"((uint)page_dir - KERNEL_BASE), "i"(main));
+            "mov eax, [0x500];"
+            "mov esp, eax;"
+            // jump to main
+            "mov eax, %1;"
+            "jmp eax"
+            :: "c"((uint)pgdir - KERNEL_BASE), "i"(main));
 }
