@@ -1,1 +1,1 @@
-find src -type f | xargs wc -l
+find src -type f | xargs wc -l | sort

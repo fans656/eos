@@ -7,6 +7,8 @@
 #define MB (1024 * KB)
 #define GB (1024 * MB)
 
+#define PHY_MEM 128  // MB, must be a mutiple of 4 (maximum less than 1GB)
+
 #define KERNEL_BASE 0xc0000000
 
 #define V2P(x) ((uint)(x) - KERNEL_BASE)

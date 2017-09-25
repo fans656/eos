@@ -1,4 +1,4 @@
-# eos - a homemade OS
+# eos - fans656's OS attempt
 
 ## Milestones
 
@@ -14,12 +14,13 @@
 - Simple read-only file system
 - System call (int 0x80)
 - ELF executable
+- Paging
+- malloc/free
 
 ## Future
 
-- Console
-- Virtual memory
 - Multi-processing
+- Console
 - GUI
   - Mouse
   - Windows
@@ -30,6 +31,7 @@
 - Networking
 - UTF-8
 - POSIX
+- Swap
 
 ## Develop Environment
 
@@ -41,14 +43,20 @@
 
 ## References
 
-[osdev](http://wiki.osdev.org/Main_Page)
+### General
 
-[xv6](https://pdos.csail.mit.edu/6.828/2012/xv6.html)
+[osdev wiki](http://wiki.osdev.org/Main_Page)
+
+[xv6 - MIT 6.828 Educational OS](https://pdos.csail.mit.edu/6.828/2012/xv6.html)
 
 [ORANGE’S：一个操作系统的实现](https://book.douban.com/subject/3735649/)
-
-<div><p><a href="http://wiki.osdev.org/Main_Page">ATA Interface Reference Manual - Seagate</a></p></div>
 
 [Intel® 64 and IA-32 Architectures Software Developer Manuals](https://software.intel.com/en-us/articles/intel-sdm)
 
 [Modern Operating Systems - 4th Edition](https://github.com/yuanhui-yang/Modern-Operating-Systems/blob/master/Modern%20Operating%20Systems%20-%204th%20Edition.pdf)
+
+### Topics
+
+[ATA Interface Reference Manual - Seagate](http://bit.ly/2ynS9BO)
+
+[A Malloc Tutorial](http://www.inf.udec.cl/~leo/Malloc_tutorial.pdf)

@@ -1267,10 +1267,10 @@ http://forum.osdev.org/viewtopic.php?f=1&t=20176&start=0
 
 ) process
     . paging
+    . system call : printf, scanf, sleep, ...
     ) keyboard : to provide scanf
         . interrupt
     ) file system : to load program ELF file
-    ) system call : printf, scanf, sleep, ...
     ) kernel malloc/free
 
 
@@ -1278,3 +1278,11 @@ http://forum.osdev.org/viewtopic.php?f=1&t=20176&start=0
 
 忽然想试试之前的filesystem能不能直接拿来用，毕竟已经封装得比较干净了
 呃..我擦，看了眼写得不全，只有read没有write，，还是再看看xv6再决定怎么弄吧
+
+2017-09-24 19:08:43
+把之前的文件系统移植一下
+
+...再次放弃，改不动
+
+
+得先实现kernel的malloc，又碰到一堆先有鸡还是先有蛋的问题
