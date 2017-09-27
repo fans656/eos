@@ -7,7 +7,6 @@ BOOT=$SRC/boot
 KERNEL=$SRC/kernel
 LIBC=$SRC/libc
 PROG=$SRC/prog
-TOOL=$ROOT/tool
 
 CFLAGS="-m32 -ffreestanding -nostdlib"
 
@@ -26,6 +25,3 @@ dd if=/dev/zero of=eos.img bs=16M count=1 status=none
 dd if=mbr.img of=eos.img conv=notrunc status=none
 dd if=boot.img of=eos.img seek=1 conv=notrunc status=none
 dd if=kernel.img of=eos.img seek=8 conv=notrunc status=none
-
-cd $TOOL
-./bundle.py

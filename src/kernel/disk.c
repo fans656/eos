@@ -8,6 +8,7 @@ http://wiki.osdev.org/PCI_IDE_Controller
 #include "asm.h"
 #include "stdio.h"
 #include "string.h"
+#include "math.h"
 
 #define DATA_PORT 0x1f0
 #define ERROR_PORT 0x1f1
@@ -36,7 +37,7 @@ http://wiki.osdev.org/PCI_IDE_Controller
 #define low_byte(x) ((x) & 0xff)
 #define high_byte(x) (((x) >> 8) & 0xff)
 
-DiskMeta disk_meta;
+DiskInfo disk_info;
 
 uchar sector_buffer[BPS];
 
@@ -118,7 +119,7 @@ void clear_address_ports() {
     outb(LBA_HIGH_PORT, 0);
 }
 
-void do_identify(DiskMeta* meta) {
+void do_identify(DiskInfo* meta) {
     outb(COMMAND_PORT, IDENTITY_CMD);
     wait_until_ready();
 
@@ -132,20 +133,18 @@ void do_identify(DiskMeta* meta) {
 }
 
 void init_disk() {
-    asm("cli");
     select_master_drive();
     clear_address_ports();
-    do_identify(&disk_meta);
-    asm("sti");
+    do_identify(&disk_info);
 }
 
 void read_bytes(ulonglong i_byte, ulonglong n_bytes, void* buffer) {
     uint i_sector = i_byte / BPS;
     uchar* p = buffer;
-    if (i_byte % BPS != 0) {
+    if (i_byte % BPS) {
         read_sector(i_sector++, sector_buffer);
         uint n_left = i_byte % BPS;
-        uint n_read = BPS - n_left;
+        uint n_read = min(BPS - n_left, n_bytes);
         memcpy(p, sector_buffer + n_left, n_read);
         p += n_read;
         n_bytes -= n_read;
@@ -162,35 +161,36 @@ void read_bytes(ulonglong i_byte, ulonglong n_bytes, void* buffer) {
     }
 }
 
-void write_bytes(ulonglong i_byte, ulonglong n_bytes, uchar* data) {
+void write_bytes(ulonglong i_byte, ulonglong n_bytes, void* data) {
+    uchar* data_ = (uchar*)data;
     uint i_sector = i_byte / BPS;
     if (i_byte % BPS) {
         uint n_left = i_byte % BPS;
-        uint n_write = BPS - n_left;
+        uint n_write = min(BPS - n_left, n_bytes);
         read_sector(i_sector, sector_buffer);
-        memcpy(sector_buffer + n_left, data, n_write);
+        memcpy(sector_buffer + n_left, data_, n_write);
         write_sector(i_sector++, sector_buffer);
-        data += n_write;
+        data_ += n_write;
         n_bytes -= n_write;
     }
-    while (n_bytes > 0 && n_bytes % BPS == 0) {
-        write_sector(i_sector++, data);
-        data += BPS;
+    while (n_bytes >= BPS) {
+        write_sector(i_sector++, data_);
+        data_ += BPS;
         n_bytes -= BPS;
     }
-    if (n_bytes % BPS) {
+    if (n_bytes) {
         uint n_write = n_bytes % BPS;
         read_sector(i_sector, sector_buffer);
-        memcpy(sector_buffer, data, n_write);
+        memcpy(sector_buffer, data_, n_write);
         write_sector(i_sector++, sector_buffer);
     }
 }
 
-void read_sector(uint i_sector, uchar* buffer) {
+void read_sector(uint i_sector, void* buffer) {
     read_sectors(i_sector, 1, buffer);
 }
 
-void write_sector(uint i_sector, uchar* data) {
+void write_sector(uint i_sector, void* data) {
     write_sectors(i_sector, 1, data);
 }
 
@@ -202,9 +202,7 @@ void prepare_read_write(uint i_sector, uchar n_sectors) {
     outb(LBA_HIGH_PORT, (i_sector >> 16) & 0xff);
 }
 
-void read_sectors(uint i_sector, uchar n_sectors, uchar* buffer) {
-    asm("cli");
-
+void read_sectors(uint i_sector, uchar n_sectors, void* buffer) {
     prepare_read_write(i_sector, n_sectors);
     outb(COMMAND_PORT, READ_SECTORS_CMD);
     wait_until_ready();
@@ -216,13 +214,9 @@ void read_sectors(uint i_sector, uchar n_sectors, uchar* buffer) {
         }
         wait_for(ALT_STATUS_PORT, BSY, 0);
     }
-
-    asm("sti");
 }
 
-void write_sectors(uint i_sector, uchar n_sectors, uchar* data) {
-    asm("cli");
-
+void write_sectors(uint i_sector, uchar n_sectors, void* data) {
     prepare_read_write(i_sector, n_sectors);
     outb(COMMAND_PORT, WRITE_SECTORS_CMD);
     wait_until_ready();
@@ -236,6 +230,4 @@ void write_sectors(uint i_sector, uchar n_sectors, uchar* data) {
         outb(COMMAND_PORT, CACHE_FLUSH_CMD);
         wait_for(ALT_STATUS_PORT, BSY, 0);
     }
-
-    asm("sti");
 }

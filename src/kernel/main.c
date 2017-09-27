@@ -6,14 +6,32 @@
 #include "elf.h"
 #include "string.h"
 #include "assert.h"
-
-typedef void (*Func)();
+#include "filesystem.h"
 
 void main() {
     init_console();
-    init_memory(128 * MB);
+    init_memory();
     init_interrupt();
+    init_filesystem();
+    
+    char* name = "/img/snow-leopard.bmp";
+    size_t size = fsize(name);
+    char* buffer = malloc(size + 1);
+    buffer[size] = 0;
 
+    FILE* fp = fopen(name);
+    fread(fp, size, buffer);
+    printf("Path: %s\n", name);
+    printf("Size: %d\n\n", size);
+    hexdump(buffer, 128);
+    fclose(fp);
+    
+    hlt_forever();
+}
+
+typedef void (*Func)();
+
+void load_elf() {
     char* buffer = malloc(4096);
     uint hello_file_offset = 1 * MB;
     read_bytes(hello_file_offset, 4096, buffer);
@@ -32,9 +50,4 @@ void main() {
     }
     ((Func)elf->entry)();
     free(buffer);
-    
-    hlt_forever();
-}
-
-void load_elf() {
 }

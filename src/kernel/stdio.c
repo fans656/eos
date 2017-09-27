@@ -82,6 +82,7 @@ void print_hex_4(uint val) {
 void print_int(int val) {
     if (val < 0) {
         putchar('-');
+        val = -val;
     }
     uint base = 1;
     while (base * 10 < val) {
@@ -110,7 +111,7 @@ void _printf(char** pfmt) {
                         print_hex_4(*arg++);
                         break;
                     case 'd':
-                        print_int(*arg++);
+                        print_int(*(int*)arg++);
                         break;
                     case 's':
                         print_str((char*)*arg++);

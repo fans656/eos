@@ -53,7 +53,8 @@ void map_pages(uint pgdir[], uint vbeg, size_t size) {
         } else {  // page table already exist
             pt = (uint*)P2V(*pde & 0xfffff000);
         }
-        pt[p & 0x3ff] = V2P(alloc_frame()) | PTE_P | PTE_W;
+        uint* page = alloc_frame();
+        pt[p & 0x3ff] = V2P(page) | PTE_P | PTE_W;
     }
 }
 
@@ -71,7 +72,8 @@ void unmap_pages(uint pgdir[], uint vbeg, uint size) {
         if (!(*pte & PTE_P)) {
             panic("unmap non-mapped page!");
         }
-        free_frame(P2V(*pte & 0xfffff000));
+        uint frame = *pte & 0xfffff000;
+        free_frame(P2V(frame));
         *pte = 0;
     }
 }
@@ -167,12 +169,13 @@ void free(void* addr) {
     cur->next->prev = cur;
     try_merge(cur, cur->next);  // for "a b c", merge "b c" first, else it will be wrong
     cur = try_merge(cur->prev, cur);
-    // if at heap end, give it back to kernel
-    if (!cur->next->size) {
-        cur->prev->next = cur->next;
-        cur->next->prev = cur->prev;
-        sbrk(-cur->size);
-    }
+    // never give back
+    //// if at heap end, give it back to kernel
+    //if (!cur->next->size) {
+    //    cur->prev->next = cur->next;
+    //    cur->next->prev = cur->prev;
+    //    sbrk(-cur->size);
+    //}
 }
 
 ///////////////////////////////////////////////////////// GDT
@@ -208,7 +211,7 @@ struct __attribute__((__packed__)) {
 
 ///////////////////////////////////////////////////////// init
 
-void init_memory(uint size) {
+void init_memory() {
     // use higher half GDT
     asm("lgdt [%0]" :: "r"(&gdtdesc));
     // free the identity mapping 0~4MB
