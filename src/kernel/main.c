@@ -7,24 +7,18 @@
 #include "string.h"
 #include "assert.h"
 #include "filesystem.h"
+#include "graphics.h"
 
 void main() {
     init_console();
     init_memory();
     init_interrupt();
     init_filesystem();
+    init_graphics();
     
-    char* name = "/img/snow-leopard.bmp";
-    size_t size = fsize(name);
-    char* buffer = malloc(size + 1);
-    buffer[size] = 0;
-
-    FILE* fp = fopen(name);
-    fread(fp, size, buffer);
-    printf("Path: %s\n", name);
-    printf("Size: %d\n\n", size);
-    hexdump(buffer, 128);
-    fclose(fp);
+    char* leo = "/img/snow-leopard.bmp";
+    char* girl = "/img/girl.bmp";
+    draw_bmp(girl);
     
     hlt_forever();
 }

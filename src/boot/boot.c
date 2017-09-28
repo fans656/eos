@@ -65,7 +65,7 @@ void read_sector(void* addr, uint32_t offset);
 void read_segment(void* addr, uint32_t count, uint32_t offset);
 
 void bootmain() {
-    ELFHeader* elf = (ELFHeader*)0x500;
+    ELFHeader* elf = (ELFHeader*)(0x500 + 4096);
     read_segment(elf, 4096, 0);
 
     ProgramHeader* ph = (ProgramHeader*)((uint8_t*)elf + elf->phoff);

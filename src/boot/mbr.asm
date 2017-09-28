@@ -18,6 +18,8 @@ START16:
     mov es, ax
     mov ss, ax
     
+    call SwithToVesaMode
+    
     ; load 2-stage bootloader
     push ds
     xor ax, ax
@@ -44,6 +46,39 @@ START16:
     
     ; long jump to 32-bit code
     jmp (1 << 3):START32
+
+SwithToVesaMode:
+    pushad
+    mov dx, 0x4118  ; 1024x768 24bit color
+    mov dx, 0x4115  ; 800x600 24bit color
+
+    ; query mode info
+    mov ax, 0
+    mov es, ax
+    mov di, 0x500
+    mov cx, dx
+    mov ax, 0x4f01
+    int 0x10
+    cmp ax, 0x004f
+    jne Panic
+
+    ; set SVGA video mode
+    mov ax, 0x50
+    mov es, ax
+    mov ax, 0x4f02
+    mov bx, dx
+    int 0x10
+    cmp ax, 0x004f
+    jne Panic
+    
+    popad
+    ret
+
+Panic:
+    mov ax, 0xb800
+    mov ds, ax
+    mov dword [ds:0], 0x0f45
+    hlt
 
 DiskAddressPacket:
     db 16  ; size of this packet
