@@ -65,6 +65,7 @@ SwithToVesaMode:
     ; set SVGA video mode
     mov ax, 0x50
     mov es, ax
+    mov word [es:0], 0xffff  ; tell kernel graphics is on
     mov ax, 0x4f02
     mov bx, dx
     int 0x10

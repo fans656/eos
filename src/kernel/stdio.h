@@ -1,5 +1,8 @@
 #include "types.h"
 
+extern int ROWS, COLS;
+ushort* VIDEO_MEM;
+
 void init_console();
 
 void set_cursor(int row, int col);

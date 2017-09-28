@@ -14,7 +14,7 @@
 #define V2P(x) ((uint)(x) - KERNEL_BASE)
 #define P2V(x) ((uint)(x) + KERNEL_BASE)
 
-#define VIDEO_MEM ((ushort*)P2V(0xb8000))
+#define CHAR(row, col) (*(VIDEO_MEM + (row) * COLS + (col)))
 
 #define PAGE_SIZE 4096
 

@@ -9,6 +9,12 @@
 #include "filesystem.h"
 #include "graphics.h"
 
+typedef struct __attribute__((__packed__)) {
+    uchar magic[2];
+    uchar mode;
+    uchar charsize;
+} PSF1;
+
 void main() {
     init_console();
     init_memory();
@@ -16,9 +22,18 @@ void main() {
     init_filesystem();
     init_graphics();
     
-    char* leo = "/img/snow-leopard.bmp";
-    char* girl = "/img/girl.bmp";
-    draw_bmp(girl);
+    char* name = "/img/walle.bmp";
+    size_t size = fsize(name);
+    char* buffer = malloc(size);
+    FILE* fp = fopen(name);
+    fread(fp, size, buffer);
+    fclose(fp);
+    
+    printf("%s\n\n", name);
+    hexdump(buffer, 128);
+    sync_console();
+
+    draw_bmp_at(name, 300, 200);
     
     hlt_forever();
 }

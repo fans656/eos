@@ -1,8 +1,10 @@
 #include "types.h"
 #include "conf.h"
 #include "asm.h"
+#include "graphics.h"
 
-#define CHAR(row, col) (*(VIDEO_MEM + (row) * 80 + (col)))
+int ROWS = 25, COLS = 80;
+ushort* VIDEO_MEM = (ushort*)P2V(0xb8000);
 
 #define GRAY(ch) (0x0700 | (ch))
 
@@ -12,7 +14,7 @@ int cur_row = 0, cur_col = 0;
 void set_cursor(int row, int col) {
     cur_row = row;
     cur_col = col;
-    ushort pos = row * 80 + col;
+    ushort pos = row * COLS + col;
     outb(0x3d4, 0x0f);
     outb(0x3d5, pos & 0xff);
     outb(0x3d4, 0x0e);
@@ -32,19 +34,20 @@ void enable_cursor() {
 }
 
 void scroll_down() {
-    for (int row = 0; row < 25; ++row) {
-        for (int col = 0; col < 80; ++col) {
-            if (row < 24) {
+    for (int row = 0; row < ROWS; ++row) {
+        for (int col = 0; col < COLS; ++col) {
+            if (row < ROWS - 1) {
                 CHAR(row, col) = CHAR(row + 1, col);
             } else {
                 CHAR(row, col) = GRAY(' ');
             }
         }
     }
+    //sync_console();
 }
 
 void newline() {
-    if (++cur_row == 25) {
+    if (++cur_row == ROWS) {
         scroll_down();
         --cur_row;
     }
@@ -59,10 +62,11 @@ void putchar(char ch) {
             return;
     }
     CHAR(cur_row, cur_col++) = GRAY(ch);
-    if (cur_col == 80) {
+    if (cur_col == COLS) {
         newline();
     }
     set_cursor(cur_row, cur_col);
+    //sync_console();
 }
 
 #define HEX(v) ((v) < 10 ? ((v) + '0') : ((v) - 10 + 'A'))
@@ -85,7 +89,7 @@ void print_int(int val) {
         val = -val;
     }
     uint base = 1;
-    while (base * 10 < val) {
+    while (base * 10 <= val) {
         base *= 10;
     }
     while (base) {
@@ -130,8 +134,8 @@ void printf(char* fmt, ...) {
 }
 
 void init_console() {
-    for (int row = 0; row < 25; ++row) {
-        for (int col = 0; col < 80; ++col) {
+    for (int row = 0; row < ROWS; ++row) {
+        for (int col = 0; col < COLS; ++col) {
             CHAR(row, col) = GRAY(' ');
         }
     }

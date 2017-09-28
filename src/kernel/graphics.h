@@ -19,4 +19,8 @@ void fill_rect(int left, int top, int width, int height, uint color);
 void draw_bmp(char* fpath);
 void draw_bmp_at(char* fpath, int x, int y);
 
+void draw_char(char ch, int row, int col);
+
+void sync_console();
+
 #endif

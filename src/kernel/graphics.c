@@ -46,12 +46,20 @@ typedef struct  __attribute__ ((packed)) {
    uchar reserved1[206];
 } vbe_mode_info_structure;
 
-static vbe_mode_info_structure* mode_info = (vbe_mode_info_structure*)(0x500 + KERNEL_BASE);
-static uchar* graphic_video_mem;
-static int screen_width;
-static int screen_height;
-static int pitch;
-static int bytes_per_pixel;
+vbe_mode_info_structure* mode_info = (vbe_mode_info_structure*)(0x500 + KERNEL_BASE);
+uchar* graphic_video_mem;
+int screen_width;
+int screen_height;
+int pitch;
+int bytes_per_pixel;
+
+typedef struct {
+    uchar magic[2];
+    uchar mode;
+    uchar charsize;
+} PSF1;
+
+uchar* font_glyphs;
 
 void init_graphics() {
     graphic_video_mem = (uchar*)mode_info->framebuffer;
@@ -66,9 +74,22 @@ void init_graphics() {
         beg += 4 * MB;
     }
     
-    printf("graphic_video_mem: %x\n", graphic_video_mem);
-    printf("width: %d, height: %d\n", screen_width, screen_height);
-    printf("pitch: %d, bytes_per_pixel: %d\n", pitch, bytes_per_pixel);
+    if (mode_info->attributes) {  // reused, mbr set this value if graphics is on
+        int COLS = screen_width / 8;
+        int ROWS = screen_height / 16;
+
+        char* name = "/font/R.psf";
+        size_t size = fsize(name);
+        font_glyphs = malloc(size - sizeof(PSF1));
+        FILE* fp = fopen(name);
+        fseek(fp, sizeof(PSF1));
+        fread(fp, 256 * 16, font_glyphs);
+        fclose(fp);
+        
+        int video_mem_size = 80 * 25 * 2;
+        VIDEO_MEM = malloc(video_mem_size);
+        memset(VIDEO_MEM, 0, video_mem_size);
+    }
 }
 
 int get_screen_width() {
@@ -151,8 +172,8 @@ void draw_bmp_at(char* fpath, int x, int y) {
 
     int screen_width = get_screen_width();
     int screen_height = get_screen_height();
-    int left = x;
-    int top = y;
+    int left = max(x, 0);
+    int top = max(y, 0);
     int right = min(left + width, screen_width);
     int bottom = min(top + height, screen_height);
 
@@ -161,7 +182,7 @@ void draw_bmp_at(char* fpath, int x, int y) {
     uint bytes_per_row_mem = screen_width * bpp;
     uint offset_mem = top * pitch + left * bpp;
     uint bytes_copy_row = (right - left) * bytes_per_pixel;
-    for (int i = top; i < bottom; ++i) {
+    for (int i = max(top, 0); i < bottom; ++i) {
         memcpy(graphic_video_mem + offset_mem, pixels + offset_data, bytes_copy_row);
         offset_data -= bytes_per_row;
         offset_mem += bytes_per_row_mem;
@@ -182,4 +203,28 @@ void draw_bmp(char* fpath) {
     int left = (screen_width - width) / 2;
     int top = (screen_height - height) / 2;
     draw_bmp_at(fpath, left, top);
+}
+
+void draw_char(char ch, int row, int col) {
+    uchar* glyph = (uchar*)&font_glyphs[ch * 16];
+    int top = row * 16;
+    int left = col * 8;
+    for (int i = 0; i < 16; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            draw_pixel(left + j, top + i, (glyph[i] & (1 << (8 - j))) ? 0xffffff : 0);
+        }
+    }
+}
+
+void sync_console() {
+    if (font_glyphs) {
+        for (int i = 0; i < ROWS; ++i) {
+            for (int j = 0; j < COLS; ++j) {
+                ushort val = CHAR(i, j);
+                if (val) {
+                    draw_char((char)(val & 0xff), i, j);
+                }
+            }
+        }
+    }
 }
