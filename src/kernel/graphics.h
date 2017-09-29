@@ -1,7 +1,7 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
-#include "types.h"
+#include "../types.h"
 
 void init_graphics();
 
@@ -21,6 +21,7 @@ void draw_bmp_at(char* fpath, int x, int y);
 
 void draw_char(char ch, int row, int col);
 
+void sync_console_at(int row, int col);
 void sync_console();
 
 #endif

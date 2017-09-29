@@ -1,7 +1,7 @@
-#include "types.h"
+#include "../types.h"
 
 extern int ROWS, COLS;
-ushort* VIDEO_MEM;
+extern ushort* video_mem;
 
 void init_console();
 

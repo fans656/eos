@@ -1,4 +1,7 @@
-#include "types.h"
+#ifndef ASM_H
+#define ASM_H
+
+#include "../types.h"
 
 static inline uchar inb(ushort port) {
     uchar res;
@@ -19,3 +22,5 @@ static inline ushort inw(ushort port) {
 static inline void outw(ushort port, ushort val) {
     asm volatile ("outw %0, %1" :: "dN"(port), "a"(val));
 }
+
+#endif

@@ -1,20 +1,13 @@
 #ifndef CONF_H
 #define CONF_H
 
-#include "types.h"
-
-#define KB 1024
-#define MB (1024 * KB)
-#define GB (1024 * MB)
-
-#define PHY_MEM 128  // MB, must be a mutiple of 4 (maximum less than 1GB)
-
-#define KERNEL_BASE 0xc0000000
+#include "../types.h"
+#include "../common_conf.h"
 
 #define V2P(x) ((uint)(x) - KERNEL_BASE)
 #define P2V(x) ((uint)(x) + KERNEL_BASE)
 
-#define CHAR(row, col) (*(VIDEO_MEM + (row) * COLS + (col)))
+#define CHAR(row, col) (*(video_mem + (row) * COLS + (col)))
 
 #define PAGE_SIZE 4096
 

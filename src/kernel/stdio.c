@@ -1,10 +1,10 @@
-#include "types.h"
+#include "../types.h"
 #include "conf.h"
 #include "asm.h"
 #include "graphics.h"
 
 int ROWS = 25, COLS = 80;
-ushort* VIDEO_MEM = (ushort*)P2V(0xb8000);
+ushort* video_mem = (ushort*)P2V(VIDEO_MEM);
 
 #define GRAY(ch) (0x0700 | (ch))
 
@@ -43,7 +43,7 @@ void scroll_down() {
             }
         }
     }
-    //sync_console();
+    sync_console();
 }
 
 void newline() {
@@ -55,18 +55,23 @@ void newline() {
     set_cursor(cur_row, cur_col);
 }
 
+void newline2() {
+    ++cur_row;
+}
+
 void putchar(char ch) {
     switch (ch) {
         case '\n':
             newline();
             return;
     }
-    CHAR(cur_row, cur_col++) = GRAY(ch);
+    CHAR(cur_row, cur_col) = GRAY(ch);
+    sync_console_at(cur_row, cur_col);
+    ++cur_col;
     if (cur_col == COLS) {
         newline();
     }
     set_cursor(cur_row, cur_col);
-    //sync_console();
 }
 
 #define HEX(v) ((v) < 10 ? ((v) + '0') : ((v) - 10 + 'A'))

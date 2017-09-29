@@ -1,13 +1,10 @@
-#include "types.h"
-#include "stdio.h"
+#include "../types.h"
 #include "conf.h"
 
 __attribute__((__aligned__(PAGE_SIZE))) uint pgdir[1024] = {
     [0] = 0 | PTE_P | PTE_W | PTE_PS,
     [KERNEL_BASE >> 22] = 0 | PTE_P | PTE_W | PTE_PS
 };
-
-uint* kernel_end = (uint*)0xc0000500;
 
 void main();
 

@@ -1,5 +1,7 @@
 #include "stdio.h"
 
 int main() {
-    printf("this is art!\n");
+    for (int i = 0; i < 999999; ++i) {
+        printf("this is art! %d\n", i);
+    }
 }

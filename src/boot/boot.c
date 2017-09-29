@@ -15,14 +15,8 @@ Clobbers:
     "memory" - will change memory
     "cc" - will change FLAGS register
 */
-#include "../kernel/types.h"
-
-#define KERNEL_PADDR 0x100000
-#define KERNEL_BASE 0xc0000000
-#define VIDEO_MEM 0xb8000
-
-#define SECTOR_SIZE 512
-#define STACK_SIZE 4096
+#include "../types.h"
+#include "../common_conf.h"
 
 #define HEX(c) ((c) <= 9 ? ((c) + '0') : ((c) - 10 + 'A'))
 
@@ -65,7 +59,7 @@ void read_sector(void* addr, uint offset);
 void read_segment(void* addr, uint count, uint offset);
 
 void bootmain() {
-    ELFHeader* elf = (ELFHeader*)(0x500 + 4096);
+    ELFHeader* elf = (ELFHeader*)KERNEL_ELF_ADDR;
     read_segment(elf, 4096, 0);
 
     ProgramHeader* ph = (ProgramHeader*)((uchar*)elf + elf->phoff);
@@ -85,9 +79,9 @@ void bootmain() {
     }
     end += STACK_SIZE;
     end += 4096 - (uint)end % 4096;
-    asm volatile("movl %0, 0x500" :: "r"(end));
+    asm volatile("mov [0x500], %0" ::  "a"(end));
     
-    asm volatile("jmp *%0" :: "r"(elf->entry - KERNEL_BASE));
+    asm volatile("jmp %0" :: "r"(elf->entry - KERNEL_BASE));
 }
 
 void hexdump(char* addr) {
@@ -130,21 +124,11 @@ void read_segment(void* addr, uint count, uint offset) {
     }
 }
 
-uchar inb(ushort port) {
-    uchar res;
-    asm volatile("in %1, %0" : "=a"(res) : "d"(port));
-    return res;
-}
-
 void insl(int port, void* addr, int cnt) {
-    asm volatile("cld; rep insl"
+    asm volatile("cld; rep insd"
             : "=D"(addr), "=c"(cnt)
             : "d"(port), "0"(addr), "1"(cnt)
             : "memory", "cc");
-}
-
-void outb(ushort port, uchar val) {
-    asm volatile("out %0, %1" :: "a"(val), "d"(port));
 }
 
 void stosb(void* addr, uint count, uchar val) {
@@ -152,4 +136,14 @@ void stosb(void* addr, uint count, uchar val) {
             : "=D"(addr), "=c"(count)
             : "0"(addr), "1"(count), "a"(val)
             : "memory", "cc");
+}
+
+uchar inb(ushort port) {
+    uchar res;
+    asm volatile("inb %0, %1" : "=a"(res) : "d"(port));
+    return res;
+}
+
+void outb(ushort port, uchar val) {
+    asm volatile("outb %0, %1" :: "d"(port), "a"(val));
 }

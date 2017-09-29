@@ -46,7 +46,24 @@ typedef struct  __attribute__ ((packed)) {
    uchar reserved1[206];
 } vbe_mode_info_structure;
 
-vbe_mode_info_structure* mode_info = (vbe_mode_info_structure*)(0x500 + KERNEL_BASE);
+typedef struct __attribute__((packed)) {
+    char signature[2];
+    uint file_size;
+    uint _reserved;
+    uint offset;
+} BitmapHeader;
+
+typedef struct __attribute__((packed)) {
+    uint header_size;
+    uint width;
+    uint height;
+    ushort planes;
+    ushort bpp;
+    uint compression;
+    uchar _notcare[20];
+} BitmapInfoHeader;
+
+vbe_mode_info_structure* mode_info = (vbe_mode_info_structure*)(ENTRY_INFO_VESA_INFO + KERNEL_BASE);
 uchar* graphic_video_mem;
 int screen_width;
 int screen_height;
@@ -59,7 +76,10 @@ typedef struct {
     uchar charsize;
 } PSF1;
 
-uchar* font_glyphs;
+uchar* font_bmp;
+uint char_width;
+uint char_height;
+uint font_row_bytes;
 
 void init_graphics() {
     graphic_video_mem = (uchar*)mode_info->framebuffer;
@@ -74,22 +94,38 @@ void init_graphics() {
         beg += 4 * MB;
     }
     
-    if (mode_info->attributes) {  // reused, mbr set this value if graphics is on
-        int COLS = screen_width / 8;
-        int ROWS = screen_height / 16;
+    char* name = "/font/font.bmp";
+    size_t size = fsize(name);
+    font_bmp = malloc(size);
+    FILE* fp = fopen(name);
+    fread(fp, size, font_bmp);
 
-        char* name = "/font/R.psf";
-        size_t size = fsize(name);
-        font_glyphs = malloc(size - sizeof(PSF1));
-        FILE* fp = fopen(name);
-        fseek(fp, sizeof(PSF1));
-        fread(fp, 256 * 16, font_glyphs);
-        fclose(fp);
-        
-        int video_mem_size = 80 * 25 * 2;
-        VIDEO_MEM = malloc(video_mem_size);
-        memset(VIDEO_MEM, 0, video_mem_size);
-    }
+    BitmapInfoHeader* bih = (BitmapInfoHeader*)(font_bmp + sizeof(BitmapHeader));
+    char_width = bih->width / 128;
+    char_height = bih->height;
+    font_bmp += sizeof(BitmapHeader) + bih->header_size;
+    font_row_bytes = bih->width * bih->bpp / 8;
+    font_row_bytes += font_row_bytes % 4 ? (4 - font_row_bytes % 4) : 0;
+    fclose(fp);
+    
+    COLS = screen_width / char_width;
+    ROWS = screen_height / char_height;
+
+    int video_mem_size = COLS * ROWS * 2;
+
+    /*
+    if we use malloc() to allocate space for `video_mem`, strange things will happen
+    write those lines in main:
+         putchar('a');
+         putchar('b');
+         putchar('c');  // remove this line, 2 pics all shown
+         draw_bmp_at("/img/girl.bmp", 500, 0);
+         draw_bmp_at("/img/walle.bmp", 200, 300);
+    */
+    // video_mem = malloc(video_mem_size);
+
+    video_mem = (ushort*)(graphic_video_mem + 8 * MB);
+    memset(video_mem, 0, video_mem_size);
 }
 
 int get_screen_width() {
@@ -135,23 +171,6 @@ void screen_fill_black() {
     }
 }
 
-typedef struct __attribute__((packed)) {
-    char signature[2];
-    uint file_size;
-    uint _reserved;
-    uint offset;
-} BitmapHeader;
-
-typedef struct __attribute__((packed)) {
-    uint header_size;
-    uint width;
-    uint height;
-    ushort planes;
-    ushort bpp;
-    uint compression;
-    uchar _notcare[20];
-} BitmapInfoHeader;
-
 void draw_bmp_at(char* fpath, int x, int y) {
     FILE* fp = fopen(fpath);
     size_t size = fsize(fpath);
@@ -187,7 +206,7 @@ void draw_bmp_at(char* fpath, int x, int y) {
         offset_data -= bytes_per_row;
         offset_mem += bytes_per_row_mem;
     }
-    free(bmp);
+    //free(bmp);
 }
 
 void draw_bmp(char* fpath) {
@@ -206,18 +225,28 @@ void draw_bmp(char* fpath) {
 }
 
 void draw_char(char ch, int row, int col) {
-    uchar* glyph = (uchar*)&font_glyphs[ch * 16];
-    int top = row * 16;
-    int left = col * 8;
-    for (int i = 0; i < 16; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            draw_pixel(left + j, top + i, (glyph[i] & (1 << (8 - j))) ? 0xffffff : 0);
+    uint x = ch * char_width;
+    uint top = row * char_height;
+    uint left = col * char_width;
+    for (int y = char_height - 1; y >= 0; --y) {
+        memcpy(graphic_video_mem + top * pitch + left * bytes_per_pixel,
+                font_bmp + y * font_row_bytes + x * bytes_per_pixel,
+                char_width * bytes_per_pixel);
+        ++top;
+    }
+}
+
+void sync_console_at(int row, int col) {
+    if (font_bmp) {
+        ushort val = CHAR(row, col);
+        if (val) {
+            draw_char((char)(val & 0xff), row, col);
         }
     }
 }
 
 void sync_console() {
-    if (font_glyphs) {
+    if (font_bmp) {
         for (int i = 0; i < ROWS; ++i) {
             for (int j = 0; j < COLS; ++j) {
                 ushort val = CHAR(i, j);

@@ -1,24 +1,49 @@
+#include "conf.h"
 #include "stdio.h"
 #include "memory.h"
 #include "interrupt.h"
 #include "util.h"
 #include "disk.h"
-#include "elf.h"
 #include "string.h"
 #include "assert.h"
 #include "filesystem.h"
 #include "graphics.h"
 #include "math.h"
 
-typedef void (*Func)();
+void load_elf();
+
+extern uint* graphic_video_mem;
+
+int* size = (uint*)(KERNEL_BASE + 0x5000);
+int* count = (uint*)(KERNEL_BASE + 0x5000 + 4);
+
+typedef struct {
+    uint addr_low;
+    uint addr_high;
+    uint len_low;
+    uint len_high;
+    uint type;
+} T;
+
+extern uint char_width;
+extern uint char_height;
 
 void main() {
     init_console();
     init_memory();
-    init_interrupt();
     init_filesystem();
+    init_graphics();
+    init_interrupt();
     
-    char* name = "/hello";
+    load_elf();
+    
+    hlt_forever();
+}
+
+typedef void (*Func)();
+
+void load_elf() {
+    char* name = "/art";
     size_t sz = min(4096, fsize(name));
     ELFHeader* elf = (ELFHeader*)malloc(sz);
 
@@ -40,8 +65,4 @@ void main() {
     }
     ((Func)elf->entry)();
     free(elf);
-    
-    hlt_forever();
 }
-
-typedef void (*Func)();

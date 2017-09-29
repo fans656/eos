@@ -18,7 +18,8 @@ START16:
     mov es, ax
     mov ss, ax
     
-    ;call SwithToVesaMode
+    call GetMemoryMap
+    call SwithToVesaMode
     
     ; load 2-stage bootloader
     push ds
@@ -55,7 +56,7 @@ SwithToVesaMode:
     ; query mode info
     mov ax, 0
     mov es, ax
-    mov di, 0x500
+    mov di, 0x504
     mov cx, dx
     mov ax, 0x4f01
     int 0x10
@@ -63,15 +64,46 @@ SwithToVesaMode:
     jne Panic
 
     ; set SVGA video mode
-    mov ax, 0x50
-    mov es, ax
-    mov word [es:0], 0xffff  ; tell kernel graphics is on
     mov ax, 0x4f02
     mov bx, dx
     int 0x10
     cmp ax, 0x004f
     jne Panic
     
+    popad
+    ret
+
+; http://www.uruk.org/orig-grub/mem64mb.html
+GetMemoryMap:
+    pushad
+    
+    mov ax, 0
+    mov si, ax
+
+    mov eax, 0xe820
+    mov ebx, 0
+    mov cx, 0x500  ; 0x5000
+    mov es, cx
+    mov di, 8
+    mov ecx, 24
+GetMemoryMap_Next:
+    mov edx, 0x534d4150
+    int 0x15
+
+    cmp eax, 0x534d4150
+    jne Panic
+    cmp ebx, 0
+    je GetMemoryMap_Finish
+    add di, cx
+    mov dword [es:0], ecx
+    inc si
+    mov eax, 0xe820
+    jnc GetMemoryMap_Next
+
+GetMemoryMap_Finish:
+    xor eax, eax
+    mov ax, si
+    mov dword [es:4], eax
     popad
     ret
 

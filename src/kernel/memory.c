@@ -9,7 +9,7 @@
 
 #define align4(x) (((x) + 3) / 4 * 4)
 
-extern uint* kernel_end;
+uint* kernel_end = (uint*)(ENTRY_INFO_ADDR + KERNEL_BASE);
 
 ///////////////////////////////////////////////////////// frames
 
