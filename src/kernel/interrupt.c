@@ -214,7 +214,7 @@ void fill_idt_entries() {
 }
 
 void init_pit() {
-    uint16_t val = PIT_MS_PRECISION * PIT_BASE_FREQUENCY / 1000;
+    ushort val = PIT_MS_PRECISION * PIT_BASE_FREQUENCY / 1000;
     asm(
             "mov ax, %0;"
             "mov ax, 0x2e9c;"

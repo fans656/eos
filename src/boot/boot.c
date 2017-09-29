@@ -15,7 +15,7 @@ Clobbers:
     "memory" - will change memory
     "cc" - will change FLAGS register
 */
-#include <stdint.h>
+#include "../kernel/types.h"
 
 #define KERNEL_PADDR 0x100000
 #define KERNEL_BASE 0xc0000000
@@ -27,48 +27,48 @@ Clobbers:
 #define HEX(c) ((c) <= 9 ? ((c) + '0') : ((c) - 10 + 'A'))
 
 typedef struct {
-    uint32_t magic;
-    uint8_t ignored[12];
-    uint16_t type;
-    uint16_t machine;
-    uint32_t version;
-    uint32_t entry;
-    uint32_t phoff;
-    uint32_t shoff;
-    uint32_t flags;
-    uint16_t ehsize;
-    uint16_t phentsize;
-    uint16_t phnum;
-    uint16_t shentsize;
-    uint16_t shnum;
-    uint16_t shstrndx;
+    uint magic;
+    uchar ignored[12];
+    ushort type;
+    ushort machine;
+    uint version;
+    uint entry;
+    uint phoff;
+    uint shoff;
+    uint flags;
+    ushort ehsize;
+    ushort phentsize;
+    ushort phnum;
+    ushort shentsize;
+    ushort shnum;
+    ushort shstrndx;
 } ELFHeader;
 
 typedef struct {
-    uint32_t type;
-    uint32_t offset;
-    uint32_t vaddr;
-    uint32_t paddr;
-    uint32_t filesz;
-    uint32_t memsz;
-    uint32_t flags;
-    uint32_t align;
+    uint type;
+    uint offset;
+    uint vaddr;
+    uint paddr;
+    uint filesz;
+    uint memsz;
+    uint flags;
+    uint align;
 } ProgramHeader;
 
-uint8_t inb(uint16_t port);
+uchar inb(ushort port);
 void insl(int port, void* addr, int cnt);
-void outb(uint16_t port, uint8_t val);
-void stosb(void* addr, uint32_t count, uint8_t val);
+void outb(ushort port, uchar val);
+void stosb(void* addr, uint count, uchar val);
 
 void hexdump(char* addr);
-void read_sector(void* addr, uint32_t offset);
-void read_segment(void* addr, uint32_t count, uint32_t offset);
+void read_sector(void* addr, uint offset);
+void read_segment(void* addr, uint count, uint offset);
 
 void bootmain() {
     ELFHeader* elf = (ELFHeader*)(0x500 + 4096);
     read_segment(elf, 4096, 0);
 
-    ProgramHeader* ph = (ProgramHeader*)((uint8_t*)elf + elf->phoff);
+    ProgramHeader* ph = (ProgramHeader*)((uchar*)elf + elf->phoff);
     ProgramHeader* eph = ph + elf->phnum;
     char* end = 0;
     for (; ph < eph; ph++) {
@@ -84,18 +84,18 @@ void bootmain() {
         }
     }
     end += STACK_SIZE;
-    end += 4096 - (uint32_t)end % 4096;
+    end += 4096 - (uint)end % 4096;
     asm volatile("movl %0, 0x500" :: "r"(end));
     
     asm volatile("jmp *%0" :: "r"(elf->entry - KERNEL_BASE));
 }
 
 void hexdump(char* addr) {
-    uint16_t* video = (uint16_t*)VIDEO_MEM;
+    ushort* video = (ushort*)VIDEO_MEM;
     for (int i = 0; i < 8; ++i) {
-        uint8_t val = *addr++;
-        uint8_t ch_high = HEX(val >> 4);
-        uint8_t ch_low = HEX(val & 0x0f);
+        uchar val = *addr++;
+        uchar ch_high = HEX(val >> 4);
+        uchar ch_low = HEX(val & 0x0f);
         video[i * 3] = 0x0f00 | ch_high;
         video[i * 3 + 1] = 0x0f00 | ch_low;
         video[i * 3 + 2] = 0x0f00 | ' ';
@@ -109,7 +109,7 @@ void wait_disk() {
     }
 }
 
-void read_sector(void* addr, uint32_t offset) {
+void read_sector(void* addr, uint offset) {
     wait_disk();
     outb(0x1f2, 1);
     outb(0x1f3, offset);
@@ -121,7 +121,7 @@ void read_sector(void* addr, uint32_t offset) {
     insl(0x1f0, addr, SECTOR_SIZE / 4);
 }
 
-void read_segment(void* addr, uint32_t count, uint32_t offset) {
+void read_segment(void* addr, uint count, uint offset) {
     void* end_addr = addr + count;
     addr -= offset % SECTOR_SIZE;
     offset = offset / SECTOR_SIZE + 8;
@@ -130,8 +130,8 @@ void read_segment(void* addr, uint32_t count, uint32_t offset) {
     }
 }
 
-uint8_t inb(uint16_t port) {
-    uint8_t res;
+uchar inb(ushort port) {
+    uchar res;
     asm volatile("in %1, %0" : "=a"(res) : "d"(port));
     return res;
 }
@@ -143,11 +143,11 @@ void insl(int port, void* addr, int cnt) {
             : "memory", "cc");
 }
 
-void outb(uint16_t port, uint8_t val) {
+void outb(ushort port, uchar val) {
     asm volatile("out %0, %1" :: "a"(val), "d"(port));
 }
 
-void stosb(void* addr, uint32_t count, uint8_t val) {
+void stosb(void* addr, uint count, uchar val) {
     asm volatile("cld; rep stosb"
             : "=D"(addr), "=c"(count)
             : "0"(addr), "1"(count), "a"(val)

@@ -9,7 +9,7 @@ LIBC=$SRC/libc
 PROG=$SRC/prog
 TOOL=$ROOT/tool
 
-CFLAGS="-m32 -ffreestanding -nostdlib"
+CFLAGS="-m32 -ffreestanding -nostdlib -nostdinc"
 
 mkdir -p BIN
 
