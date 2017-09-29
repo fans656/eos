@@ -18,7 +18,7 @@ START16:
     mov es, ax
     mov ss, ax
     
-    call SwithToVesaMode
+    ;call SwithToVesaMode
     
     ; load 2-stage bootloader
     push ds

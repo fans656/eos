@@ -20,6 +20,9 @@ gcc boot.c -o $BIN/boot.o $CFLAGS -Wl,-Ttext=0x8000 -Wl,-ebootmain
 cd $KERNEL
 gcc *.c -masm=intel -o $BIN/kernel.img $CFLAGS -Wl,-Ttext=0xc0100000 -Wl,-eentry
 
+cd $TOOL
+./build-prog.py
+
 cd $BIN
 objcopy boot.o boot.img -j .text -O binary
 dd if=/dev/zero of=eos.img bs=16M count=1 status=none
