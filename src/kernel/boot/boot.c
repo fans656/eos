@@ -1,26 +1,11 @@
 /*
-I/O instructions
 https://docs.oracle.com/cd/E19455-01/806-3773/6jct9o0aj/index.html
-
-Inline Assembly
 https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
 https://gcc.gnu.org/onlinedocs/gcc/Machine-Constraints.html#Machine-Constraints
-
-Constraints:
-    "c" - ecx
-    "d" - edx
-    "D" - edi
-
-Clobbers:
-    "memory" - will change memory
-    "cc" - will change FLAGS register
 */
-#include "../types.h"
-#include "../common_conf.h"
+#include "../def.h"
 
-#define HEX(c) ((c) <= 9 ? ((c) + '0') : ((c) - 10 + 'A'))
-
-typedef struct {
+typedef struct ELFHeader {
     uint magic;
     uchar ignored[12];
     ushort type;
@@ -38,7 +23,7 @@ typedef struct {
     ushort shstrndx;
 } ELFHeader;
 
-typedef struct {
+typedef struct ProgramHeader {
     uint type;
     uint offset;
     uint vaddr;
@@ -50,7 +35,7 @@ typedef struct {
 } ProgramHeader;
 
 uchar inb(ushort port);
-void insl(int port, void* addr, int cnt);
+void insd(int port, void* addr, int cnt);
 void outb(ushort port, uchar val);
 void stosb(void* addr, uint count, uchar val);
 
@@ -59,8 +44,8 @@ void read_sector(void* addr, uint offset);
 void read_segment(void* addr, uint count, uint offset);
 
 void bootmain() {
-    ELFHeader* elf = (ELFHeader*)KERNEL_ELF_ADDR;
-    read_segment(elf, 4096, 0);
+    ELFHeader* elf = (ELFHeader*)0x6000;
+    read_segment(elf, 4 * KB, 0);
 
     ProgramHeader* ph = (ProgramHeader*)((uchar*)elf + elf->phoff);
     ProgramHeader* eph = ph + elf->phnum;
@@ -78,11 +63,13 @@ void bootmain() {
         }
     }
     end += STACK_SIZE;
-    end += 4096 - (uint)end % 4096;
+    end += PAGE_SIZE - (uint)end % PAGE_SIZE;
     asm volatile("mov [0x500], %0" ::  "a"(end));
     
     asm volatile("jmp %0" :: "r"(elf->entry - KERNEL_BASE));
 }
+
+#define HEX(c) ((c) <= 9 ? ((c) + '0') : ((c) - 10 + 'A'))
 
 void hexdump(char* addr) {
     ushort* video = (ushort*)VIDEO_MEM;
@@ -112,7 +99,7 @@ void read_sector(void* addr, uint offset) {
     outb(0x1f6, (offset >> 24) | 0xe0);
     outb(0x1f7, 0x20);
     wait_disk();
-    insl(0x1f0, addr, SECTOR_SIZE / 4);
+    insd(0x1f0, addr, SECTOR_SIZE / 4);
 }
 
 void read_segment(void* addr, uint count, uint offset) {
@@ -124,7 +111,7 @@ void read_segment(void* addr, uint count, uint offset) {
     }
 }
 
-void insl(int port, void* addr, int cnt) {
+void insd(int port, void* addr, int cnt) {
     asm volatile("cld; rep insd"
             : "=D"(addr), "=c"(cnt)
             : "d"(port), "0"(addr), "1"(cnt)

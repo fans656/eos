@@ -1,5 +1,4 @@
-#include "../types.h"
-#include "conf.h"
+#include "def.h"
 
 __attribute__((__aligned__(PAGE_SIZE))) uint pgdir[1024] = {
     [0] = 0 | PTE_P | PTE_W | PTE_PS,

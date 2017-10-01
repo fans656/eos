@@ -1,4 +1,9 @@
-#include "common.h"
+#include "filesystem.h"
+#include "string.h"
+#include "disk.h"
+#include "memory.h"
+#include "stdio.h"
+#include "math.h"
 
 #define BLOCK_SIZE 4096
 #define RESERVED_BLOCK 256

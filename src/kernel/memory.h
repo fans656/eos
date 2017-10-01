@@ -1,4 +1,4 @@
-#include "../types.h"
+#include "def.h"
 
 extern uint pgdir[];
 
@@ -7,3 +7,5 @@ void map_pages(uint pgdir[], uint vbeg, uint size);
 
 void* malloc(size_t nbytes);
 void free(void* addr);
+
+void memory_test();

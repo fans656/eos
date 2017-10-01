@@ -1,8 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "../types.h"
-#include "conf.h"
+#include "def.h"
 
 static inline void hlt_forever() {
     while (true) {

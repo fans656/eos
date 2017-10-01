@@ -1,3 +1,8 @@
+#ifndef FILESYSTEM_H
+#define FILESYSTEM_H
+
+#include "def.h"
+
 typedef struct FILE FILE;
 
 void init_filesystem();
@@ -12,3 +17,5 @@ void fwrite(FILE* fp, void* data, size_t size);
 void fread(FILE* fp, size_t size, void* data);
 
 size_t fsize(char* name);
+
+#endif

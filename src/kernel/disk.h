@@ -1,7 +1,7 @@
 #ifndef DISK_H
 #define DISK_H
 
-#include "common.h"
+#include "def.h"
 
 #define BYTES_PER_SECTOR 512
 #define BPS BYTES_PER_SECTOR

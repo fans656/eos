@@ -1,7 +1,7 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
-#include "../types.h"
+#include "def.h"
 
 void init_graphics();
 

@@ -1,5 +1,4 @@
 #include "graphics.h"
-#include "conf.h"
 #include "filesystem.h"
 #include "memory.h"
 #include "string.h"
@@ -63,7 +62,7 @@ typedef struct __attribute__((packed)) {
     uchar _notcare[20];
 } BitmapInfoHeader;
 
-vbe_mode_info_structure* mode_info = (vbe_mode_info_structure*)(ENTRY_INFO_VESA_INFO + KERNEL_BASE);
+vbe_mode_info_structure* mode_info = (vbe_mode_info_structure*)(0x600 + KERNEL_BASE);
 uchar* graphic_video_mem;
 int screen_width;
 int screen_height;
@@ -112,19 +111,7 @@ void init_graphics() {
     ROWS = screen_height / char_height;
 
     int video_mem_size = COLS * ROWS * 2;
-
-    /*
-    if we use malloc() to allocate space for `video_mem`, strange things will happen
-    write those lines in main:
-         putchar('a');
-         putchar('b');
-         putchar('c');  // remove this line, 2 pics all shown
-         draw_bmp_at("/img/girl.bmp", 500, 0);
-         draw_bmp_at("/img/walle.bmp", 200, 300);
-    */
-    // video_mem = malloc(video_mem_size);
-
-    video_mem = (ushort*)(graphic_video_mem + 8 * MB);
+    video_mem = malloc(video_mem_size);
     memset(video_mem, 0, video_mem_size);
 }
 

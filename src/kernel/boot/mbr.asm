@@ -18,18 +18,9 @@ START16:
     mov es, ax
     mov ss, ax
     
+    call LoadBootloader
     call GetMemoryMap
     call SwithToVesaMode
-    
-    ; load 2-stage bootloader
-    push ds
-    xor ax, ax
-    mov ds, ax
-    mov si, DiskAddressPacket
-    mov ah, 0x42
-    mov dl, 0x80
-    int 0x13
-    pop ds
     
     ; open A20  http://wiki.osdev.org/A20
     ; this method is not perfect, but simple and reliable enough
@@ -48,6 +39,24 @@ START16:
     ; long jump to 32-bit code
     jmp (1 << 3):START32
 
+LoadBootloader:
+    pushad
+    xor ax, ax
+    mov ds, ax
+    mov si, DiskAddressPacket
+    mov ah, 0x42
+    mov dl, 0x80
+    int 0x13
+    popad
+    ret
+DiskAddressPacket:
+    db 16  ; size of this packet
+    db 0  ; reserved
+    dw 7  ; number of sectors
+    dd 0x07e00000  ; base:offset
+    dd 1  ; LBA low
+    dd 0  ; LBA high
+
 SwithToVesaMode:
     pushad
     mov dx, 0x4118  ; 1024x768 24bit color
@@ -56,7 +65,7 @@ SwithToVesaMode:
     ; query mode info
     mov ax, 0
     mov es, ax
-    mov di, 0x504
+    mov di, 0x600
     mov cx, dx
     mov ax, 0x4f01
     int 0x10
@@ -78,32 +87,38 @@ GetMemoryMap:
     pushad
     
     mov ax, 0
-    mov si, ax
+    mov si, ax  ; range count
 
-    mov eax, 0xe820
-    mov ebx, 0
-    mov cx, 0x500  ; 0x5000
-    mov es, cx
-    mov di, 8
+    mov ax, 0x700
+    mov es, ax
+    mov di, 8  ; 0x7008
+    mov eax, 0xe820  ; query system address map
+    mov ebx, 0  ; first continuation
     mov ecx, 24
+    mov edx, 0x534d4150  ; 'SMAP'
 GetMemoryMap_Next:
-    mov edx, 0x534d4150
     int 0x15
 
     cmp eax, 0x534d4150
     jne Panic
+
+    cmp cx, 20
+    jne Panic
+
     cmp ebx, 0
     je GetMemoryMap_Finish
+
     add di, cx
-    mov dword [es:0], ecx
+    mov dword [es:0], ecx  ; save entry size
     inc si
+
     mov eax, 0xe820
     jnc GetMemoryMap_Next
 
 GetMemoryMap_Finish:
     xor eax, eax
     mov ax, si
-    mov dword [es:4], eax
+    mov dword [es:4], eax  ; save entry count
     popad
     ret
 
@@ -112,14 +127,6 @@ Panic:
     mov ds, ax
     mov dword [ds:0], 0x0f45
     hlt
-
-DiskAddressPacket:
-    db 16  ; size of this packet
-    db 0  ; reserved
-    dw 7  ; number of sectors
-    dd 0x08000000  ; base:offset
-    dd 1  ; LBA low
-    dd 0  ; LBA high
 
 [bits 32]
 START32:
@@ -132,7 +139,7 @@ START32:
     mov gs, ax
 
     mov esp, _start  ; setup stack
-    jmp (1 << 3):0x8000
+    jmp (1 << 3):MBREnd
 
 ; Global Descriptor Table  http://wiki.osdev.org/GDT
 %macro Descriptor 3  ; base, limit, attr
@@ -154,3 +161,5 @@ GDTDesc:
 
     times 510 - ($ - $$) db 0
     dw 0xaa55
+
+MBREnd:

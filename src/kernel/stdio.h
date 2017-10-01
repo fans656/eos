@@ -1,4 +1,4 @@
-#include "../types.h"
+#include "def.h"
 
 extern int ROWS, COLS;
 extern ushort* video_mem;

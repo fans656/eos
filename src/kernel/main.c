@@ -1,4 +1,5 @@
-#include "conf.h"
+#include "def.h"
+#include "elf.h"
 #include "stdio.h"
 #include "memory.h"
 #include "interrupt.h"
@@ -12,22 +13,6 @@
 
 void load_elf();
 
-extern uint* graphic_video_mem;
-
-int* size = (uint*)(KERNEL_BASE + 0x5000);
-int* count = (uint*)(KERNEL_BASE + 0x5000 + 4);
-
-typedef struct {
-    uint addr_low;
-    uint addr_high;
-    uint len_low;
-    uint len_high;
-    uint type;
-} T;
-
-extern uint char_width;
-extern uint char_height;
-
 void main() {
     init_console();
     init_memory();
@@ -35,7 +20,11 @@ void main() {
     init_graphics();
     init_interrupt();
     
-    load_elf();
+    putchar('a');
+    putchar('b');
+    putchar('c');
+    draw_bmp_at("/img/walle.bmp", 200, 300);
+    draw_bmp_at("/img/girl.bmp", 500, 0);
     
     hlt_forever();
 }

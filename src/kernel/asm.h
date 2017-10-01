@@ -1,7 +1,7 @@
 #ifndef ASM_H
 #define ASM_H
 
-#include "../types.h"
+#include "def.h"
 
 static inline uchar inb(ushort port) {
     uchar res;

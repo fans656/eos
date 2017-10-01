@@ -1,5 +1,4 @@
-#include "../types.h"
-#include "conf.h"
+#include "def.h"
 #include "asm.h"
 #include "graphics.h"
 
@@ -46,13 +45,17 @@ void scroll_down() {
     sync_console();
 }
 
+static inline void carrige() {
+    cur_col = 0;
+    set_cursor(cur_row, cur_col);
+}
+
 void newline() {
     if (++cur_row == ROWS) {
         scroll_down();
         --cur_row;
     }
-    cur_col = 0;
-    set_cursor(cur_row, cur_col);
+    carrige();
 }
 
 void newline2() {
@@ -63,6 +66,9 @@ void putchar(char ch) {
     switch (ch) {
         case '\n':
             newline();
+            return;
+        case '\r':
+            carrige();
             return;
     }
     CHAR(cur_row, cur_col) = GRAY(ch);
