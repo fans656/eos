@@ -70,7 +70,7 @@ After paging:
 #define VIDEO_MEM 0xb8000
 
 #define SECTOR_SIZE 512
-#define STACK_SIZE (1 * MB)
+#define STACK_SIZE (64 * KB)
 
 #define PAGE_SIZE 4096
 

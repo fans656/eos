@@ -1314,3 +1314,28 @@ xv6的文件系统一共也才1000行左右(fs 700行，file 200行)，而且比
 bug就消失了~~
 
 作为bonus，现在free也能用了(之前会崩)，而且确实会向操作系统归还frame
+
+2017-10-01 21:26:17
+打算实现进程了
+但是有几个细节得先搞清楚，比如
+
+    function call 时发生了什么？
+
+去看 kernel/main.c 汇编出的代码，一坨奇怪的东西，虽然最后看懂了——是为了16字节对齐
+这里说了可以用一个编译器开关来关掉它：
+https://stackoverflow.com/questions/1147623/trying-to-understand-the-main-disassembly-first-instructions
+
+记得xv6的编译命令里好像有？(记错了，没这个选项，咱也别关了吧，，免得以后用到double之类的出问题)
+
+
+哎，搞定——不是进程，只是在调用加载来的elf时使用不同的栈(malloc出来的)
+原来是esp不能直接
+
+    asm volatile("mov esp, %0" :: "m"(saved_esp));
+
+而要
+    
+    asm volatile("mov eax, %0; mov esp, eax" :: "m"(saved_esp));
+
+
+我靠，傻逼了.. 设置stack的时候居然拿的是 malloc() 出来的头指针，应该用头指针+STACK_SIZE的

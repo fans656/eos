@@ -184,6 +184,8 @@ void try_merge(Header* p, Header* q) {
 
 void free(void* addr) {
     Header* cur = (Header*)((uchar*)addr - HEADER_SIZE);
+    if (cur->addr != addr) {
+    }
     cur->used = false;
 
     // the order is important

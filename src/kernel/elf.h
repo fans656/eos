@@ -1,6 +1,8 @@
 #ifndef ELF_H
 #define ELF_H
 
+#include "def.h"
+
 typedef struct {
     uint magic;
     uchar ignored[12];
@@ -29,5 +31,9 @@ typedef struct {
     uint flags;
     uint align;
 } ProgramHeader;
+
+typedef void (*ProgEntry)();
+
+ProgEntry load_elf(char* fpath);
 
 #endif

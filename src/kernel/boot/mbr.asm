@@ -73,11 +73,11 @@ SwithToVesaMode:
     jne Panic
 
     ; set SVGA video mode
-    mov ax, 0x4f02
-    mov bx, dx
-    int 0x10
-    cmp ax, 0x004f
-    jne Panic
+    ;mov ax, 0x4f02
+    ;mov bx, dx
+    ;int 0x10
+    ;cmp ax, 0x004f
+    ;jne Panic
     
     popad
     ret
