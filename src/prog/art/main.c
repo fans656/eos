@@ -1,7 +1,14 @@
 #include "stdio.h"
+#include "stdlib.h"
+#include "graphics.h"
 
 int main() {
-    for (int i = 0; i < 100; ++i) {
-        printf("this is art! %d\n", i);
-    }
+    void* girl = load_file("/img/girl.bmp");
+    void* walle = load_file("/img/walle.bmp");
+
+    draw_bmp_at(girl, 100, 100);
+    draw_bmp_at(walle, 500, 200);
+    
+    free(girl);
+    free(walle);
 }

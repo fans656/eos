@@ -161,8 +161,8 @@ void read_bytes(ulonglong i_byte, ulonglong n_bytes, void* buffer) {
     }
 }
 
-void write_bytes(ulonglong i_byte, ulonglong n_bytes, void* data) {
-    uchar* data_ = (uchar*)data;
+void write_bytes(ulonglong i_byte, ulonglong n_bytes, const void* data) {
+    const uchar* data_ = (const uchar*)data;
     uint i_sector = i_byte / BPS;
     if (i_byte % BPS) {
         uint n_left = i_byte % BPS;
@@ -190,7 +190,7 @@ void read_sector(uint i_sector, void* buffer) {
     read_sectors(i_sector, 1, buffer);
 }
 
-void write_sector(uint i_sector, void* data) {
+void write_sector(uint i_sector, const void* data) {
     write_sectors(i_sector, 1, data);
 }
 
@@ -216,12 +216,12 @@ void read_sectors(uint i_sector, uchar n_sectors, void* buffer) {
     }
 }
 
-void write_sectors(uint i_sector, uchar n_sectors, void* data) {
+void write_sectors(uint i_sector, uchar n_sectors, const void* data) {
     prepare_read_write(i_sector, n_sectors);
     outb(COMMAND_PORT, WRITE_SECTORS_CMD);
     wait_until_ready();
 
-    ushort* p = (ushort*)data;
+    const ushort* p = (const ushort*)data;
     while (n_sectors--) {
         for (int i = 0; i < 256; ++i) {
             outw(DATA_PORT, *p++);

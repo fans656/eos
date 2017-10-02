@@ -5,10 +5,10 @@
 #include "string.h"
 
 ProgEntry load_elf(char* fpath) {
-    size_t sz = min(4096, fsize(fpath));
-    ELFHeader* elf = (ELFHeader*)malloc(sz);
-
     FILE* fp = fopen(fpath);
+    size_t sz = min(4096, fsize(fp));
+    ELFHeader* elf = (ELFHeader*)named_malloc(sz, "ELFHeader");
+
     fread(fp, sz, elf);
 
     ProgramHeader* ph = (ProgramHeader*)((char*)elf + elf->phoff);

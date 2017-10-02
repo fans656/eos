@@ -20,9 +20,12 @@ def write_entry(block, fpath, has_next, i_data_block):
     img.write(name + '\0' * (MAX_NAME_LEN - len(name)))
     size = os.stat(fpath).st_size
     img.write(struct.pack('<I', size))
-    img.write(struct.pack('<I', i_data_block))
+    img.write(struct.pack('<I', 1))  # n_blocks
+
+    # just 1 BlocksRange
+    img.write(struct.pack('<I', i_data_block))  # BlocksRange beg
     blocks = (size + BPB - 1) // BPB
-    img.write(struct.pack('<I', blocks))
+    img.write(struct.pack('<I', blocks))  # BlocksRange count
     with open(fpath, 'rb') as f:
         img.seek(i_data_block * BPB)
         img.write(f.read())

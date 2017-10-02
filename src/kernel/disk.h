@@ -19,12 +19,12 @@ extern DiskInfo disk_info;
 void init_disk();
 
 void read_bytes(ulonglong i_byte, ulonglong n_bytes, void* buffer);
-void write_bytes(ulonglong i_byte, ulonglong n_bytes, void* data);
+void write_bytes(ulonglong i_byte, ulonglong n_bytes, const void* data);
 
 void read_sector(uint i_sector, void* buffer);
-void write_sector(uint i_sector, void* data);
+void write_sector(uint i_sector, const void* data);
 
 void read_sectors(uint i_sector, uchar n_sectors, void* buffer);
-void write_sectors(uint i_sector, uchar n_sectors, void* data);
+void write_sectors(uint i_sector, uchar n_sectors, const void* data);
 
 #endif

@@ -60,7 +60,7 @@ DiskAddressPacket:
 SwithToVesaMode:
     pushad
     mov dx, 0x4118  ; 1024x768 24bit color
-    mov dx, 0x4115  ; 800x600 24bit color
+    ;mov dx, 0x4115  ; 800x600 24bit color
 
     ; query mode info
     mov ax, 0
@@ -73,11 +73,11 @@ SwithToVesaMode:
     jne Panic
 
     ; set SVGA video mode
-    ;mov ax, 0x4f02
-    ;mov bx, dx
-    ;int 0x10
-    ;cmp ax, 0x004f
-    ;jne Panic
+    mov ax, 0x4f02
+    mov bx, dx
+    int 0x10
+    cmp ax, 0x004f
+    jne Panic
     
     popad
     ret

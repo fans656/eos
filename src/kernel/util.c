@@ -1,6 +1,12 @@
 #include "util.h"
 #include "stdio.h"
 
+void hlt_forever() {
+    while (true) {
+        asm("hlt");
+    }
+}
+
 void hexdump(void* addr, uint cnt) {
     uchar* p = addr;
     for (int i = 0; i < cnt; ++i) {

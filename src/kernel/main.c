@@ -6,15 +6,13 @@
 #include "interrupt.h"
 #include "elf.h"
 #include "util.h"
-
-void f() {
-}
+#include "time.h"
 
 void main() {
     init_console();
     init_memory();
     init_filesystem();
-    //init_graphics();
+    init_graphics();
     init_interrupt();
     
     ProgEntry entry = load_elf("/art");

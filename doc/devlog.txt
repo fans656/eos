@@ -1339,3 +1339,14 @@ https://stackoverflow.com/questions/1147623/trying-to-understand-the-main-disass
 
 
 我靠，傻逼了.. 设置stack的时候居然拿的是 malloc() 出来的头指针，应该用头指针+STACK_SIZE的
+
+
+下来想实现一下用户prog绘图——这需要加几个system call (printf已有)
+    
+    - malloc/free
+    - fopen/fread/fclose
+    - draw_bmp_at (这个实现成用bmp数据吧，之前直接用char*有点儿傻逼，同一幅图画在两个位置还要加载两次)
+
+2017-10-02 14:56:43
+现在加载一张2MB的bmp图片得500ms+，对比python加载8MB只需9ms
+timeit了一下主要耗时在read_sector那里，，可以优化的地方不少，但是先不做——先用最简单的方式尽量保证少bug

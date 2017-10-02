@@ -9,8 +9,6 @@
 #define ROUND_DOWN(x) ((uint)((x) - (uint)(x) % PAGE_SIZE))
 #define ROUND_UP(x) (((uint)(x) + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE)
 
-#define align4(x) (((x) + 3) / 4 * 4)
-
 uint* kernel_end = (uint*)(0x500 + KERNEL_BASE);
 
 ///////////////////////////////////////////////////////// frames
@@ -124,8 +122,9 @@ void* sbrk(int incr) {
 
 typedef struct Header {
     uint used;
-    uint size;
+    uint size;  // the block size with header excluded, i.e. malloc(size) but 4-bytes aligned
     uchar* addr;
+    const char* name;
     struct Header* prev;
     struct Header* next;
     uchar data[0];
@@ -147,35 +146,40 @@ void delete(Header* p) {
     p->next->prev = p->prev;
 }
 
-void* malloc(size_t size) {
+void* named_malloc(size_t size, const char* name) {
     size = align4(size);
     Header* p = head->next;
-    while (p->size && (p->used || p->size < size + HEADER_SIZE)) {
+    while (p->size && (p->used || p->size < size)) {
         p = p->next;
     }
     // if no free block, ask kernel for more space
     if (!p->size) {
         p = (Header*)sbrk(size + HEADER_SIZE);
         p->used = false;
-        p->size = size + HEADER_SIZE;
+        p->size = size;
         p->addr = p->data;
         insert_after(tail->prev, p);
     }
     // if block is large enough, split it
-    if (p->size - size - HEADER_SIZE >= HEADER_SIZE + 4) {
-        Header* q = (Header*)((uchar*)p + size + HEADER_SIZE);
+    if (p->size - size >= HEADER_SIZE + 4) {
+        Header* q = (Header*)((uchar*)p + HEADER_SIZE + size);
         q->used = false;
-        q->size = p->size - size - HEADER_SIZE;
+        q->size = p->size - size;
         q->addr = q->data;
         insert_after(p, q);
         p->size -= q->size;
     }
     p->used = true;
+    p->name = name;
     return p->addr;
 }
 
+void* malloc(size_t size) {
+    return named_malloc(size, "N/A");
+}
+
 void try_merge(Header* p, Header* q) {
-    if (!p->used && !q->used && (uchar*)p + p->size == (uchar*)q) {
+    if (!p->used && !q->used && (uchar*)p + p->size + HEADER_SIZE == (uchar*)q) {
         p->size += q->size;
         p->next = q->next;
         p->next->prev = p;
@@ -282,6 +286,8 @@ void init_memory() {
     head->addr = 0;
     tail->addr = (uchar*)0xffffffff;
     head->used = tail->used = true;
+    head->name = "head";
+    tail->name = "tail";
     head->size = tail->size = 0;
     head->prev = tail->next = 0;
     head->next = tail;
@@ -387,11 +393,14 @@ void do_test_map_unmap() {
 }
 
 void dump_malloc_list() {
-    printf("============================== dump_malloc_list\n");
+    printf("=====================================================\n");
     for (Header* p = head; p; p = p->next) {
-        printf("%x addr: %x, size: %d, used: %d, next: %x\n", p, p->addr, p->size, p->used, p->next);
+        printf("%4s %x(%x)->%x %5d %s\n",
+                p->used ? "" : "Free",
+                p, p->addr, p->next,
+                p->size, p->name);
     }
-    printf("============================== end dump_malloc_list\n");
+    printf("=====================================================\n");
 }
 
 void do_test_malloc_free() {

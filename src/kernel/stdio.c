@@ -94,14 +94,26 @@ void print_hex_4(uint val) {
     print_hex_1(val & 0xff);
 }
 
-void print_int(int val) {
+void print_int(int val, int width) {
+    bool negative = false;
+    uint cnt = 0;
     if (val < 0) {
-        putchar('-');
+        negative = true;
         val = -val;
+        ++cnt;
     }
     uint base = 1;
     while (base * 10 <= val) {
         base *= 10;
+        ++cnt;
+    }
+    if (width > cnt) {
+        for (int i = 0; i < width - cnt; ++i) {
+            putchar(' ');
+        }
+    }
+    if (negative) {
+        putchar('-');
     }
     while (base) {
         putchar(val / base + '0');
@@ -110,26 +122,47 @@ void print_int(int val) {
     }
 }
 
-void print_str(char* s) {
+void print_str(char* s, int width) {
     while (*s) {
         putchar(*s++);
+        --width;
+    }
+    while (width-- > 0) {
+        putchar(' ');
     }
 }
 
-void _printf(char** pfmt) {
+bool isdigit(char ch) {
+    return '0' <= ch && ch <= '9';
+}
+
+int printf_get_width(const char** pp) {
+    int res = 0;
+    while (isdigit(**pp)) {
+        res = res * 10 + (**pp - '0');
+        ++*pp;
+    }
+    return res;
+}
+
+int _printf(const char** pfmt) {
     uint* arg = (uint*)pfmt + 1;
-    for (char* p = *pfmt; *p; ++p) {
+    uint* old_arg = arg;
+    int width = 0;
+    for (const char* p = *pfmt; *p; ++p) {
         switch (*p) {
             case '%':
-                switch (*++p) {
+                ++p;
+                width = printf_get_width(&(p));
+                switch (*p) {
                     case 'x':
                         print_hex_4(*arg++);
                         break;
                     case 'd':
-                        print_int(*(int*)arg++);
+                        print_int(*(int*)arg++, width);
                         break;
                     case 's':
-                        print_str((char*)*arg++);
+                        print_str((char*)*arg++, width);
                         break;
                 }
                 break;
@@ -138,10 +171,11 @@ void _printf(char** pfmt) {
                 break;
         }
     }
+    return arg - old_arg;
 }
 
-void printf(char* fmt, ...) {
-    _printf(&fmt);
+int printf(const char* fmt, ...) {
+    return _printf(&fmt);
 }
 
 void init_console() {
@@ -154,7 +188,7 @@ void init_console() {
     set_cursor(cur_row, cur_col);
 }
 
-void panic(char* fmt, ...) {
+void panic(const char* fmt, ...) {
     _printf(&fmt);
     while (true) {
         asm("hlt");

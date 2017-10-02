@@ -61,6 +61,8 @@ After paging:
 #ifndef DEF_H
 #define DEF_H
 
+#include "../libc/def.h"
+
 #define KB 1024U
 #define MB (1024 * KB)
 #define GB (1024 * MB)
@@ -82,19 +84,5 @@ After paging:
 #define PTE_P 0x001
 #define PTE_W 0x002
 #define PTE_PS 0x080
-
-enum {
-    SYSCALL_PRINTF = 1,
-};
-
-typedef unsigned char uchar;
-typedef unsigned short ushort;
-typedef unsigned int uint;
-typedef unsigned long long ulonglong;
-typedef uint size_t;
-
-#define bool uchar
-#define true 1
-#define false 0
 
 #endif

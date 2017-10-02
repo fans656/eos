@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "stdio.h"
 #include "math.h"
+#include "time.h"
 
 #define BLOCK_SIZE 4096
 #define RESERVED_BLOCK 256
@@ -15,6 +16,7 @@
 #define BITMAP_BYTES (BITMAP_BLOCKS * BLOCK_SIZE)
 
 #define MAX_NAME_LEN 256
+#define MAX_BLOCKSRANGE_PER_FILE 256
 
 typedef struct {
     uint beg;
@@ -26,7 +28,8 @@ typedef struct {
     uint next;
     char name[MAX_NAME_LEN];
     size_t size;
-    BlocksRange blocks[512];
+    size_t n_blocks;
+    BlocksRange blocks[MAX_BLOCKSRANGE_PER_FILE];
 } FileEntry;
 
 typedef struct FILE {
@@ -34,7 +37,7 @@ typedef struct FILE {
     size_t pos;
 } FILE;
 
-uchar* bitmap;
+uchar bitmap[BITMAP_BLOCKS * BPB];
 
 void bitmap_set(uint block, bool used) {
     if (used) {
@@ -57,7 +60,6 @@ void bitmap_range_set(uint beg, uint end, bool used) {
 }
 
 void bitmap_new() {
-    bitmap = malloc(BITMAP_BLOCKS * BPB);
     read_bytes(BITMAP_BLOCK * BPB, BITMAP_BLOCKS * BPB, bitmap);
     bitmap_range_set(0, FILEENTRY_BLOCK, true);
 }
@@ -77,6 +79,8 @@ uint alloc_block() {
     panic("alloc_block(): no more block!");
 }
 
+// try allocate `cnt` continuous disk data blocks and save the info in `rg`
+// may allocate less than `cnt` blocks
 void alloc_blocks(uint cnt, BlocksRange* rg) {
     int beg = FILEENTRY_BLOCK + 1;
     int end;
@@ -96,25 +100,28 @@ void alloc_blocks(uint cnt, BlocksRange* rg) {
 }
 
 FileEntry* fe_from_block(uint block) {
-    FileEntry* fe = malloc(BLOCK_SIZE);
-    read_bytes(block * BPB, BLOCK_SIZE, fe);
+    FileEntry* fe = named_malloc(sizeof(FileEntry), "FileEntry");
+    read_bytes(block * BPB, sizeof(FileEntry), fe);
     return fe;
 }
 
 FileEntry* fe_next_block(FileEntry* fe) {
-    return fe_from_block(fe->next);
-}
-
-FileEntry* fe_create(char* name) {
-    FileEntry* fe = fe_from_block(alloc_block());
-    memset(fe, 0, sizeof(FileEntry));
-    strcpy(fe->name, name);
-    fe->size = 0;
-    write_bytes(fe->block * BPB, BLOCK_SIZE, fe);
+    read_bytes(fe->next * BPB, sizeof(FileEntry), fe);
     return fe;
 }
 
-FileEntry* fe_from_name(char* name) {
+FileEntry* fe_create(const char* name) {
+    uint block = alloc_block();
+    FileEntry* fe = fe_from_block(block);
+    memset(fe, 0, sizeof(FileEntry));
+    fe->block = block;
+    strcpy(fe->name, name);
+    fe->size = 0;
+    write_bytes(fe->block * BPB, sizeof(FileEntry), fe);
+    return fe;
+}
+
+FileEntry* fe_from_name(const char* name) {
     FileEntry* p = fe_from_block(FILEENTRY_BLOCK);
     while (p) {
         if (strcmp(p->name, name) == 0) {
@@ -129,35 +136,36 @@ FileEntry* fe_from_name(char* name) {
 }
 
 void fe_reserve(FileEntry* fe, size_t size) {
-    if (size < fe->size) {
+    if (size <= fe->n_blocks * BPB) {
         return;
     }
-    size_t sz = 0;
-    BlocksRange* rg = &fe->blocks[0];
-    while (sz < size) {
-        if (rg->count) {
-            sz += rg->count * BPB;
-        } else {
-            alloc_blocks((size - sz + BLOCK_SIZE - 1) / BLOCK_SIZE, rg);
-            sz += rg->count * BPB;
-        }
+    BlocksRange* rg = &fe->blocks[fe->n_blocks];
+    int n = (size + BPB - 1) / BPB;
+    if (n + fe->n_blocks > MAX_BLOCKSRANGE_PER_FILE) {
+        panic("fe_reserve: MAX_BLOCKSRANGE_PER_FILE reached!");
+    }
+    while (n) {
+        alloc_blocks(n, rg);
+        n -= rg->count;
         ++rg;
     }
 }
 
-FILE* fopen(char* name) {
+FILE* fopen(const char* name) {
     FileEntry* fe = fe_from_name(name);
     if (!fe) {
         fe = fe_create(name);
     }
-    FILE* fp = malloc(sizeof(FILE));
+    FILE* fp = named_malloc(sizeof(FILE), "FILE");
     fp->entry = fe;
+    fp->pos = 0;
     return fp;
 }
 
-void fclose(FILE* fp) {
+int fclose(FILE* fp) {
     free(fp->entry);
     free(fp);
+    return 0;
 }
 
 void fseek(FILE* fp, size_t pos) {
@@ -168,11 +176,12 @@ size_t ftell(FILE* fp) {
     return fp->pos;
 }
 
-void fread(FILE* fp, size_t size, void* data) {
-    BlocksRange* rg = &fp->entry->blocks[0];
+size_t fread(FILE* fp, size_t size, void* data) {
+    FileEntry* fe = fp->entry;
+    BlocksRange* rg = fe->blocks;
     uchar* p = data;
     size_t beg = 0;
-    while (size) {
+    for (int i = 0; i < fe->n_blocks; ++i) {
         size_t end = beg + rg->count * BPB;
         if (beg <= fp->pos && fp->pos < end) {
             size_t offset = fp->pos - beg;
@@ -182,15 +191,21 @@ void fread(FILE* fp, size_t size, void* data) {
             p += n;
             size -= n;
         }
+        beg = end;
+        ++rg;
+    }
+    if (size) {
+        panic("fread: partial read");
     }
 }
 
-void fwrite(FILE* fp, void* data, size_t size) {
-    fe_reserve(fp->entry, fp->pos + size);
-    BlocksRange* rg = &fp->entry->blocks[0];
-    uchar* p = data;
+size_t fwrite(FILE* fp, const void* data, size_t size) {
+    FileEntry* fe = fp->entry;
+    fe_reserve(fe, fp->pos + size);
+    BlocksRange* rg = fe->blocks;
+    const uchar* p = data;
     size_t beg = 0;
-    while (size) {
+    for (int i = 0; i < fe->n_blocks; ++i) {
         size_t end = beg + rg->count * BPB;
         if (beg <= fp->pos && fp->pos < end) {
             size_t offset = fp->pos - beg;
@@ -203,13 +218,41 @@ void fwrite(FILE* fp, void* data, size_t size) {
         beg = end;
         ++rg;
     }
+    if (size) {
+        panic("fread: partial read");
+    }
 }
 
-size_t fsize(char* name) {
-    return fe_from_name(name)->size;
+void* load_file(const char* path) {
+    FILE* fp = fopen(path);
+    size_t size = fsize(fp);
+    void* data = named_malloc(size, path);
+    fread(fp, size, data);
+    fclose(fp);
+    return data;
+}
+
+size_t fsize(FILE* fp) {
+    return fp->entry->size;
+}
+
+size_t fsize_from_name(char* fname) {
+    return fe_from_name(fname)->size;
 }
 
 void init_filesystem() {
     init_disk();
     bitmap_new();
+}
+
+void dump_fileentry(FILE* fp) {
+    FileEntry* fe = fp->entry;
+    printf("======================================== FileEntry\n");
+    printf("name: %s, size: %d\n", fe->name, fe->size);
+    BlocksRange* rg = fe->blocks;
+    for (int i = 0; i < fe->n_blocks; ++i) {
+        printf("Beg: %x, Count: %x\n", rg->beg, rg->count);
+        ++rg;
+    }
+    printf("========================================\n");
 }

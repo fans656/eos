@@ -1,10 +1,10 @@
 #include "def.h"
 
 void* memset(void* ptr, uchar value, uint cnt);
-void* memcpy(void* dst, void* src, uint cnt);
+void* memcpy(void* dst, const void* src, uint cnt);
 
-void* strcpy(char* dst, char* src);
-void* strncpy(char* dst, char* src, size_t n);
-size_t strlen(char* s);
-int strcmp(char* s1, char* s2);
-int strncmp(char* s1, char* s2, size_t n);
+void* strcpy(char* dst, const char* src);
+void* strncpy(char* dst, const char* src, size_t n);
+size_t strlen(const char* s);
+int strcmp(const char* s1, const char* s2);
+int strncmp(const char* s1, const char* s2, size_t n);
