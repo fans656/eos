@@ -1350,3 +1350,64 @@ https://stackoverflow.com/questions/1147623/trying-to-understand-the-main-disass
 2017-10-02 14:56:43
 现在加载一张2MB的bmp图片得500ms+，对比python加载8MB只需9ms
 timeit了一下主要耗时在read_sector那里，，可以优化的地方不少，但是先不做——先用最简单的方式尽量保证少bug
+
+2017-10-03 01:16:24
+昨儿尝试做进程，有点儿混乱，捋一捋
+
+在kernel初始化了内存和文件系统之类的之后：
+    
+    cr3 -> kernel_pgdir (in kernel .bss)
+    esp -> kernel stack (in kernel .bss)
+    eip -> kernel .text
+
+此时kernel heap(即malloc/free操作的部分)位于高地址(3.5G actually)
+现在要创建一个新的进程
+
+    Process <- malloc
+        pgdir <- alloc_frame (then copy kernel_pgdir's higher half)
+        esp <- USER_STACK_END (4K + 64K) (then map in proc->pgdir, lower half)
+        eip <- prog entry (map prog segments and load file content)
+
+2017-10-03 22:49:19
+还是进程，又得捋了
+
+初始是在kernel stack上，当IRQ0发生时，kernel大抵是运行在那个while hlt循环里
+然后堆栈成为
+
+    EIP-k
+    CS-k
+    EFLAGS-k
+    ...
+    [stack kernel ]
+
+isr_timer_asm调用process_schedule
+
+    EBP-asm
+    EIP-asm
+    ------
+    EIP-hlt
+    CS-hlt
+    EFLAGS-hlt
+    ...
+    [stack kernel ]
+
+process_schedule返回了一个process-0的esp，isr_timer_asm切换了堆栈
+
+    EIP-hlt
+    CS-hlt
+    EFLAGS-hlt           =>
+    ...                             (context-0)
+    [stack kernel]                  [stack 0] 
+
+isr_timer_asm popad, iret 转入了 process-0，执行了一会儿，IRQ0再次发生
+
+    ...
+    [stack 0] 
+
+啊....不说了，明白了，kernel => proc-0 的时候kernel stack位于higher half是所有人都可见的，所以切完页表process_schedule也是可以返回的
+但是在stack-0的时候，EIP-asm保存在lower half的栈里，页表一切换，没了，，process_schedule返回不了了
+(准确地说是EIP-asm的地方值为0x00000000，所以会出现eip==0的page_fault)
+
+解决办法？要不在isr_timer_asm里一开始就切到kernel的页表吧，，先试试，以后再说性能问题
+
+——呐，找到了另一个解决办法，就是不在process_schedule里切换页表，而是在isr_timer_asm里做

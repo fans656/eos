@@ -2,7 +2,7 @@
 #define LIBC_DEF_H
 
 enum {
-    SYSCALL_PRINTF = 1,
+    SYSCALL_PRINTF,
 
     SYSCALL_MALLOC,
     SYSCALL_FREE,
@@ -15,6 +15,8 @@ enum {
     SYSCALL_LOAD_FILE,
 
     SYSCALL_BMP_BLIT,
+
+    SYSCALL_EXIT,
 };
 
 typedef unsigned char uchar;

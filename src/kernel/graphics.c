@@ -144,7 +144,7 @@ void init_graphics() {
     // map graphic memory
     uint beg = (uint)graphic_video_mem;
     for (size_t sz = 0; sz < 16 * MB; sz += 4 * MB) {
-        pgdir[beg >> 22] = beg | PTE_P | PTE_W | PTE_PS;
+        kernel_pgdir[beg >> 22] = beg | PTE_P | PTE_W | PTE_PS;
         beg += 4 * MB;
     }
     

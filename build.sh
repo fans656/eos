@@ -12,7 +12,7 @@ BOOT=$KERNEL/boot
 LIBC=$SRC/libc
 PROG=$SRC/prog
 
-CFLAGS="-m32 -ffreestanding -nostdlib -nostdinc -masm=intel"
+CFLAGS="-m32 -ffreestanding -nostdlib -nostdinc -masm=intel -static-libgcc -lgcc"
 DDFLAGS="conv=notrunc status=none"
 
 mkdir -p $BIN
@@ -22,7 +22,8 @@ nasm mbr.asm -o $BIN/mbr.img -f bin
 gcc $CFLAGS boot.c -o $BIN/boot.o -Wl,-Ttext=0x7e00 -Wl,-ebootmain
 
 cd $KERNEL
-gcc $CFLAGS *.c -o $BIN/kernel.img -Wl,-Ttext=0xc0100000 -Wl,-eentry
+nasm -f elf isr_timer.asm -o $BIN/isr_timer.o
+gcc *.c $BIN/isr_timer.o -o $BIN/kernel.img $CFLAGS -Wl,-Ttext=0xc0100000 -Wl,-eentry
 
 cd $TOOL
 ./build-prog.py  # compile user programs

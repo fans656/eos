@@ -16,10 +16,10 @@
 - ELF executable
 - Paging
 - malloc/free
+- Process
 
 ## Future
 
-- Multi-processing
 - Console
 - GUI
   - Mouse
@@ -32,26 +32,6 @@
 - UTF-8
 - POSIX
 - Swap
-
-## Develop Environment
-
-- Windows 10 laptop
-- Writing code in an Ubuntu VM
-- Compile the kernel image (including bootloader MBR) on VM
-- Send it to host OS where a HTTP server is running to receive POSTed file
-- Host batch script run to start `qemu` using the POSTed kernel image
-
-## Details
-
-### Compilation
-
-Use `build.sh` to generate the disk image `eos.img` at `bin/`  
-(need `nasm` and `gcc`)
-
-- `src/kernel/boot/mbr.asm` => `bin/mbr.img`
-- `src/kernel/boot/boot.c` => `bin/boot.o` => `bin/boot.img`
-- `src/kernel/*.c` => `bin/kernel.img`
-- `bin/mbr.img` + `bin/boot.img` + `bin/kernel.img` => first 1MB of disk image
 
 ## References
 

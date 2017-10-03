@@ -3,6 +3,7 @@
 #include "graphics.h"
 
 int main() {
+    printf("in prog\n");
     void* girl = load_file("/img/girl.bmp");
     void* walle = load_file("/img/walle.bmp");
 

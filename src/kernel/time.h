@@ -6,7 +6,7 @@
 #define PIT_BASE_FREQUENCY 1193182
 #define PIT_MS_PRECISION 10
 
-typedef ulonglong clock_t;
+typedef uint clock_t;
 
 clock_t clock();
 

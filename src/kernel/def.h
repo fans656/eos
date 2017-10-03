@@ -72,7 +72,12 @@ After paging:
 #define VIDEO_MEM 0xb8000
 
 #define SECTOR_SIZE 512
-#define STACK_SIZE (64 * KB)
+#define STACK_SIZE (60 * KB)
+
+#define KERNEL_HEAP_VADDR (KERNEL_BASE + 512 * MB)
+
+#define USER_STACK_BEG PAGE_SIZE
+#define USER_STACK_END (USER_STACK_BEG + STACK_SIZE)
 
 #define PAGE_SIZE 4096
 
@@ -84,5 +89,10 @@ After paging:
 #define PTE_P 0x001
 #define PTE_W 0x002
 #define PTE_PS 0x080
+
+#define N_PDE 1024
+#define N_PTE 1024
+
+#define V2IPDE(x) ((x) >> 22)
 
 #endif

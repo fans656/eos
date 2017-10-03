@@ -14,6 +14,8 @@ there's automatically `cli` before entering ISR and `sti` after returning from I
 #include "filesystem.h"
 #include "graphics.h"
 #include "time.h"
+#include "process.h"
+#include "list.h"
 
 #define IRQ_PIT_TIMER 0
 #define IRQ_KEYBOARD 1
@@ -41,8 +43,6 @@ there's automatically `cli` before entering ISR and `sti` after returning from I
 #define ICW4_BUF_SLAVE 0x08
 #define ICW4_BUF_MASTER 0x0C
 #define ICW4_SFNM 0x10
-
-clock_t extern clock_counter;
 
 struct __attribute__((__packed__)) {
     ushort offset1;
@@ -137,13 +137,14 @@ void isr_gpf() {
 void isr_page_fault() {
     asm("pushad");
 
-    uint err, vaddr;
+    uint err, vaddr, eip;
     asm volatile("mov eax, [ebp + 4]; mov %0, eax" : "=m"(err));
     asm volatile("mov eax, cr2; mov %0, eax" : "=m"(vaddr));
+    asm volatile("mov eax, [ebp + 8]; mov %0, eax" : "=m"(eip));
     
     if ((err & PF_P) == 0) {
-        panic("isr_page_fault | err: %x, vaddr: %x | %s page not present\n",
-                err, vaddr, (err & PF_W) ? "write" : "read");
+        panic("PageFault err %x vaddr %x eip %x %s\n",
+                err, vaddr, eip, (err & PF_W) ? "W" : "R");
     } else {
         panic("isr_page_fault | err: %x, vaddr: %x\n", err, vaddr);
     }
@@ -151,13 +152,7 @@ void isr_page_fault() {
     asm("popad; pop eax; leave; iret");
 }
 
-// interrupt 0 service routine, the PIT timer
-void isr_pit_timer() {
-    asm volatile ("pushad");
-    ++clock_counter;
-    send_eoi(IRQ_PIT_TIMER);
-    asm volatile ("popad; leave; iret");
-}
+void isr_timer_asm();
 
 // interrupt 1 service routine, the keyboard
 void isr_keyboard() {
@@ -220,6 +215,9 @@ void isr_syscall() {
                     (int)*(parg + 3), (int)*(parg + 4),
                     (int)*(parg + 5), (int)*(parg + 6));
             break;
+        case SYSCALL_EXIT:
+            process_exit((int)*parg);
+            break;
         default:
             panic("unknown syscall: %d\n", callnum);
     }
@@ -244,7 +242,8 @@ void fill_idt_entries() {
     fill_idt_entry(0x0d, isr_gpf);
     fill_idt_entry(0x0e, isr_page_fault);
 
-    fill_idt_entry(0x20, isr_pit_timer);
+    //fill_idt_entry(0x20, isr_pit_timer);
+    fill_idt_entry(0x20, isr_timer_asm);
     fill_idt_entry(0x21, isr_keyboard);
 
     fill_idt_entry(0x80, isr_syscall);
@@ -266,5 +265,4 @@ void init_interrupt() {
     remap_hardware_interrupts();
     fill_idt_entries();
     load_idt();
-    asm ("sti");
 }

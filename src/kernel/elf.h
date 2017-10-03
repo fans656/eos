@@ -32,8 +32,4 @@ typedef struct {
     uint align;
 } ProgramHeader;
 
-typedef void (*ProgEntry)();
-
-ProgEntry load_elf(char* fpath);
-
 #endif

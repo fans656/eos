@@ -10,7 +10,7 @@ for fname in os.listdir('.'):
               '-m32 -ffreestanding -nostdlib -nostdinc '
               '-masm=intel '
               '-I ../../libc '
-              '-Wl,-emain '
+              '-Wl,-e_start '
               '-o ../../../files/{}'.format(fname))
     if ret:
         exit(1)

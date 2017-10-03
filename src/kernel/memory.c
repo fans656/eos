@@ -67,12 +67,13 @@ void unmap_pages(uint pgdir[], uint vbeg, uint size) {
     for (uint p = pbeg; p != pend; ++p) {
         uint* pde = &pgdir[p >> 10];
         if (!(*pde & PTE_P)) {
-            panic("unmap non-mapped page!");
+            p += 1023;
+            continue;
         }
         uint* pt = (uint*)P2V(*pde & 0xfffff000);
         uint* pte = &pt[p & 0x3ff];
         if (!(*pte & PTE_P)) {
-            panic("unmap non-mapped page!");
+            continue;
         }
         uint frame = *pte & 0xfffff000;
         free_frame(P2V(frame));
@@ -85,38 +86,39 @@ void unmap_pages(uint pgdir[], uint vbeg, uint size) {
 #define HEAP_SIZE (128 * MB)
 
 // leave first page unmmaped to allow 0 represent invalid pointer
-uint sbrk_end = PAGE_SIZE;
-uint sbrk_page_end = PAGE_SIZE;
+uint sbrk_end = KERNEL_HEAP_VADDR;
+uint sbrk_page_end = KERNEL_HEAP_VADDR;
 
-void* sbrk(int incr) {
-    uint end = sbrk_end + incr;
-    if (end < PAGE_SIZE || end > HEAP_SIZE) {
+void* sbrk(uint* pgdir, uint* psbrk_end, uint* psbrk_page_end, int incr) {
+    uint end = *psbrk_end + incr;
+    if (end < KERNEL_HEAP_VADDR || end > KERNEL_HEAP_VADDR + HEAP_SIZE) {
         panic("==PANIC== sbrk() to %x", end);
     }
     if (!incr) {
-        return (void*)sbrk_end;
+        return (void*)*psbrk_end;
     }
-    uint old_end = sbrk_end;
+    uint old_end = *psbrk_end;
     if (incr > 0) {
-        uint left = sbrk_end;
+        uint left = *psbrk_end;
         uint right = left + incr;
         uint page_right = ROUND_UP(right);
-        if (page_right > sbrk_page_end) {
-            map_pages(pgdir, sbrk_page_end, page_right - sbrk_page_end);
-            sbrk_page_end = page_right;
+        if (page_right > *psbrk_page_end) {
+            map_pages(pgdir, *psbrk_page_end, page_right - *psbrk_page_end);
+            *psbrk_page_end = page_right;
+            reload_cr3(pgdir);
         }
-        sbrk_end = right;
+        *psbrk_end = right;
     } else {
-        uint right = sbrk_end;
+        uint right = *psbrk_end;
         uint left = right + incr;
         uint page_left = ROUND_UP(left);
-        if (sbrk_page_end > page_left) {
-            unmap_pages(pgdir, page_left, sbrk_page_end - page_left);
-            sbrk_page_end = page_left;
+        if (*psbrk_page_end > page_left) {
+            unmap_pages(pgdir, page_left, *psbrk_page_end - page_left);
+            *psbrk_page_end = page_left;
+            reload_cr3(pgdir);
         }
-        sbrk_end = left;
+        *psbrk_end = left;
     }
-    reload_cr3(pgdir);
     return (void*)old_end;
 }
 
@@ -154,7 +156,7 @@ void* named_malloc(size_t size, const char* name) {
     }
     // if no free block, ask kernel for more space
     if (!p->size) {
-        p = (Header*)sbrk(size + HEADER_SIZE);
+        p = (Header*)sbrk(kernel_pgdir, &sbrk_end, &sbrk_page_end, size + HEADER_SIZE);
         p->used = false;
         p->size = size;
         p->addr = p->data;
@@ -176,6 +178,9 @@ void* named_malloc(size_t size, const char* name) {
 
 void* malloc(size_t size) {
     return named_malloc(size, "N/A");
+}
+
+void* umalloc(uint* pgdir, size_t size) {
 }
 
 void try_merge(Header* p, Header* q) {
@@ -201,7 +206,7 @@ void free(void* addr) {
     Header* last = tail->prev;
     if (!last->used) {
         delete(last);
-        sbrk(-last->size);
+        sbrk(kernel_pgdir, &sbrk_end, &sbrk_page_end, -last->size);
     }
 }
 
@@ -254,7 +259,7 @@ void init_memory() {
     // use higher half GDT
     asm("lgdt [%0]" :: "r"(&gdtdesc));
     // free the identity mapping 0~4MB
-    pgdir[0] = 0;
+    kernel_pgdir[0] = 0;
     // determine usable memory
     uint phy_mem_size = 0;
     MemRange* usable_mem = 0;
@@ -273,9 +278,9 @@ void init_memory() {
     }
     // map all physical space so kernel code can manipulate them
     for (uint paddr = 0; paddr < phy_mem_size; paddr += 4 * MB) {
-        pgdir[(KERNEL_BASE + paddr) >> 22] = paddr | PTE_P | PTE_W | PTE_PS;
+        kernel_pgdir[(KERNEL_BASE + paddr) >> 22] = paddr | PTE_P | PTE_W | PTE_PS;
     }
-    reload_cr3(pgdir);
+    reload_cr3(kernel_pgdir);
     // free frames list
     uint free_beg = max(*kernel_end, usable_mem->addr_low);
     uint free_end = usable_mem->addr_low + usable_mem->len_low;
@@ -311,7 +316,7 @@ void dump_pagedir(uint* pgdir) {
     dump_page(pgdir);
 }
 
-void dump_pagetable(uint* pgtbl, size_t i) {
+void dump_pagetable(uint* pgdir, size_t i) {
     if (!(pgdir[i] & PTE_P)) {
         panic("Page table at pgdir[%d] does not exist\n", i);
     }
@@ -336,7 +341,7 @@ void assert_mapped(uint* pgdir, uint i_pde, uint i_pte_beg, uint i_pte_end) {
 void test_map_unmap(uint beg, uint size) {
     printf(".. test_map_unmap %x %x", beg, size);
 
-    map_pages(pgdir, beg, size);
+    map_pages(kernel_pgdir, beg, size);
 
     uint i_pde_beg = beg / (4 * MB);
     uint i_pde_end = (beg + size + 4 * MB - 1) / (4 * MB);
@@ -351,21 +356,21 @@ void test_map_unmap(uint beg, uint size) {
         uint pte_beg = max(wnd_beg, i_page) % 1024;
         uint pte_end = min(wnd_end, i_page_end) % 1024;
         pte_end += pte_end ? 0 : 1024;
-        assert_mapped(pgdir, i_pde, pte_beg, pte_end);
+        assert_mapped(kernel_pgdir, i_pde, pte_beg, pte_end);
         i_page += pte_end - pte_beg;
         wnd_beg += 1024;
         wnd_end += 1024;
     }
     for (int i = 0; i < 1024 - 256; ++i) {
         if (i < i_pde_beg && i >= i_pde_end) {
-            assert(!(pgdir[i] & PTE_P));
+            assert(!(kernel_pgdir[i] & PTE_P));
         }
     }
 
-    unmap_pages(pgdir, beg, size);
+    unmap_pages(kernel_pgdir, beg, size);
     for (int i_pde = i_pde_beg; i_pde != i_pde_end; ++i_pde) {
-        assert_mapped(pgdir, i_pde, 0, 0);
-        pgdir[i_pde] = 0;
+        assert_mapped(kernel_pgdir, i_pde, 0, 0);
+        kernel_pgdir[i_pde] = 0;
     }
 
     printf("\rOK\n");

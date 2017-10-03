@@ -1,6 +1,6 @@
 #include "def.h"
 
-__attribute__((__aligned__(PAGE_SIZE))) uint pgdir[1024] = {
+__attribute__((__aligned__(PAGE_SIZE))) uint kernel_pgdir[N_PDE] = {
     [0] = 0 | PTE_P | PTE_W | PTE_PS,
     [KERNEL_BASE >> 22] = 0 | PTE_P | PTE_W | PTE_PS
 };
@@ -26,5 +26,5 @@ void entry() {
             // jump to main
             "mov eax, %1;"
             "jmp eax"
-            :: "c"((uint)pgdir - KERNEL_BASE), "i"(main));
+            :: "c"((uint)kernel_pgdir - KERNEL_BASE), "i"(main));
 }
