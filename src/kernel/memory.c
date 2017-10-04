@@ -5,6 +5,7 @@
 #include "util.h"
 #include "assert.h"
 #include "math.h"
+#include "process.h"
 
 #define ROUND_DOWN(x) ((uint)((x) - (uint)(x) % PAGE_SIZE))
 #define ROUND_UP(x) (((uint)(x) + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE)
@@ -48,11 +49,11 @@ void map_pages(uint pgdir[], uint vbeg, size_t size) {
     for (uint p = pbeg; p != pend; ++p) {
         uint* pde = &pgdir[p >> 10];
         uint* pt;
-        if (!(*pde & PTE_P)) {  // page table absent
+        if (!(*pde & PTE_P)) {  // page table not present
             pt = alloc_frame();
             memset(pt, 0, PAGE_SIZE);
             *pde = V2P(pt) | PTE_P | PTE_W;
-        } else {  // page table already exist
+        } else {  // page table present
             pt = (uint*)P2V(*pde & 0xfffff000);
         }
         uint* page = alloc_frame();
@@ -90,35 +91,36 @@ void unmap_pages(uint pgdir[], uint vbeg, uint size) {
 uint sbrk_end = KERNEL_HEAP_VADDR;
 uint sbrk_page_end = KERNEL_HEAP_VADDR;
 
-void* sbrk(uint* pgdir, uint* psbrk_end, uint* psbrk_page_end, int incr) {
-    uint end = *psbrk_end + incr;
+void* sbrk(int incr) {
+    uint* pgdir = running_proc ? running_proc->pgdir : kernel_pgdir;
+    uint end = sbrk_end + incr;
     if (end < KERNEL_HEAP_VADDR || end > KERNEL_HEAP_VADDR + HEAP_SIZE) {
         panic("==PANIC== sbrk() to %x", end);
     }
     if (!incr) {
-        return (void*)*psbrk_end;
+        return (void*)sbrk_end;
     }
-    uint old_end = *psbrk_end;
+    uint old_end = sbrk_end;
     if (incr > 0) {
-        uint left = *psbrk_end;
+        uint left = sbrk_end;
         uint right = left + incr;
         uint page_right = ROUND_UP(right);
-        if (page_right > *psbrk_page_end) {
-            map_pages(pgdir, *psbrk_page_end, page_right - *psbrk_page_end);
-            *psbrk_page_end = page_right;
+        if (page_right > sbrk_page_end) {
+            map_pages(pgdir, sbrk_page_end, page_right - sbrk_page_end);
+            sbrk_page_end = page_right;
             reload_cr3(pgdir);
         }
-        *psbrk_end = right;
+        sbrk_end = right;
     } else {
-        uint right = *psbrk_end;
+        uint right = sbrk_end;
         uint left = right + incr;
         uint page_left = ROUND_UP(left);
-        if (*psbrk_page_end > page_left) {
-            unmap_pages(pgdir, page_left, *psbrk_page_end - page_left);
-            *psbrk_page_end = page_left;
+        if (sbrk_page_end > page_left) {
+            unmap_pages(pgdir, page_left, sbrk_page_end - page_left);
+            sbrk_page_end = page_left;
             reload_cr3(pgdir);
         }
-        *psbrk_end = left;
+        sbrk_end = left;
     }
     return (void*)old_end;
 }
@@ -157,7 +159,7 @@ void* named_malloc(size_t size, const char* name) {
     }
     // if no free block, ask kernel for more space
     if (!p->size) {
-        p = (Header*)sbrk(kernel_pgdir, &sbrk_end, &sbrk_page_end, size + HEADER_SIZE);
+        p = (Header*)sbrk(size + HEADER_SIZE);
         p->used = false;
         p->size = size;
         p->addr = p->data;
@@ -167,10 +169,11 @@ void* named_malloc(size_t size, const char* name) {
     if (p->size - size >= HEADER_SIZE + 4) {
         Header* q = (Header*)((uchar*)p + HEADER_SIZE + size);
         q->used = false;
-        q->size = p->size - size;
+        q->size = p->size - HEADER_SIZE - size;
         q->addr = q->data;
+        q->name = p->name;
         insert_after(p, q);
-        p->size -= q->size;
+        p->size -= HEADER_SIZE + q->size;
     }
     p->used = true;
     p->name = name;
@@ -207,7 +210,7 @@ void free(void* addr) {
     Header* last = tail->prev;
     if (!last->used) {
         delete(last);
-        sbrk(kernel_pgdir, &sbrk_end, &sbrk_page_end, -last->size);
+        sbrk(-last->size);
     }
 }
 
@@ -282,12 +285,18 @@ void init_memory() {
     for (uint paddr = 0; paddr < phy_mem_size; paddr += 4 * MB) {
         kernel_pgdir[(KERNEL_BASE + paddr) >> 22] = paddr | PTE_P | PTE_W | PTE_PS;
     }
-    reload_cr3(kernel_pgdir);
     // free frames list
     uint free_beg = max(kernel_end, usable_mem->addr_low);
     uint free_end = usable_mem->addr_low + usable_mem->len_low;
     for (uint vaddr = P2V(free_end) - PAGE_SIZE; vaddr >= free_beg; vaddr -= PAGE_SIZE) {
         free_frame(vaddr);
+    }
+    // alloc page table to heap pdes so every process's kernel pgdir will be in sync
+    uint* pde = &kernel_pgdir[KERNEL_HEAP_VADDR >> 22];
+    for (uint paddr = 0; paddr < phy_mem_size; paddr += 4 * MB) {
+        uint* page = alloc_frame();
+        memset(page, 0, PAGE_SIZE);
+        *pde++ = V2P(page) | PTE_P | PTE_W;
     }
     // init malloc free list
     head->addr = 0;
@@ -299,6 +308,8 @@ void init_memory() {
     head->prev = tail->next = 0;
     head->next = tail;
     tail->prev = head;
+
+    reload_cr3(kernel_pgdir);
 }
 
 ////////////////////////////////////////////////////////////////////// test
@@ -399,13 +410,24 @@ void do_test_map_unmap() {
     printf("do_test_map_unmap finished!\n");
 }
 
-void dump_malloc_list() {
+void dump_malloc_list_unnamed() {
     printf("=====================================================\n");
     for (Header* p = head; p; p = p->next) {
-        printf("%4s %x(%x)->%x %5d %s\n",
+        printf("%4s %x(%x)->%x %5d %x\n",
                 p->used ? "" : "Free",
                 p, p->addr, p->next,
                 p->size, p->name);
+    }
+    printf("=====================================================\n");
+}
+
+void dump_malloc_list() {
+    printf("=====================================================\n");
+    for (Header* p = head; p; p = p->next) {
+        printf("%4s %x(%x)->%x %5d %20s(%x)\n",
+                p->used ? "" : "Free",
+                p, p->addr, p->next,
+                p->size, p->name, p->name);
     }
     printf("=====================================================\n");
 }

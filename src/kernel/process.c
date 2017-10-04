@@ -8,29 +8,28 @@
 #include "time.h"
 #include "string.h"
 #include "array.h"
+#include "assert.h"
 
 #define MAX_N_PROCS 512
+#define MAX_COUNTDOWNS 512
 #define TIMESLICE_FACTOR 5
 #define CODE_SELECTOR (1 << 3)
 
-typedef struct _Process {
-    uint* pgdir;  // pgdir & esp must be first two and order is important
-    uint esp;     // they're used in isr_timer.asm
-
-    uint pid;
-    const char* path;
-    uint entry;
-} _Process;
-
-typedef _Process* Process;
-
-Array ready_procs;
-Process running_proc;
-uint pid_alloc = 0;
-const char* str_changed = "switch\n";
-
 extern clock_t clock_counter;
 extern uint kernel_end;
+
+Array ready_procs;
+Array exited_procs;
+Process running_proc;
+uint current_esp;
+uint pid_alloc = 0;
+
+typedef struct CountDown {
+    uint cnt;
+    Process proc;
+} CountDown;
+
+Array countdowns;
 
 static inline void map_elf(Process proc, ELFHeader* elf) {
     ProgramHeader* ph_beg = (ProgramHeader*)((char*)elf + elf->phoff);
@@ -82,11 +81,10 @@ static inline void prepare_stack(Process proc) {
 }
 
 Process proc_new(const char* path) {
-    //asm("cli");
     Process proc = named_malloc(sizeof(_Process), "Process");
 
-    proc->pid = pid_alloc++;
     proc->path = path;
+    proc->pid = pid_alloc++;
     
     // init pgdir
     proc->pgdir = alloc_frame();
@@ -117,27 +115,36 @@ Process proc_new(const char* path) {
     return proc;
 }
 
-Process proc_kernel() {
-    Process proc = named_malloc(sizeof(_Process), "Process");
+Process proc_idle() {
+    //dump_malloc_list();
+    Process proc = named_malloc(sizeof(_Process), "Process idle");
+    //dump_malloc_list(); panic("");
+    proc->path = "idle";
     proc->pid = pid_alloc++;
-    proc->path = "kernel";
     proc->pgdir = kernel_pgdir;
-    proc->entry = 0;  // not relevant, this proc will be running from the beginning
-    proc->esp = 0;  // not relavant, the first switch will set the correct value
+    proc->esp = 0;  // not relevant, the first process switch will set this
+    proc->entry = 0;  // not relevant, this will be the running_proc right away
     return proc;
 }
 
 void process_exit(int status) {
-    unmap_pages(running_proc->pgdir, 0, KERNEL_BASE);
-    free(running_proc);
+    array_append(exited_procs, running_proc);
     running_proc = 0;
 }
 
+void process_release() {
+    while (!array_empty(exited_procs)) {
+        Process proc = array_popleft(exited_procs);
+        unmap_pages(proc->pgdir, 0, KERNEL_BASE);
+        free(proc);
+    }
+}
+
+int g__i = 0;
+
 uint process_schedule() {
     if (running_proc) {
-        uint ebp;
-        asm volatile("mov %0, ebp;" : "=r"(ebp));
-        running_proc->esp = ebp + 8;
+        running_proc->esp = current_esp;
         array_append(ready_procs, running_proc);
         running_proc = 0;
     }
@@ -148,9 +155,67 @@ uint process_schedule() {
     return (uint)running_proc;
 }
 
+CountDown countdown_pool[1024];
+size_t countdown_pool_alloc = 0;
+
+void process_sleep(uint ms) {
+    //dump_malloc_list();
+    //if (g__i++ == 0) {
+    //    panic("");
+    //}
+    CountDown* cd = (CountDown*)named_malloc(sizeof(CountDown), "CountDown");
+    //CountDown* cd = &countdown_pool[countdown_pool_alloc++];
+    cd->cnt = (ms + PIT_MS_PRECISION - 1) / PIT_MS_PRECISION;
+    cd->proc = running_proc;
+    array_append(countdowns, cd);
+    running_proc->esp = current_esp;
+    running_proc = 0;
+}
+
+void process_count_down() {
+    size_t i = 0;
+    while (i < array_size(countdowns)) {
+        CountDown* cd = array_get(countdowns, i);
+        if (!--cd->cnt) {
+            array_append(ready_procs, cd->proc);
+            array_remove(countdowns, i);
+            free(cd);
+            continue;
+        }
+        ++i;
+    }
+}
+
+void dump_procs() {
+    printf("======================================= dump_procs\n");
+    if (running_proc) {
+        printf("Running: %d(%s)\n", running_proc->pid, running_proc->path);
+    } else {
+        printf("no running_proc\n");
+    }
+    printf("Ready: ");
+    for (int i = 0; i < array_size(ready_procs); ++i) {
+        Process proc = (Process)array_get(ready_procs, i);
+        printf("%d(%s) ", proc->pid, proc->path);
+    }
+    putchar('\n');
+    printf("Count downs: ");
+    for (int i = 0; i < array_size(countdowns); ++i) {
+        CountDown* cd = (CountDown*)array_get(countdowns, i);
+        Process proc = cd->proc;
+        printf("%d(%s) ", proc->pid, proc->path);
+    }
+    putchar('\n');
+    printf("======================================= dump_procs end\n");
+}
+
 void init_process() {
+    running_proc = proc_idle();
+
+    countdowns = array_new(MAX_COUNTDOWNS);
     ready_procs = array_new(MAX_N_PROCS);
+    exited_procs = array_new(MAX_N_PROCS);
+
     array_append(ready_procs, proc_new("/bin/pa"));
     array_append(ready_procs, proc_new("/bin/pb"));
-    running_proc = proc_kernel();
 }

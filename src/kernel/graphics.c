@@ -147,6 +147,7 @@ void init_graphics() {
         kernel_pgdir[beg >> 22] = beg | PTE_P | PTE_W | PTE_PS;
         beg += 4 * MB;
     }
+    reload_cr3(kernel_pgdir);
     
     // init font
     font_bmp = load_file("/font/font.bmp");

@@ -4,16 +4,19 @@ global isr_syscall_asm
 extern clock_counter
 extern running_proc
 extern kernel_end
-extern str_changed
+extern current_esp
 
 extern process_schedule
 extern process_exit
 extern dispatch_syscall
-extern _printf
+extern clock_tick
 
 
 isr_timer_asm:
     pushad
+    
+    mov eax, esp
+    mov [current_esp], eax
 
     mov eax, [clock_counter]
     and eax, 0x07  ; schedule every 8 times (80ms)
@@ -30,9 +33,7 @@ isr_timer_asm:
     mov esp, ebx
 
 isr_timer_asm_Finish:
-    mov eax, [clock_counter]
-    inc eax
-    mov [clock_counter], eax
+    call clock_tick
     
     mov al, 0x20
     out 0x20, al
@@ -44,28 +45,27 @@ isr_timer_asm_Finish:
 isr_syscall_asm:
     pushad
     
-    cmp eax, 0  ; callnum == 0 for SYSCALL_EXIT
-    je isr_syscall_asm_ProcExit
+    mov ebx, esp
+    mov [current_esp], ebx
     
 isr_syscall_asm_Dispatch:
     mov ebx, ebp
     add ebx, 8
+    push 0
     push ebx  ; parg
     push eax  ; callnum
     call dispatch_syscall
     add esp, 8
+    pop ebx
     mov [esp + 28], eax
+    cmp ebx, 0
+    jne isr_syscall_asm_Schedule
     jmp isr_syscall_asm_Finish
-
-isr_syscall_asm_ProcExit:
-    mov esp, kernel_end
-    mov ebx, ebp
-    mov ebx, [ebx + 8]
-    push ebx
-    call process_exit
-    add esp, 4
     
+isr_syscall_asm_Schedule:
     call process_schedule
+    cmp eax, 0
+    je isr_syscall_asm_Finish
     mov ebx, [eax]  ; running_proc->pgdir
     sub ebx, 0xc0000000
     mov cr3, ebx

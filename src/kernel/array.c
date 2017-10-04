@@ -11,8 +11,8 @@ typedef struct _Array {
 }_Array;
 
 Array array_new(size_t capacity) {
-    Array a = malloc(sizeof(_Array));
-    a->a = (void**)malloc(capacity * sizeof(void*));
+    Array a = named_malloc(sizeof(_Array), "Array");
+    a->a = (void**)named_malloc(capacity * sizeof(void*), "Array.a");
     a->capacity = capacity;
     a->size = 0;
     a->beg = a->end = 0;
@@ -73,6 +73,20 @@ size_t array_size(Array a) {
 
 void* array_get(Array a, size_t i) {
     return a->a[(a->beg + i) % a->capacity];
+}
+
+void* array_remove(Array arr, size_t i) {
+    int end = arr->end;
+    int capacity = arr->capacity;
+    void** a = arr->a;
+
+    int last = (end + capacity - 1) % capacity;
+    void* res = a[i];
+    a[i] = a[last];
+    arr->end = last;
+    --arr->size;
+
+    return res;
 }
 
 void array_dump(Array a) {

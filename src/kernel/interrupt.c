@@ -164,15 +164,22 @@ void isr_keyboard() {
     asm volatile ("popad; leave; iret");
 }
 
-uint dispatch_syscall(uint callnum, uint* parg) {
+uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
     switch (callnum) {
         case SYSCALL_PRINTF:
             return _printf((const char**)parg);
         case SYSCALL_EXIT:
             process_exit((int)*parg);
-            return 0;
+            do_schedule = 1;
+            break;
+        case SYSCALL_SLEEP:
+            process_sleep((uint)*parg);
+            do_schedule = 1;
+            break;
+        default:
+            panic("unknown syscall %d\n", callnum);
     }
-    panic("unknown syscall %d\n", callnum);
+    return 0;
 }
 
 // interrupt 0x80 service routine, the system call

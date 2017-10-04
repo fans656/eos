@@ -16,6 +16,7 @@ void main() {
 
     asm("sti");
     while (true) {
+        process_release();
         asm("hlt");
     }
 }

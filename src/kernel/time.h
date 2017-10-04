@@ -9,6 +9,7 @@
 typedef uint clock_t;
 
 clock_t clock();
+void clock_tick();
 
 void timeit(const char* fmt, ...);
 

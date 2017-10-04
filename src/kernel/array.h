@@ -19,6 +19,7 @@ bool array_empty(Array a);
 bool array_full(Array a);
 size_t array_size(Array a);
 void* array_get(Array a, size_t i);
+void* array_remove(Array arr, size_t i);
 
 void array_dump(Array a);
 

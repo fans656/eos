@@ -1,9 +1,11 @@
 #include "stdio.h"
-#include "util.h"
+#include "stdlib.h"
+#include "unistd.h"
 
 int main() {
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 1; i <= 3; ++i) {
         printf(" B %d\n", i);
-        sleep(100);
+        sleep(200);
     }
+    printf(" B bye-bye\n");
 }

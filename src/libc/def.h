@@ -16,6 +16,8 @@ enum {
     SYSCALL_FSIZE,
     SYSCALL_LOAD_FILE,
 
+    SYSCALL_SLEEP,
+
     SYSCALL_BMP_BLIT,
 };
 

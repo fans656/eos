@@ -1,5 +1,6 @@
 #include "time.h"
 #include "stdio.h"
+#include "process.h"
 
 #define MAX_TIMEIT_NESTING 128
 
@@ -7,6 +8,11 @@ clock_t clock_counter = 0;
 
 clock_t clock() {
     return clock_counter;
+}
+
+void clock_tick() {
+    ++clock_counter;
+    process_count_down();
 }
 
 void timeit(const char* fmt, ...) {

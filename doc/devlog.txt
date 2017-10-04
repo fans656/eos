@@ -1411,3 +1411,31 @@ isr_timer_asm popad, iret 转入了 process-0，执行了一会儿，IRQ0再次�
 解决办法？要不在isr_timer_asm里一开始就切到kernel的页表吧，，先试试，以后再说性能问题
 
 ——呐，找到了另一个解决办法，就是不在process_schedule里切换页表，而是在isr_timer_asm里做
+
+2017-10-04 20:30:44
+尝试实现sleep，两个进程的时候会有bug，，各种捣鼓之后发现问题应该是出在exit上
+——大约是exit的时候进程的各种资源都释放了但是countdowns里头还存着一个进程的引用，然后count down结束又把已经虚幻了的进程放进ready队列了
+
+不是... 退出的进程不会在countdowns里的，它一定是从running态开始退出的——是它自己call的exit呀
+
+
+哈，好像又找到问题了：process_sleep里头用了malloc，而malloc里头是会加载kernel的页表的
+嗯...挺麻烦，kernel pgdir 和进程的 pgdir 难道要同步吗？
+
+还是有问题，不过尝试了不做malloc的时候运行起来没问题(提前一个global的countdown pool)
+没有进程exit的时候做malloc也没问题
+问题就出现在有一个进程exit了，另一个做malloc/free
+难道是两个进程页表userspace有重叠？一个unmap_pages的时候把另一个的给破坏了？
+
+找到罪魁祸首了，是isr.asm里头那句 mov esp, kernel_end
+这个是当时为了在process_exit里能unmap_pages之后成功return而做的，先切到kernel堆栈
+但是这个kernel_end的做法不是很严谨，我自己也没想明白，，果然出事
+那么现在该怎么解决呢？——之前做idle process的时候尝试过直接用kernel尾巴上的那个while hlt，那么是不是可以在这里头检查exited进程然后unmap_pages它们？
+
+
+我的天哪，走一步一个坑
+刚把text mode下的进程sleep搞定，vesa mode又不中了——但是把countdown的malloc换成pool就还成——这次又是什么原因？
+感觉之前的几个症状相似的bug却都是性质很不相同的root cause
+
+好吧~~ 找到原因了，还是malloc/free的bug——之前把malloc block header字段中的size含义从包含了header改为不包含header时，split block的代码里有一些遗留的没有改掉，逻辑错了
+至于造成的效果么，为什么有时候ok有时候出问题，我就懒得找了，只好认为是undefined behavior咯
