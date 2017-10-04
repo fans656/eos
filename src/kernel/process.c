@@ -116,9 +116,7 @@ Process proc_new(const char* path) {
 }
 
 Process proc_idle() {
-    //dump_malloc_list();
     Process proc = named_malloc(sizeof(_Process), "Process idle");
-    //dump_malloc_list(); panic("");
     proc->path = "idle";
     proc->pid = pid_alloc++;
     proc->pgdir = kernel_pgdir;
@@ -159,12 +157,7 @@ CountDown countdown_pool[1024];
 size_t countdown_pool_alloc = 0;
 
 void process_sleep(uint ms) {
-    //dump_malloc_list();
-    //if (g__i++ == 0) {
-    //    panic("");
-    //}
     CountDown* cd = (CountDown*)named_malloc(sizeof(CountDown), "CountDown");
-    //CountDown* cd = &countdown_pool[countdown_pool_alloc++];
     cd->cnt = (ms + PIT_MS_PRECISION - 1) / PIT_MS_PRECISION;
     cd->proc = running_proc;
     array_append(countdowns, cd);

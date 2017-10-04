@@ -1,11 +1,12 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "unistd.h"
+#include "graphics.h"
 
 int main() {
-    for (int i = 1; i <= 3; ++i) {
-        printf(" B %d\n", i);
-        sleep(200);
+    uint* bmp = load_file("/img/walle.bmp");
+    for (int y = 0; y <= 300; y += 5) {
+        sleep(1);
+        draw_bmp_at(bmp, 500, y);
     }
-    printf(" B bye-bye\n");
 }

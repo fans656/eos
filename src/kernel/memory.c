@@ -184,9 +184,6 @@ void* malloc(size_t size) {
     return named_malloc(size, "N/A");
 }
 
-void* umalloc(uint* pgdir, size_t size) {
-}
-
 void try_merge(Header* p, Header* q) {
     if (!p->used && !q->used && (uchar*)p + p->size + HEADER_SIZE == (uchar*)q) {
         p->size += q->size;

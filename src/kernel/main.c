@@ -11,7 +11,7 @@ void main() {
     init_interrupt();
     init_memory();
     init_filesystem();
-    //init_graphics();
+    init_graphics();
     init_process();
 
     asm("sti");
