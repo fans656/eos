@@ -30,6 +30,7 @@ uint pid_alloc = 0;
 const char* str_changed = "switch\n";
 
 extern clock_t clock_counter;
+extern uint kernel_end;
 
 static inline void map_elf(Process proc, ELFHeader* elf) {
     ProgramHeader* ph_beg = (ProgramHeader*)((char*)elf + elf->phoff);
@@ -80,7 +81,7 @@ static inline void prepare_stack(Process proc) {
     proc->esp = (uint)esp;
 }
 
-void proc_new(const char* path) {
+Process proc_new(const char* path) {
     //asm("cli");
     Process proc = named_malloc(sizeof(_Process), "Process");
 
@@ -113,7 +114,17 @@ void proc_new(const char* path) {
     fclose(fp);
     free_frame((uint)elf);
     
-    array_append(ready_procs, proc);
+    return proc;
+}
+
+Process proc_kernel() {
+    Process proc = named_malloc(sizeof(_Process), "Process");
+    proc->pid = pid_alloc++;
+    proc->path = "kernel";
+    proc->pgdir = kernel_pgdir;
+    proc->entry = 0;  // not relevant, this proc will be running from the beginning
+    proc->esp = 0;  // not relavant, the first switch will set the correct value
+    return proc;
 }
 
 void process_exit(int status) {
@@ -139,6 +150,7 @@ uint process_schedule() {
 
 void init_process() {
     ready_procs = array_new(MAX_N_PROCS);
-    proc_new("/pa");
-    proc_new("/pb");
+    array_append(ready_procs, proc_new("/bin/pa"));
+    array_append(ready_procs, proc_new("/bin/pb"));
+    running_proc = proc_kernel();
 }
