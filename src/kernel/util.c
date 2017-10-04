@@ -19,7 +19,7 @@ void hexdump(void* addr, uint cnt) {
         if (i && i % 16 == 0) {
             putchar('\n');
         }
-        print_hex_1(*p++);
+        print_hex_byte(*p++);
     }
     putchar('\n');
 }

@@ -153,6 +153,7 @@ void isr_page_fault() {
 }
 
 void isr_timer_asm();
+void isr_syscall_asm();
 
 // interrupt 1 service routine, the keyboard
 void isr_keyboard() {
@@ -163,67 +164,78 @@ void isr_keyboard() {
     asm volatile ("popad; leave; iret");
 }
 
-// interrupt 0x80 service routine, the system call
-void isr_syscall() {
-    uint callnum;
-    asm volatile("mov %0, eax" : "=m"(callnum));
-
-    uint* ebp;
-    asm volatile("mov %0, ebp" : "=m"(ebp));
-    ebp = (uint*)*ebp;
-    uint* parg = ebp + 2;
-    
+uint dispatch_syscall(uint callnum, uint* parg) {
     switch (callnum) {
         case SYSCALL_PRINTF:
-            asm volatile("mov eax, %0" :: "b"(_printf((const char**)parg)));
-            break;
-        case SYSCALL_MALLOC:
-            asm volatile("mov eax, %0" :: "b"(malloc(*parg)));
-            break;
-        case SYSCALL_FREE:
-            free((void*)*parg);
-            break;
-        case SYSCALL_FOPEN:
-            asm volatile("mov eax, %0" :: "b"(fopen((char*)*parg)));
-            break;
-        case SYSCALL_FCLOSE:
-            asm volatile("mov eax, %0" :: "b"(fclose((FILE*)*parg)));
-            break;
-        case SYSCALL_FREAD:
-            asm volatile("mov eax, %0" :: "b"(fread(
-                            (FILE*)*(parg + 3),
-                            *(parg + 1) * *(parg + 2),
-                            (void*)*parg
-                            )));
-            break;
-        case SYSCALL_FWRITE:
-            asm volatile("mov eax, %0" :: "b"(fwrite(
-                            (FILE*)*(parg + 3),
-                            (void*)*parg,
-                            *(parg + 1) * *(parg + 2)
-                            )));
-            break;
-        case SYSCALL_FSIZE:
-            asm volatile("mov eax, %0" :: "b"(fsize((FILE*)*parg)));
-            break;
-        case SYSCALL_LOAD_FILE:
-            asm volatile("mov eax, %0" :: "b"(load_file((const char*)*parg)));
-            break;
-        case SYSCALL_BMP_BLIT:
-            bmp_blit((void*)*parg,
-                    (int)*(parg + 1), (int)*(parg + 2),
-                    (int)*(parg + 3), (int)*(parg + 4),
-                    (int)*(parg + 5), (int)*(parg + 6));
-            break;
+            return _printf((const char**)parg);
         case SYSCALL_EXIT:
             process_exit((int)*parg);
-            break;
-        default:
-            panic("unknown syscall: %d\n", callnum);
+            return 0;
     }
-
-    asm volatile ("leave; iret");
+    panic("unknown syscall %d\n", callnum);
 }
+
+// interrupt 0x80 service routine, the system call
+//void isr_syscall() {
+//    uint callnum;
+//    asm volatile("mov %0, eax" : "=m"(callnum));
+//
+//    uint* ebp;
+//    asm volatile("mov %0, ebp" : "=m"(ebp));
+//    ebp = (uint*)*ebp;
+//    uint* parg = ebp + 2;
+//    
+//    switch (callnum) {
+//        case SYSCALL_PRINTF:
+//            asm volatile("mov eax, %0" :: "b"(_printf((const char**)parg)));
+//            break;
+//        case SYSCALL_MALLOC:
+//            asm volatile("mov eax, %0" :: "b"(malloc(*parg)));
+//            break;
+//        case SYSCALL_FREE:
+//            free((void*)*parg);
+//            break;
+//        case SYSCALL_FOPEN:
+//            asm volatile("mov eax, %0" :: "b"(fopen((char*)*parg)));
+//            break;
+//        case SYSCALL_FCLOSE:
+//            asm volatile("mov eax, %0" :: "b"(fclose((FILE*)*parg)));
+//            break;
+//        case SYSCALL_FREAD:
+//            asm volatile("mov eax, %0" :: "b"(fread(
+//                            (FILE*)*(parg + 3),
+//                            *(parg + 1) * *(parg + 2),
+//                            (void*)*parg
+//                            )));
+//            break;
+//        case SYSCALL_FWRITE:
+//            asm volatile("mov eax, %0" :: "b"(fwrite(
+//                            (FILE*)*(parg + 3),
+//                            (void*)*parg,
+//                            *(parg + 1) * *(parg + 2)
+//                            )));
+//            break;
+//        case SYSCALL_FSIZE:
+//            asm volatile("mov eax, %0" :: "b"(fsize((FILE*)*parg)));
+//            break;
+//        case SYSCALL_LOAD_FILE:
+//            asm volatile("mov eax, %0" :: "b"(load_file((const char*)*parg)));
+//            break;
+//        case SYSCALL_BMP_BLIT:
+//            bmp_blit((void*)*parg,
+//                    (int)*(parg + 1), (int)*(parg + 2),
+//                    (int)*(parg + 3), (int)*(parg + 4),
+//                    (int)*(parg + 5), (int)*(parg + 6));
+//            break;
+//        case SYSCALL_EXIT:
+//            process_exit((int)*parg);
+//            break;
+//        default:
+//            panic("unknown syscall: %d\n", callnum);
+//    }
+//
+//    asm volatile ("leave; iret");
+//}
 
 void remap_hardware_interrupts() {
     pic_remap();
@@ -242,11 +254,10 @@ void fill_idt_entries() {
     fill_idt_entry(0x0d, isr_gpf);
     fill_idt_entry(0x0e, isr_page_fault);
 
-    //fill_idt_entry(0x20, isr_pit_timer);
     fill_idt_entry(0x20, isr_timer_asm);
     fill_idt_entry(0x21, isr_keyboard);
 
-    fill_idt_entry(0x80, isr_syscall);
+    fill_idt_entry(0x80, isr_syscall_asm);
 }
 
 void init_pit() {

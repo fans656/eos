@@ -9,7 +9,8 @@
 #define ROUND_DOWN(x) ((uint)((x) - (uint)(x) % PAGE_SIZE))
 #define ROUND_UP(x) (((uint)(x) + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE)
 
-uint* kernel_end = (uint*)(0x500 + KERNEL_BASE);
+uint* p_kernel_end = (uint*)(0x500 + KERNEL_BASE);
+uint kernel_end;
 
 ///////////////////////////////////////////////////////// frames
 
@@ -256,6 +257,7 @@ typedef struct MemRange {
 #define MEM_RANGE_RESERVED 2
 
 void init_memory() {
+    kernel_end = *p_kernel_end;
     // use higher half GDT
     asm("lgdt [%0]" :: "r"(&gdtdesc));
     // free the identity mapping 0~4MB
@@ -282,7 +284,7 @@ void init_memory() {
     }
     reload_cr3(kernel_pgdir);
     // free frames list
-    uint free_beg = max(*kernel_end, usable_mem->addr_low);
+    uint free_beg = max(kernel_end, usable_mem->addr_low);
     uint free_end = usable_mem->addr_low + usable_mem->len_low;
     for (uint vaddr = P2V(free_end) - PAGE_SIZE; vaddr >= free_beg; vaddr -= PAGE_SIZE) {
         free_frame(vaddr);

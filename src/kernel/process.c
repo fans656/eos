@@ -27,6 +27,7 @@ typedef _Process* Process;
 Array ready_procs;
 Process running_proc;
 uint pid_alloc = 0;
+const char* str_changed = "switch\n";
 
 extern clock_t clock_counter;
 
@@ -116,20 +117,12 @@ void proc_new(const char* path) {
 }
 
 void process_exit(int status) {
-    asm("cli");
-    Process proc = running_proc;
-    unmap_pages(proc->pgdir, 0, KERNEL_BASE);
-    reload_cr3(kernel_pgdir);
-    free(proc);
+    unmap_pages(running_proc->pgdir, 0, KERNEL_BASE);
+    free(running_proc);
     running_proc = 0;
-    asm("sti");
-    hlt_forever();
 }
 
 uint process_schedule() {
-    if (clock_counter % TIMESLICE_FACTOR) {
-        return 0;
-    }
     if (running_proc) {
         uint ebp;
         asm volatile("mov %0, ebp;" : "=r"(ebp));

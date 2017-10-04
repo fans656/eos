@@ -82,19 +82,20 @@ void putchar(char ch) {
 
 #define HEX(v) ((v) < 10 ? ((v) + '0') : ((v) - 10 + 'A'))
 
-void print_hex_1(uint val) {
+void print_hex_byte(uint val) {
     putchar(HEX(val >> 4));
     putchar(HEX(val & 0x0f));
 }
 
-void print_hex_4(uint val) {
-    print_hex_1((val >> 24) & 0xff);
-    print_hex_1((val >> 16) & 0xff);
-    print_hex_1((val >> 8) & 0xff);
-    print_hex_1(val & 0xff);
+void print_hex_dword(uint val) {
+    print_hex_byte((val >> 24) & 0xff);
+    print_hex_byte((val >> 16) & 0xff);
+    print_hex_byte((val >> 8) & 0xff);
+    print_hex_byte(val & 0xff);
 }
 
-void print_int(int val, int width) {
+int print_int(int val, int width) {
+    int res = 0;
     bool negative = false;
     uint cnt = 0;
     if (val < 0) {
@@ -110,26 +111,34 @@ void print_int(int val, int width) {
     if (width > cnt) {
         for (int i = 0; i < width - cnt; ++i) {
             putchar(' ');
+            ++res;
         }
     }
     if (negative) {
         putchar('-');
+        ++res;
     }
     while (base) {
         putchar(val / base + '0');
         val %= base;
         base /= 10;
+        ++res;
     }
+    return res;
 }
 
-void print_str(char* s, int width) {
+int print_str(char* s, int width) {
+    int res = 0;
     while (*s) {
         putchar(*s++);
         --width;
+        ++res;
     }
     while (width-- > 0) {
         putchar(' ');
+        ++res;
     }
+    return res;
 }
 
 bool isdigit(char ch) {
@@ -146,8 +155,8 @@ int printf_get_width(const char** pp) {
 }
 
 int _printf(const char** pfmt) {
+    int res = 0;
     uint* arg = (uint*)pfmt + 1;
-    uint* old_arg = arg;
     int width = 0;
     for (const char* p = *pfmt; *p; ++p) {
         switch (*p) {
@@ -156,22 +165,24 @@ int _printf(const char** pfmt) {
                 width = printf_get_width(&(p));
                 switch (*p) {
                     case 'x':
-                        print_hex_4(*arg++);
+                        print_hex_dword(*arg++);
+                        res += 8;
                         break;
                     case 'd':
-                        print_int(*(int*)arg++, width);
+                        res += print_int(*(int*)arg++, width);
                         break;
                     case 's':
-                        print_str((char*)*arg++, width);
+                        res += print_str((char*)*arg++, width);
                         break;
                 }
                 break;
             default:
                 putchar(*p);
+                ++res;
                 break;
         }
     }
-    return arg - old_arg;
+    return res;
 }
 
 int printf(const char* fmt, ...) {

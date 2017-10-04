@@ -3,12 +3,11 @@
 
 #include "def.h"
 
-void proc_new(const char* path);
+extern const char* str_changed;
 
 uint process_schedule();
+void process_exit(int status);
 
 void init_process();
-
-void process_exit(int status);
 
 #endif

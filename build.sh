@@ -22,8 +22,8 @@ nasm mbr.asm -o $BIN/mbr.img -f bin
 gcc $CFLAGS boot.c -o $BIN/boot.o -Wl,-Ttext=0x7e00 -Wl,-ebootmain
 
 cd $KERNEL
-nasm -f elf isr_timer.asm -o $BIN/isr_timer.o
-gcc *.c $BIN/isr_timer.o -o $BIN/kernel.img $CFLAGS -Wl,-Ttext=0xc0100000 -Wl,-eentry
+nasm -f elf isr.asm -o $BIN/isr.o
+gcc *.c $BIN/isr.o -o $BIN/kernel.img $CFLAGS -Wl,-Ttext=0xc0100000 -Wl,-eentry
 
 cd $TOOL
 ./build-prog.py  # compile user programs

@@ -16,4 +16,4 @@ int _printf(const char** pfmt);
 int printf(const char* fmt, ...);
 void panic(const char* fmt, ...);
 
-void print_hex_1(uint val);
+void print_hex_byte(uint val);
