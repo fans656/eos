@@ -20,7 +20,7 @@ START16:
     
     call LoadBootloader
     call GetMemoryMap
-    call SwithToVesaMode
+    ;call SwithToVesaMode
     
     ; open A20  http://wiki.osdev.org/A20
     ; this method is not perfect, but simple and reliable enough

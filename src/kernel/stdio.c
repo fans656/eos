@@ -82,6 +82,20 @@ void putchar(char ch) {
 
 #define HEX(v) ((v) < 10 ? ((v) + '0') : ((v) - 10 + 'A'))
 
+int print_bin(uint val, int width) {
+    if (width <= 0) {
+        width = 32;
+    }
+    uint mask = 1 << (width - 1);
+    int cnt = 0;
+    while (mask) {
+        putchar(val & mask ? '1' : '0');
+        mask >>= 1;
+        ++cnt;
+    }
+    return cnt;
+}
+
 void print_hex_byte(uint val) {
     putchar(HEX(val >> 4));
     putchar(HEX(val & 0x0f));
@@ -171,8 +185,14 @@ int _printf(const char** pfmt) {
                     case 'd':
                         res += print_int(*(int*)arg++, width);
                         break;
+                    case 'b':
+                        res += print_bin(*(uint*)arg++, width);
+                        break;
                     case 's':
                         res += print_str((char*)*arg++, width);
+                        break;
+                    case 'c':
+                        putchar((char)*arg++);
                         break;
                 }
                 break;

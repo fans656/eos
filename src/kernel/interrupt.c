@@ -15,7 +15,7 @@ there's automatically `cli` before entering ISR and `sti` after returning from I
 #include "graphics.h"
 #include "time.h"
 #include "process.h"
-#include "list.h"
+#include "keyboard.h"
 
 #define IRQ_PIT_TIMER 0
 #define IRQ_KEYBOARD 1
@@ -159,7 +159,7 @@ void isr_syscall_asm();
 void isr_keyboard() {
     asm volatile ("pushad");
     uchar scancode = inb(0x60);
-    //update_key_states(scancode);
+    update_key_state(scancode);
     send_eoi(IRQ_KEYBOARD);
     asm volatile ("popad; leave; iret");
 }

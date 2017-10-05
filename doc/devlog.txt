@@ -1439,3 +1439,34 @@ isr_timer_asm popad, iret 转入了 process-0，执行了一会儿，IRQ0再次�
 
 好吧~~ 找到原因了，还是malloc/free的bug——之前把malloc block header字段中的size含义从包含了header改为不包含header时，split block的代码里有一些遗留的没有改掉，逻辑错了
 至于造成的效果么，为什么有时候ok有时候出问题，我就懒得找了，只好认为是undefined behavior咯
+
+2017-10-05 10:08:35
+接下来可以去实现键盘、console和GUI
+但是思考了一下就觉得这几个东西应该综合起来设计
+
+比如刚才琢磨console的行为，然后去查了查，就发现原来有个叫 terminal interface 的东西啊(man termios)
+你在console下——好吧以后叫terminal吧
+你在terminal下敲一个键盘上的A——键盘产生了A Down和A Up的事件，而terminal上echo出了'a'这个字符，，你的程序尽管用的是getchar()却还是需要你按下Enter后才能拿到这个'a'
+这一切，都是因为中间有一层terminal又封装了一部分logic
+
+
+
+思考一下，kernel各种东西setup完毕，启动了第一个用户进程：init
+init显示"~$ "，然后光标闪着，这时可以进行什么操作呢？
+
+    - 输入字符，字符显示在屏幕上
+    - 按Backspace，字符被删除，一直删到剩下"~$ "就不能再删了
+    - 按 Left, Right 可以移动光标 (Ctrl-A Ctrl-E Alt-B 等等光标移动)
+    - 按 Ctrl-C 可以停掉输入，在新的一行"~$ "开始
+
+
+
+https://askubuntu.com/questions/506510/what-is-the-difference-between-terminal-console-shell-and-command-line
+最后这一段澄清了好几个概念，terminal在输入的时候相当于一个key=>char转换器，在输出的时候相当于一个画板——考虑scroll在内就是一张很大的画板哦
+然后shell才是负责line edit，ctrl-c之类东西的
+
+
+算了，以后再尝试搞懂这套linux的东西，现在么，就自己想着去实现一下想要的功能，哪个功能如果搞不清怎么设计且又不必要，就砍掉
+比如我可以backspace一路删光屏幕上的所有文字~~
+
+先实现一下keyboard driver吧
