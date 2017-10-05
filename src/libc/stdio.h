@@ -1,7 +1,7 @@
 #ifndef STDIO_H
 #define STDIO_H
 
-#include "def.h"
+#include "../common/def.h"
 
 typedef struct FILE FILE;
 

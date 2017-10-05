@@ -50,10 +50,12 @@ typedef struct  __attribute__ ((packed)) {
 
 vbe_mode_info_structure* mode_info = (vbe_mode_info_structure*)(0x600 + KERNEL_BASE);
 uchar* graphic_video_mem;
+
 int screen_width;
 int screen_height;
 int screen_pitch;
 int screen_bpp;
+int screen_bytes;
 
 uchar* font_bmp;
 uchar* font_bmp_data;
@@ -136,6 +138,9 @@ void bmp_draw_at(void* bmp, int left, int top) {
 
 void init_graphics() {
     graphic_video_mem = (uchar*)mode_info->framebuffer;
+    if (!graphic_video_mem) {
+        return;
+    }
     screen_width = mode_info->width;
     screen_height = mode_info->height;
     screen_pitch = mode_info->pitch;
@@ -161,7 +166,6 @@ void init_graphics() {
     // init virtual console
     COLS = screen_width / font_glyph_width;
     ROWS = screen_height / font_glyph_height;
-
     int video_mem_size = COLS * ROWS * 2;
     video_mem = named_malloc(video_mem_size, "video_mem");
     memset(video_mem, 0, video_mem_size);
@@ -209,59 +213,6 @@ void screen_fill_black() {
         *p++ = 0;
         n_bytes -= 4;
     }
-}
-
-void draw_bmp_at(const char* fpath, int x, int y) {
-    FILE* fp = fopen(fpath);
-    size_t size = fsize(fp);
-    char* bmp = named_malloc(size, fpath);
-    fread(fp, size, bmp);
-
-    BitmapHeader* bh = (BitmapHeader*)bmp;
-    BitmapInfoHeader* bih = (BitmapInfoHeader*)(bmp + sizeof(BitmapHeader));
-    uchar* pixels = (uchar*)(bmp + bh->offset);
-    int width = bih->width;
-    int height = bih->height;
-    int bytes_per_row = width * screen_bpp;
-    if (bytes_per_row % 4 != 0) {
-        bytes_per_row += 4 - bytes_per_row % 4;
-    }
-    int bpp = get_screen_bpp();
-    int screen_pitch = get_screen_pitch();
-
-    int screen_width = get_screen_width();
-    int screen_height = get_screen_height();
-    int left = max(x, 0);
-    int top = max(y, 0);
-    int right = min(left + width, screen_width);
-    int bottom = min(top + height, screen_height);
-
-    ushort bytes_per_pixel = bih->bpp / 8;
-    uint offset_data = (height - 1) * bytes_per_row;
-    uint bytes_per_row_mem = screen_width * bpp;
-    uint offset_mem = top * screen_pitch + left * bpp;
-    uint bytes_copy_row = (right - left) * bytes_per_pixel;
-    for (int i = max(top, 0); i < bottom; ++i) {
-        memcpy(graphic_video_mem + offset_mem, pixels + offset_data, bytes_copy_row);
-        offset_data -= bytes_per_row;
-        offset_mem += bytes_per_row_mem;
-    }
-    //free(bmp);
-}
-
-void draw_bmp(char* fpath) {
-    FILE* fp = fopen(fpath);
-    char* bmp = named_malloc(512, "draw_bmp_512");
-    fread(fp, 512, bmp);
-    BitmapHeader* bh = (BitmapHeader*)bmp;
-    BitmapInfoHeader* bih = (BitmapInfoHeader*)(bmp + sizeof(BitmapHeader));
-    int width = bih->width;
-    int height = bih->height;
-    int screen_width = get_screen_width();
-    int screen_height = get_screen_height();
-    int left = (screen_width - width) / 2;
-    int top = (screen_height - height) / 2;
-    draw_bmp_at(fpath, left, top);
 }
 
 void draw_char(char ch, int row, int col) {

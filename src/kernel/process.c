@@ -7,8 +7,8 @@
 #include "math.h"
 #include "time.h"
 #include "string.h"
-#include "array.h"
 #include "assert.h"
+#include "array.h"
 
 #define MAX_N_PROCS 512
 #define MAX_COUNTDOWNS 512
@@ -30,6 +30,7 @@ typedef struct CountDown {
 } CountDown;
 
 Array countdowns;
+Array event_waiting_procs;
 
 static inline void map_elf(Process proc, ELFHeader* elf) {
     ProgramHeader* ph_beg = (ProgramHeader*)((char*)elf + elf->phoff);
@@ -115,9 +116,9 @@ Process proc_new(const char* path) {
     return proc;
 }
 
-Process proc_idle() {
-    Process proc = named_malloc(sizeof(_Process), "Process idle");
-    proc->path = "idle";
+Process proc_kernel() {
+    Process proc = named_malloc(sizeof(_Process), "Process kernel");
+    proc->path = "kernel";
     proc->pid = pid_alloc++;
     proc->pgdir = kernel_pgdir;
     proc->esp = 0;  // not relevant, the first process switch will set this
@@ -138,8 +139,6 @@ void process_release() {
     }
 }
 
-int g__i = 0;
-
 uint process_schedule() {
     if (running_proc) {
         running_proc->esp = current_esp;
@@ -153,8 +152,24 @@ uint process_schedule() {
     return (uint)running_proc;
 }
 
-CountDown countdown_pool[1024];
-size_t countdown_pool_alloc = 0;
+void process_wake_event_waiting(Process target) {
+    size_t i = 0;
+    while (i < array_size(event_waiting_procs)) {
+        Process proc = (Process)array_get(event_waiting_procs, i);
+        if (proc == target) {
+            array_remove(event_waiting_procs, i);
+            array_append(ready_procs, proc);
+            break;
+        }
+        ++i;
+    }
+}
+
+void process_make_event_waiting() {
+    array_append(event_waiting_procs, running_proc);
+    running_proc->esp = current_esp;
+    running_proc = 0;
+}
 
 void process_sleep(uint ms) {
     CountDown* cd = (CountDown*)named_malloc(sizeof(CountDown), "CountDown");
@@ -199,15 +214,22 @@ void dump_procs() {
         printf("%d(%s) ", proc->pid, proc->path);
     }
     putchar('\n');
+    printf("Event waiting: ");
+    for (int i = 0; i < array_size(event_waiting_procs); ++i) {
+        Process proc = (Process)array_get(event_waiting_procs, i);
+        printf("%d(%s) ", proc->pid, proc->path);
+    }
+    putchar('\n');
     printf("======================================= dump_procs end\n");
 }
 
 void init_process() {
-    running_proc = proc_idle();
+    running_proc = proc_kernel();
 
     countdowns = array_new(MAX_COUNTDOWNS);
+    event_waiting_procs = array_new(MAX_N_PROCS);
     ready_procs = array_new(MAX_N_PROCS);
     exited_procs = array_new(MAX_N_PROCS);
 
-    //array_append(ready_procs, proc_new("/bin/init"));
+    array_append(ready_procs, proc_new("/bin/pa"));
 }

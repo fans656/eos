@@ -19,6 +19,9 @@ enum {
     SYSCALL_SLEEP,
 
     SYSCALL_BMP_BLIT,
+
+    SYSCALL_REGISTER_WINDOW,
+    SYSCALL_GET_EVENT,
 };
 
 typedef unsigned char uchar;

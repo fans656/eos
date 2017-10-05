@@ -1,6 +1,6 @@
 #include "array.h"
-#include "memory.h"
-#include "stdio.h"
+#include "../kernel/memory.h"
+#include "../kernel/stdio.h"
 
 typedef struct _Array {
     void** a;

@@ -1,7 +1,7 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
-#include "def.h"
+#include "../common/def.h"
 
 #define bmp_width(bmp) (BMP_INFO_HEADER((bmp))->width)
 #define bmp_height(bmp) (BMP_INFO_HEADER((bmp))->height)

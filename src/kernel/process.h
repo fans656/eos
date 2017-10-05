@@ -20,6 +20,8 @@ uint process_schedule();
 void process_exit(int status);
 void process_release();
 
+void process_wake_event_waiting(Process target);
+void process_make_event_waiting();
 void process_sleep(uint ms);
 void process_count_down();
 

@@ -61,7 +61,7 @@ After paging:
 #ifndef DEF_H
 #define DEF_H
 
-#include "../libc/def.h"
+#include "../common/def.h"
 
 #define KB 1024U
 #define MB (1024 * KB)

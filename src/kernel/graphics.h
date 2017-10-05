@@ -3,6 +3,11 @@
 
 #include "def.h"
 
+extern int screen_width;
+extern int screen_height;
+extern int screen_pitch;
+extern int screen_bpp;
+
 void init_graphics();
 
 int get_screen_width();

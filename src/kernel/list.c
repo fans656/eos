@@ -1,22 +1,14 @@
 #include "list.h"
-#include "memory.h"
-
-typedef struct Node Node;
-
-typedef struct Node {
-    Node* prev;
-    Node* next;
-    void* data;
-} Node;
+#include "../kernel/memory.h"
 
 typedef struct _List {
-    Node* head;
-    Node* tail;
+    ListNode* head;
+    ListNode* tail;
     size_t size;
 } _List;
 
-Node* node_new(void* data) {
-    Node* p = named_malloc(sizeof(Node), "Node");
+ListNode* node_new(void* data) {
+    ListNode* p = named_malloc(sizeof(ListNode), "Node");
     p->prev = p->next = 0;
     p->data = data;
     return p;
@@ -33,23 +25,23 @@ List list_new() {
 }
 
 void list_free(List l) {
-    Node* p = l->head;
+    ListNode* p = l->head;
     while (p) {
-        Node* next = p->next;
+        ListNode* next = p->next;
         free(p);
         p = next;
     }
     free(l);
 }
 
-static void insert_after(Node* p, Node* q) {
+static void insert_after(ListNode* p, ListNode* q) {
     q->prev = p;
     q->next = p->next;
     q->prev->next = q;
     q->next->prev = q;
 }
 
-static Node* take(Node* p) {
+static ListNode* take(ListNode* p) {
     p->prev->next = p->next;
     p->next->prev = p->prev;
     return p;
@@ -66,7 +58,7 @@ void list_prepend(List l, void* data) {
 }
 
 void* list_pop(List l) {
-    Node* p = take(l->tail->prev);
+    ListNode* p = take(l->tail->prev);
     void* data = p->data;
     free(p);
     --l->size;
@@ -74,7 +66,7 @@ void* list_pop(List l) {
 }
 
 void* list_popleft(List l) {
-    Node* p = take(l->head->next);
+    ListNode* p = take(l->head->next);
     void* data = p->data;
     free(p);
     --l->size;
@@ -87,4 +79,24 @@ bool list_empty(List l) {
 
 size_t list_size(List l) {
     return l->size;
+}
+
+ListIter list_iter(List l) {
+    return l->head->next;
+}
+
+ListIter list_riter(List l) {
+    return l->tail->prev;
+}
+
+bool list_iter_valid(ListIter iter) {
+    return iter->prev != 0 && iter->next != 0;
+}
+
+ListIter list_iter_prev(ListIter iter) {
+    return iter->prev;
+}
+
+ListIter list_iter_next(ListIter iter) {
+    return iter->next;
 }
