@@ -11,7 +11,7 @@ typedef struct _Array {
 }_Array;
 
 Array array_new(size_t capacity) {
-    Array a = named_malloc(sizeof(_Array), "Array");
+    Array a = (Array)named_malloc(sizeof(_Array), "Array");
     a->a = (void**)named_malloc(capacity * sizeof(void*), "Array.a");
     a->capacity = capacity;
     a->size = 0;

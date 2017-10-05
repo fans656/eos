@@ -60,7 +60,7 @@ void init_keyboard() {
 }
 
 void listen_keyboard(KeyboardListener listener) {
-    array_append(listeners, listener);
+    array_append(listeners, (void*)listener);
 }
 
 void update_key_state(uchar scancode) {
@@ -68,7 +68,7 @@ void update_key_state(uchar scancode) {
     scancode &= 0x7f;
     uchar vk = SCAN2VK[scancode];
     for (int i = 0; i < array_size(listeners); ++i) {
-        KeyboardListener onkey = array_get(listeners, i);
+        KeyboardListener onkey = (KeyboardListener)array_get(listeners, i);
         onkey(vk, up);
     }
     return;

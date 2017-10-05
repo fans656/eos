@@ -6,8 +6,8 @@ os.chdir('../src/prog')
 os.system('mkdir -p ../../files/bin')
 for fname in os.listdir('.'):
     os.chdir(fname)
-    ret = os.system('gcc *.c ../../libc/*.c '
-              '-m32 -ffreestanding -nostdlib -nostdinc '
+    ret = os.system('g++ *.cc ../../libc/*.cc '
+              '-m32 -ffreestanding -fno-exceptions -fno-rtti -nostdlib -nostdinc -std=c++11 '
               '-masm=intel '
               '-I ../../libc '
               '-Wl,-e_start '

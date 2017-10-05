@@ -9,8 +9,8 @@ void* memset(void* ptr, uchar value, uint cnt) {
 }
 
 void* memcpy(void* dst, const void* src, uint cnt) {
-    const uchar* p = src;
-    uchar* q = dst;
+    const uchar* p = (const uchar*)src;
+    uchar* q = (uchar*)dst;
     while (cnt--) {
         *q++ = *p++;
     }

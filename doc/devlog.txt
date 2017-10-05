@@ -1470,3 +1470,9 @@ https://askubuntu.com/questions/506510/what-is-the-difference-between-terminal-c
 比如我可以backspace一路删光屏幕上的所有文字~~
 
 先实现一下keyboard driver吧
+
+2017-10-06 01:20:32
+开始写GUI就感觉到OO的必要性了，然而C搞起来很费劲
+尝试了一下改为C++，改了N多warning之后居然可以了哈，-fno-exceptions -fno-rtti
+然后自己补一下new/delete让它用我的malloc/free
+还可以用C++11，range for loop爽的一逼好吗~~~

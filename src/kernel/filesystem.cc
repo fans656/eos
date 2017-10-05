@@ -100,7 +100,7 @@ void alloc_blocks(uint cnt, BlocksRange* rg) {
 }
 
 FileEntry* fe_from_block(uint block) {
-    FileEntry* fe = named_malloc(sizeof(FileEntry), "FileEntry");
+    FileEntry* fe = (FileEntry*)named_malloc(sizeof(FileEntry), "FileEntry");
     read_bytes(block * BPB, sizeof(FileEntry), fe);
     return fe;
 }
@@ -156,7 +156,7 @@ FILE* fopen(const char* name) {
     if (!fe) {
         fe = fe_create(name);
     }
-    FILE* fp = named_malloc(sizeof(FILE), "FILE");
+    FILE* fp = (FILE*)named_malloc(sizeof(FILE), "FILE");
     fp->entry = fe;
     fp->pos = 0;
     return fp;
@@ -179,7 +179,7 @@ size_t ftell(FILE* fp) {
 size_t fread(FILE* fp, size_t size, void* data) {
     FileEntry* fe = fp->entry;
     BlocksRange* rg = fe->blocks;
-    uchar* p = data;
+    uchar* p = (uchar*)data;
     size_t beg = 0;
     for (int i = 0; i < fe->n_blocks; ++i) {
         size_t end = beg + rg->count * BPB;
@@ -203,7 +203,7 @@ size_t fwrite(FILE* fp, const void* data, size_t size) {
     FileEntry* fe = fp->entry;
     fe_reserve(fe, fp->pos + size);
     BlocksRange* rg = fe->blocks;
-    const uchar* p = data;
+    const uchar* p = (const uchar*)data;
     size_t beg = 0;
     for (int i = 0; i < fe->n_blocks; ++i) {
         size_t end = beg + rg->count * BPB;

@@ -5,7 +5,7 @@
 
 typedef struct FILE FILE;
 
-int printf(char* fmt, ...);
+int printf(const char* fmt, ...);
 
 FILE* fopen(const char* path, const char* mode);
 int fclose(FILE* fp);

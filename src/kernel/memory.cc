@@ -3,7 +3,6 @@
 #include "stdlib.h"
 #include "string.h"
 #include "util.h"
-#include "assert.h"
 #include "math.h"
 #include "process.h"
 
@@ -50,13 +49,13 @@ void map_pages(uint pgdir[], uint vbeg, size_t size) {
         uint* pde = &pgdir[p >> 10];
         uint* pt;
         if (!(*pde & PTE_P)) {  // page table not present
-            pt = alloc_frame();
+            pt = (uint*)alloc_frame();
             memset(pt, 0, PAGE_SIZE);
             *pde = V2P(pt) | PTE_P | PTE_W;
         } else {  // page table present
             pt = (uint*)P2V(*pde & 0xfffff000);
         }
-        uint* page = alloc_frame();
+        uint* page = (uint*)alloc_frame();
         memset(page, 0, PAGE_SIZE);
         pt[p & 0x3ff] = V2P(page) | PTE_P | PTE_W;
     }
@@ -146,7 +145,7 @@ void insert_after(Header* p, Header* q) {
     q->prev->next = q->next->prev = q;
 }
 
-void delete(Header* p) {
+void remove(Header* p) {
     p->prev->next = p->next;
     p->next->prev = p->prev;
 }
@@ -206,10 +205,32 @@ void free(void* addr) {
 
     Header* last = tail->prev;
     if (!last->used) {
-        delete(last);
+        remove(last);
         sbrk(-last->size);
     }
 }
+
+///////////////////////////////////////////////////////// new/delete
+
+// https://stackoverflow.com/questions/8186018/how-to-properly-replace-global-new-delete-operators
+
+void* operator new(size_t n) {
+    return malloc(n);
+}
+
+void operator delete(void* p) {
+    free(p);
+}
+
+void* operator new[](size_t n) {
+    return malloc(n);
+}
+
+void operator delete[](void* p) {
+    free(p);
+}
+
+//void _Unwind_Resume(
 
 ///////////////////////////////////////////////////////// GDT
 
@@ -237,7 +258,7 @@ struct __attribute__((__packed__)) GDTEntry {
     Descriptor(0,0xffffffff,0x4092),  // data
 };
 
-struct __attribute__((__packed__)) {
+struct __attribute__((__packed__)) GDTDesc {
     ushort size;
     uint offset;
 } gdtdesc = {sizeof(gdt) - 1, (uint)gdt};
@@ -268,8 +289,8 @@ void init_memory() {
     uint count = *(uint*)P2V(0x7004);
     MemRange* range = (MemRange*)P2V(0x7008);
     while (count--) {
-        assert(range->addr_high == 0);
-        assert(range->len_high == 0);
+        //assert(range->addr_high == 0);
+        //assert(range->len_high == 0);
         uint beg = range->addr_low;
         uint end = range->addr_low + range->len_low;
         if (usable_mem == 0 && end - beg > 64 * MB) {
@@ -291,7 +312,7 @@ void init_memory() {
     // alloc page table to heap pdes so every process's kernel pgdir will be in sync
     uint* pde = &kernel_pgdir[KERNEL_HEAP_VADDR >> 22];
     for (uint paddr = 0; paddr < phy_mem_size; paddr += 4 * MB) {
-        uint* page = alloc_frame();
+        uint* page = (uint*)alloc_frame();
         memset(page, 0, PAGE_SIZE);
         *pde++ = V2P(page) | PTE_P | PTE_W;
     }
@@ -307,161 +328,4 @@ void init_memory() {
     tail->prev = head;
 
     reload_cr3(kernel_pgdir);
-}
-
-////////////////////////////////////////////////////////////////////// test
-
-void dump_page(uint* p) {
-    for (int i = 0; i < 1024; ++i) {
-        if (i && i % 64 == 0) putchar('\n');
-        if (i && i % 256 == 0) putchar('\n');
-        if (i && i % 64 != 0 && i % 16 == 0) putchar(' ');
-        printf("%d", *p ? 1 : 0);
-        *p++;
-    }
-    putchar('\n');
-}
-
-void dump_pagedir(uint* pgdir) {
-    dump_page(pgdir);
-}
-
-void dump_pagetable(uint* pgdir, size_t i) {
-    if (!(pgdir[i] & PTE_P)) {
-        panic("Page table at pgdir[%d] does not exist\n", i);
-    }
-    dump_page((uint*)P2V(pgdir[i] & 0xfffff000));
-}
-
-void assert_mapped(uint* pgdir, uint i_pde, uint i_pte_beg, uint i_pte_end) {
-    assert(pgdir[i_pde] & PTE_P);
-
-    uint* pt = (uint*)P2V(pgdir[i_pde] & 0xfffff000);
-    for (int i = i_pte_beg; i != i_pte_end; ++i) {
-        assert(pt[i] & PTE_P);
-    }
-    for (int i = 0; i < i_pte_beg; ++i ) {
-        assert(!(pt[i] & PTE_P));
-    }
-    for (int i = i_pte_end; i < 1024; ++i ) {
-        assert(!(pt[i] & PTE_P));
-    }
-}
-
-void test_map_unmap(uint beg, uint size) {
-    printf(".. test_map_unmap %x %x", beg, size);
-
-    map_pages(kernel_pgdir, beg, size);
-
-    uint i_pde_beg = beg / (4 * MB);
-    uint i_pde_end = (beg + size + 4 * MB - 1) / (4 * MB);
-    
-    uint i_page = ROUND_DOWN(beg) / (4 * KB);
-    uint i_page_end = ROUND_UP(beg + size) / (4 * KB);
-    
-    uint wnd_beg = i_page / 1024 * 1024;
-    uint wnd_end = wnd_beg + 1024;
-
-    for (int i_pde = i_pde_beg; i_pde != i_pde_end; ++i_pde) {
-        uint pte_beg = max(wnd_beg, i_page) % 1024;
-        uint pte_end = min(wnd_end, i_page_end) % 1024;
-        pte_end += pte_end ? 0 : 1024;
-        assert_mapped(kernel_pgdir, i_pde, pte_beg, pte_end);
-        i_page += pte_end - pte_beg;
-        wnd_beg += 1024;
-        wnd_end += 1024;
-    }
-    for (int i = 0; i < 1024 - 256; ++i) {
-        if (i < i_pde_beg && i >= i_pde_end) {
-            assert(!(kernel_pgdir[i] & PTE_P));
-        }
-    }
-
-    unmap_pages(kernel_pgdir, beg, size);
-    for (int i_pde = i_pde_beg; i_pde != i_pde_end; ++i_pde) {
-        assert_mapped(kernel_pgdir, i_pde, 0, 0);
-        kernel_pgdir[i_pde] = 0;
-    }
-
-    printf("\rOK\n");
-}
-
-void do_test_map_unmap() {
-    uint begs[] = {
-        0, 1,
-        4 * KB - 1, 4 * KB, 4 * KB + 1,
-        4 * MB - 1, 4 * MB, 4 * MB + 1,
-        32 * MB - 1, 32 * MB, 32 * MB + 1
-    };
-    for (int i = 0; i < sizeof(begs) / sizeof(begs[0]); ++i) {
-        uint beg = begs[i];
-        test_map_unmap(beg, 1);
-        test_map_unmap(beg, 2);
-        test_map_unmap(beg, 4 * KB);
-        test_map_unmap(beg, 4 * KB + 1);
-        test_map_unmap(beg, 4 * MB);
-        test_map_unmap(beg, 4 * MB + 1);
-        test_map_unmap(beg, 16 * MB);
-        test_map_unmap(beg, 16 * MB + 1);
-    }
-    printf("do_test_map_unmap finished!\n");
-}
-
-void dump_malloc_list_unnamed() {
-    printf("=====================================================\n");
-    for (Header* p = head; p; p = p->next) {
-        printf("%4s %x(%x)->%x %5d %x\n",
-                p->used ? "" : "Free",
-                p, p->addr, p->next,
-                p->size, p->name);
-    }
-    printf("=====================================================\n");
-}
-
-void dump_malloc_list() {
-    printf("=====================================================\n");
-    for (Header* p = head; p; p = p->next) {
-        printf("%4s %x(%x)->%x %5d %20s(%x)\n",
-                p->used ? "" : "Free",
-                p, p->addr, p->next,
-                p->size, p->name, p->name);
-    }
-    printf("=====================================================\n");
-}
-
-void do_test_malloc_free() {
-    const int MAX_SIZE = 60 * MB;
-    const int MAX_ALLOC = 4 * MB + 1;
-    const int N = 1024;
-    uchar* a[N];
-    int n = 0;
-    uint size = 0;
-    for (int _ = 0; _ < 1000; ++_) {
-        bool allocating = false;
-        if (n == 0) {
-            allocating = true;
-        } else if (size + MAX_ALLOC + HEADER_SIZE > MAX_SIZE) {
-            allocating = false;
-        } else {
-            allocating = randint(0, 9) < randint(0, 9);
-        }
-        if (allocating) {
-            uint alloc_size = randint(1, MAX_ALLOC);
-            uchar* p = malloc(alloc_size);
-            size += ((Header*)(p - HEADER_SIZE))->size;
-            a[n] = p;
-            ++n;
-        } else {
-            int i = randint(0, n - 1);
-            size -= ((Header*)(a[i] - HEADER_SIZE))->size;
-            free(a[i]);
-            a[i] = a[--n];
-        }
-    }
-}
-
-void memory_test() {
-    //do_test_map_unmap();
-    //do_test_malloc_free();
-    printf("memory_test finished!\n");
 }

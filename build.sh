@@ -1,6 +1,6 @@
 set -e  # stop on error
 
-CC=gcc
+CC=g++
 
 ROOT=`pwd`
 
@@ -14,7 +14,7 @@ BOOT=$KERNEL/boot
 LIBC=$SRC/libc
 PROG=$SRC/prog
 
-CFLAGS="-m32 -ffreestanding -nostdlib -nostdinc -masm=intel -static-libgcc -lgcc"
+CFLAGS="-m32 -ffreestanding -fno-exceptions -fno-rtti -fno-use-cxa-atexit -nostdlib -nostdinc -masm=intel -static-libgcc -lgcc -std=c++11"
 DDFLAGS="conv=notrunc status=none"
 
 mkdir -p $BIN
@@ -25,7 +25,7 @@ $CC $CFLAGS boot.c -o $BIN/boot.o -Wl,-Ttext=0x7e00 -Wl,-ebootmain
 
 cd $KERNEL
 nasm -f elf isr.asm -o $BIN/isr.o
-$CC *.c $BIN/isr.o -o $BIN/kernel.img $CFLAGS -Wl,-Ttext=0xc0100000 -Wl,-eentry
+$CC $CFLAGS *.cc $BIN/isr.o -o $BIN/kernel.img -Wl,-Ttext=0xc0100000 -Wl,-eentry
 
 cd $TOOL
 ./build-prog.py  # compile user programs

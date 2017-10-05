@@ -4,52 +4,49 @@
 #include "../common/def.h"
 #include "list.h"
 
+constexpr int DEFAULT_WINDOW_WIDTH = 320;
+constexpr int DEFAULT_WINDOW_HEIGHT = 240;
+
 ////////////////////////////////////////////////////////// enum
 
-typedef enum {
+enum EventType {
     KeyboardEventType, PaintEventType,
-} EventType;
+};
 
-typedef enum {
+enum PaintState {
     Unpainted, Painting, Painted,
-} PaintState;
+};
 
 ////////////////////////////////////////////////////////// event
 
-typedef struct _Event {
+struct Event {
     EventType type;
-} _Event;
-typedef _Event* Event;
+};
 
-typedef struct _PaintEvent {
-    EventType type;
-} _PaintEvent;
-typedef _PaintEvent* PaintEvent;
+struct PaintEvent : Event {
+    PaintEvent() { type = PaintEventType; }
+};
 
-typedef struct _KeyboardEvent {
-    EventType type;
+struct KeyboardEvent : Event {
     uint key;
     bool up;
-} _KeyboardEvent;
-typedef _KeyboardEvent* KeyboardEvent;
+    KeyboardEvent(uint key, bool up) : key(key), up(up) { type = KeyboardEventType; }
+};
 
 ////////////////////////////////////////////////////////// window
 
 typedef struct _Process* Process;
 
-typedef struct _Window {
-    Process proc;
+struct Window {
     int width;
     int height;
-    // add these cause page fault, why?
-    //int x;
-    //int y;
-
-    List events;
+    int x;
+    int y;
+    Process proc;
+    List<Event*> events;
     PaintState paint_state;
-} _Window;
-typedef struct _Window* Window;
+};
 
-typedef uint (*WndProc)(Event);
+typedef uint (*WndProc)(Event*);
 
 #endif

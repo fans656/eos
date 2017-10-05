@@ -1,6 +1,6 @@
 #include "stdio.h"
 
-int printf(char* fmt, ...) {
+int printf(const char* fmt, ...) {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_PRINTF));
 }
 

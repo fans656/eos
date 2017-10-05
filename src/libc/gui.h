@@ -3,7 +3,7 @@
 
 #include "../kernel/guitypes.h"
 
-Window wnd_new(WndProc wndproc);
-int gui_main(Window wnd);
+Window* wnd_new(WndProc wndproc);
+int gui_main(Window* wnd);
 
 #endif

@@ -7,7 +7,9 @@
 #include "util.h"
 #include "gui.h"
 #include "keyboard.h"
+#include "list.h"
 
+extern "C" {
 void main() {
     init_console();
     init_interrupt();
@@ -25,4 +27,5 @@ void main() {
         process_release();
         asm("hlt");
     }
+}
 }

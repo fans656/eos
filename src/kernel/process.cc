@@ -7,7 +7,6 @@
 #include "math.h"
 #include "time.h"
 #include "string.h"
-#include "assert.h"
 #include "array.h"
 
 #define MAX_N_PROCS 512
@@ -82,13 +81,13 @@ static inline void prepare_stack(Process proc) {
 }
 
 Process proc_new(const char* path) {
-    Process proc = named_malloc(sizeof(_Process), "Process");
+    Process proc = (Process)named_malloc(sizeof(_Process), "Process");
 
     proc->path = path;
     proc->pid = pid_alloc++;
     
     // init pgdir
-    proc->pgdir = alloc_frame();
+    proc->pgdir = (uint*)alloc_frame();
     for (int i = 0; i < V2IPDE(KERNEL_BASE); ++i) {
         proc->pgdir[i] = 0;
     }
@@ -98,7 +97,7 @@ Process proc_new(const char* path) {
     
     // load elf content & setup stack
     FILE* fp = fopen(proc->path);
-    ELFHeader* elf = alloc_frame();
+    ELFHeader* elf = (ELFHeader*)alloc_frame();
     fread(fp, min(PAGE_SIZE, fsize(fp)), elf);
     proc->entry = elf->entry;
 
@@ -117,7 +116,7 @@ Process proc_new(const char* path) {
 }
 
 Process proc_kernel() {
-    Process proc = named_malloc(sizeof(_Process), "Process kernel");
+    Process proc = (Process)named_malloc(sizeof(_Process), "Process kernel");
     proc->path = "kernel";
     proc->pid = pid_alloc++;
     proc->pgdir = kernel_pgdir;
@@ -133,7 +132,7 @@ void process_exit(int status) {
 
 void process_release() {
     while (!array_empty(exited_procs)) {
-        Process proc = array_popleft(exited_procs);
+        Process proc = (Process)array_popleft(exited_procs);
         unmap_pages(proc->pgdir, 0, KERNEL_BASE);
         free(proc);
     }
@@ -148,7 +147,7 @@ uint process_schedule() {
     if (array_empty(ready_procs)) {
         panic("no process");
     }
-    running_proc = array_popleft(ready_procs);
+    running_proc = (Process)array_popleft(ready_procs);
     return (uint)running_proc;
 }
 
@@ -183,7 +182,7 @@ void process_sleep(uint ms) {
 void process_count_down() {
     size_t i = 0;
     while (i < array_size(countdowns)) {
-        CountDown* cd = array_get(countdowns, i);
+        CountDown* cd = (CountDown*)array_get(countdowns, i);
         if (!--cd->cnt) {
             array_append(ready_procs, cd->proc);
             array_remove(countdowns, i);

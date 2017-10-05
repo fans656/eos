@@ -101,8 +101,8 @@ void bmp_blit_nocheck(void* bmp,
     int dst_offset = dst_left * screen_bpp;
     int src_offset = src_left * screen_bpp;
     int n = width * screen_bpp;
-    uchar* dst = graphic_video_mem + dst_top * dst_pitch + dst_offset;
-    uchar* src = bmp_data(bmp) + (bmp_height(bmp) - 1 - src_top) * src_pitch + src_offset;
+    char* dst = (char*)(graphic_video_mem + dst_top * dst_pitch + dst_offset);
+    char* src = (char*)(bmp_data(bmp) + (bmp_height(bmp) - 1 - src_top) * src_pitch + src_offset);
     while (height--) {
         memcpy(dst, src, n);
         dst += dst_pitch;
@@ -155,8 +155,8 @@ void init_graphics() {
     reload_cr3(kernel_pgdir);
     
     // init font
-    font_bmp = load_file("/font/font.bmp");
-    font_bmp_data = bmp_data(font_bmp);
+    font_bmp = (uchar*)load_file("/font/font.bmp");
+    font_bmp_data = (uchar*)bmp_data(font_bmp);
 
     BitmapInfoHeader* bih = (BitmapInfoHeader*)(font_bmp + sizeof(BitmapHeader));
     font_glyph_width = bmp_width(font_bmp) / CHARSET_SIZE;
@@ -167,7 +167,7 @@ void init_graphics() {
     COLS = screen_width / font_glyph_width;
     ROWS = screen_height / font_glyph_height;
     int video_mem_size = COLS * ROWS * 2;
-    video_mem = named_malloc(video_mem_size, "video_mem");
+    video_mem = (ushort*)named_malloc(video_mem_size, "video_mem");
     memset(video_mem, 0, video_mem_size);
     cur_row = cur_col = 0;
 }

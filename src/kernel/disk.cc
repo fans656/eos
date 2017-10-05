@@ -140,7 +140,7 @@ void init_disk() {
 
 void read_bytes(ulonglong i_byte, ulonglong n_bytes, void* buffer) {
     uint i_sector = i_byte / BPS;
-    uchar* p = buffer;
+    uchar* p = (uchar*)buffer;
     if (i_byte % BPS) {
         read_sector(i_sector++, sector_buffer);
         uint n_left = i_byte % BPS;

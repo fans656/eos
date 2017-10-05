@@ -4,6 +4,7 @@ https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
 https://gcc.gnu.org/onlinedocs/gcc/Machine-Constraints.html#Machine-Constraints
 */
 #include "../def.h"
+#include "../stdio.h"
 
 typedef struct ELFHeader {
     uint magic;
@@ -41,11 +42,12 @@ void stosb(void* addr, uint count, uchar val);
 
 void hexdump(char* addr);
 void read_sector(void* addr, uint offset);
-void read_segment(void* addr, uint count, uint offset);
+void read_segment(char* addr, uint count, uint offset);
 
+extern "C" {
 void bootmain() {
     ELFHeader* elf = (ELFHeader*)0x6000;
-    read_segment(elf, 4 * KB, 0);
+    read_segment((char*)elf, 4 * KB, 0);
 
     ProgramHeader* ph = (ProgramHeader*)((uchar*)elf + elf->phoff);
     ProgramHeader* eph = ph + elf->phnum;
@@ -66,7 +68,11 @@ void bootmain() {
     end += PAGE_SIZE - (uint)end % PAGE_SIZE;
     asm volatile("mov [0x500], %0" ::  "a"(end));
     
+    //hexdump((char*)0x100ab6);
+    //asm("hlt");
+    
     asm volatile("jmp %0" :: "r"(elf->entry - KERNEL_BASE));
+}
 }
 
 #define HEX(c) ((c) <= 9 ? ((c) + '0') : ((c) - 10 + 'A'))
@@ -102,8 +108,8 @@ void read_sector(void* addr, uint offset) {
     insd(0x1f0, addr, SECTOR_SIZE / 4);
 }
 
-void read_segment(void* addr, uint count, uint offset) {
-    void* end_addr = addr + count;
+void read_segment(char* addr, uint count, uint offset) {
+    char* end_addr = addr + count;
     addr -= offset % SECTOR_SIZE;
     offset = offset / SECTOR_SIZE + 8;
     for (; addr < end_addr; addr += SECTOR_SIZE, offset++) {

@@ -8,7 +8,7 @@ void hlt_forever() {
 }
 
 void hexdump(void* addr, uint cnt) {
-    uchar* p = addr;
+    uchar* p = (uchar*)addr;
     for (int i = 0; i < cnt; ++i) {
         if (i % 16) {
             putchar(' ');

@@ -45,7 +45,9 @@ there's automatically `cli` before entering ISR and `sti` after returning from I
 #define ICW4_BUF_MASTER 0x0C
 #define ICW4_SFNM 0x10
 
-struct __attribute__((__packed__)) {
+extern "C" {
+
+struct __attribute__((__packed__)) IDT {
     ushort offset1;
     ushort selector;
     uchar zero;
@@ -53,7 +55,7 @@ struct __attribute__((__packed__)) {
     ushort offset2;
 } idt[256];
 
-struct __attribute__((__packed__)) {
+struct __attribute__((__packed__)) IDTR {
     ushort limit : 16;
     uint base : 32;
 } idtr;
@@ -206,9 +208,9 @@ uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
                     (int)*(parg + 4), (int)*(parg + 5), (int)*(parg + 6));
             break;
         case SYSCALL_REGISTER_WINDOW:
-            return (uint)register_window((Window)*parg);
+            return (uint)register_window((Window*)*parg);
         case SYSCALL_GET_EVENT: {
-            Event ev = get_event((Window)*parg);
+            Event* ev = get_event((Window*)*parg);
             if (!ev) {
                 do_schedule = 1;
                 break;
@@ -261,4 +263,6 @@ void init_interrupt() {
     remap_hardware_interrupts();
     fill_idt_entries();
     load_idt();
+}
+
 }
