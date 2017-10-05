@@ -14,8 +14,6 @@ void putchar(char ch);
 
 int _printf(const char** pfmt);
 int printf(const char* fmt, ...);
-extern "C" {
 void panic(const char* fmt, ...);
-}
 
 void print_hex_byte(uint val);

@@ -34,8 +34,7 @@ __attribute__((__aligned__(PAGE_SIZE))) uint kernel_pgdir[N_PDE] = {
 
 void main();
 
-extern "C" {
-void entry() {
+extern "C" void entry() {
     asm volatile(
             // enable 4M page
             "mov eax, cr4;"
@@ -55,5 +54,4 @@ void entry() {
             "mov eax, %1;"
             "jmp eax"
             :: "c"((uint)kernel_pgdir - KERNEL_BASE), "i"(main));
-}
 }

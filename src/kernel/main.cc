@@ -9,8 +9,7 @@
 #include "keyboard.h"
 #include "list.h"
 
-extern "C" {
-void main() {
+extern "C" void main() {
     init_console();
     init_interrupt();
     init_memory();
@@ -27,5 +26,4 @@ void main() {
         process_release();
         asm("hlt");
     }
-}
 }

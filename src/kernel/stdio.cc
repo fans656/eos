@@ -219,11 +219,9 @@ void init_console() {
     set_cursor(cur_row, cur_col);
 }
 
-extern "C" {
 void panic(const char* fmt, ...) {
     _printf(&fmt);
     while (true) {
         asm("hlt");
     }
-}
 }

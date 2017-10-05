@@ -45,85 +45,12 @@ there's automatically `cli` before entering ISR and `sti` after returning from I
 #define ICW4_BUF_MASTER 0x0C
 #define ICW4_SFNM 0x10
 
-extern "C" {
-
-struct __attribute__((__packed__)) IDT {
-    ushort offset1;
-    ushort selector;
-    uchar zero;
-    uchar attr;
-    ushort offset2;
-} idt[256];
-
-struct __attribute__((__packed__)) IDTR {
-    ushort limit : 16;
-    uint base : 32;
-} idtr;
-
-typedef void (*ISR)();
-
-void fill_idt_entry(int idx, ISR isr) {
-    uint addr = (uint)isr;
-    idt[idx].selector = 8;
-    idt[idx].zero = 0;
-    idt[idx].attr = isr ? 0x8e : 0x00;
-    idt[idx].offset1 = addr & 0xffff;
-    idt[idx].offset2 = addr >> 16;
-}
-
-void load_idt() {
-    idtr.limit = 256 * 8 - 1;
-    idtr.base = (uint)idt;
-    asm volatile ("mov eax, %0" :: "r"(&idtr));
-    asm volatile ("lidt [eax]");
-}
-
-void io_wait() {
-    asm("nop;nop;nop;nop;");
-}
-
-// remap Programed Interrupt Controller
-// to avoid the 15 hardware interrupts overlap with software exceptions
-void pic_remap() {
-	outb(PIC1_COMMAND, ICW1_INIT+ICW1_ICW4);
-	io_wait();
-	outb(PIC2_COMMAND, ICW1_INIT+ICW1_ICW4);
-	io_wait();
-	outb(PIC1_DATA, 0x20);
-	io_wait();
-	outb(PIC2_DATA, 0x28);
-	io_wait();
-	outb(PIC1_DATA, 4);
-	io_wait();
-	outb(PIC2_DATA, 2);
-	io_wait();
- 
-	outb(PIC1_DATA, ICW4_8086);
-	io_wait();
-	outb(PIC2_DATA, ICW4_8086);
-	io_wait();
-}
-
 // send End of Interrupt to allow successive interrupts to come
 void send_eoi(uchar irq) {
     if (irq >= 8) {
         outb(PIC2_COMMAND, PIC_EOI);
     }
     outb(PIC1_COMMAND, PIC_EOI);
-}
-
-ushort pic_get_status_register(uchar ocw3) {
-    outb(PIC1_COMMAND, ocw3);
-    outb(PIC2_COMMAND, ocw3);
-    return (inb(PIC2_COMMAND) << 8) | inb(PIC1_COMMAND);
-}
-
-ushort pic_get_in_service_register() {
-    return pic_get_status_register(PIC_READ_ISR);
-}
-
-ushort pic_get_interrupt_request_register() {
-    return pic_get_status_register(PIC_READ_IRR);
 }
 
 void isr_default() {
@@ -155,8 +82,8 @@ void isr_page_fault() {
     asm("popad; pop eax; leave; iret");
 }
 
-void isr_timer_asm();
-void isr_syscall_asm();
+extern "C" void isr_timer_asm();
+extern "C" void isr_syscall_asm();
 
 // interrupt 1 service routine, the keyboard
 void isr_keyboard() {
@@ -167,7 +94,7 @@ void isr_keyboard() {
     asm volatile ("popad; leave; iret");
 }
 
-uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
+extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
     switch (callnum) {
         case SYSCALL_PRINTF:
             return (uint)_printf((const char**)parg);
@@ -224,6 +151,57 @@ uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
     return 0;
 }
 
+void io_wait() {
+    asm("nop;nop;nop;nop;");
+}
+
+// remap Programed Interrupt Controller
+// to avoid the 15 hardware interrupts overlap with software exceptions
+void pic_remap() {
+	outb(PIC1_COMMAND, ICW1_INIT+ICW1_ICW4);
+	io_wait();
+	outb(PIC2_COMMAND, ICW1_INIT+ICW1_ICW4);
+	io_wait();
+	outb(PIC1_DATA, 0x20);
+	io_wait();
+	outb(PIC2_DATA, 0x28);
+	io_wait();
+	outb(PIC1_DATA, 4);
+	io_wait();
+	outb(PIC2_DATA, 2);
+	io_wait();
+ 
+	outb(PIC1_DATA, ICW4_8086);
+	io_wait();
+	outb(PIC2_DATA, ICW4_8086);
+	io_wait();
+}
+
+ushort pic_get_status_register(uchar ocw3) {
+    outb(PIC1_COMMAND, ocw3);
+    outb(PIC2_COMMAND, ocw3);
+    return (inb(PIC2_COMMAND) << 8) | inb(PIC1_COMMAND);
+}
+
+ushort pic_get_in_service_register() {
+    return pic_get_status_register(PIC_READ_ISR);
+}
+
+ushort pic_get_interrupt_request_register() {
+    return pic_get_status_register(PIC_READ_IRR);
+}
+
+void init_pit() {
+    ushort val = PIT_MS_PRECISION * PIT_BASE_FREQUENCY / 1000;
+    asm(
+            "mov ax, %0;"
+            "mov ax, 0x2e9c;"
+            "out 0x40, al;"
+            "rol ax, 8;"
+            "out 0x40, al;" :: "m"(val)
+       );
+}
+
 void remap_hardware_interrupts() {
     pic_remap();
     outb(0x21,
@@ -231,6 +209,37 @@ void remap_hardware_interrupts() {
             & IRQ_MASK_KEYBOARD
             );
     outb(0xa1, 0xff);
+}
+
+struct __attribute__((__packed__)) IDT {
+    ushort offset1;
+    ushort selector;
+    uchar zero;
+    uchar attr;
+    ushort offset2;
+} idt[256];
+
+struct __attribute__((__packed__)) IDTR {
+    ushort limit : 16;
+    uint base : 32;
+} idtr;
+
+typedef void (*ISR)();
+
+void fill_idt_entry(int idx, ISR isr) {
+    uint addr = (uint)isr;
+    idt[idx].selector = 8;
+    idt[idx].zero = 0;
+    idt[idx].attr = isr ? 0x8e : 0x00;
+    idt[idx].offset1 = addr & 0xffff;
+    idt[idx].offset2 = addr >> 16;
+}
+
+void load_idt() {
+    idtr.limit = 256 * 8 - 1;
+    idtr.base = (uint)idt;
+    asm volatile ("mov eax, %0" :: "r"(&idtr));
+    asm volatile ("lidt [eax]");
 }
 
 void fill_idt_entries() {
@@ -247,22 +256,9 @@ void fill_idt_entries() {
     fill_idt_entry(0x80, isr_syscall_asm);
 }
 
-void init_pit() {
-    ushort val = PIT_MS_PRECISION * PIT_BASE_FREQUENCY / 1000;
-    asm(
-            "mov ax, %0;"
-            "mov ax, 0x2e9c;"
-            "out 0x40, al;"
-            "rol ax, 8;"
-            "out 0x40, al;" :: "m"(val)
-       );
-}
-
 void init_interrupt() {
     init_pit();
     remap_hardware_interrupts();
     fill_idt_entries();
     load_idt();
-}
-
 }

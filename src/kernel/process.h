@@ -16,11 +16,9 @@ typedef _Process* Process;
 extern uint current_esp;
 extern Process running_proc;
 
-extern "C" {
-uint process_schedule();
+extern "C" uint process_schedule();
 void process_exit(int status);
 void process_release();
-}
 
 void process_wake_event_waiting(Process target);
 void process_make_event_waiting();

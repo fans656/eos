@@ -8,11 +8,9 @@
 
 typedef uint clock_t;
 
-extern "C" {
 clock_t clock();
-void clock_tick();
+extern "C" void clock_tick();
 
 void timeit(const char* fmt, ...);
-}
 
 #endif

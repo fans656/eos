@@ -7,9 +7,7 @@
 
 #define restricted(x, mi, ma) (min((ma), (max((x), (mi)))))
 
-extern "C" {
 void hlt_forever();
 void hexdump(void* addr, uint cnt);
-}
 
 #endif
