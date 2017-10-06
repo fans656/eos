@@ -6,6 +6,7 @@
 #include "list.h"
 #include "process.h"
 #include "keyboard.h"
+#include "util.h"
 
 List<Window*> top_wnds;
 List<Window*> event_waiting_wnds;
@@ -35,8 +36,7 @@ static bool screen_dirty;
 void gui_work() {
     if (screen_dirty) {
         bool has_unpainted = false;
-        for (auto it = top_wnds.rbegin(); it != top_wnds.rend(); ++it) {
-            Window* wnd = *it;
+        for (auto wnd: reversed(top_wnds)) {
             if (wnd->paint_state == Painted) {
                 wnd_draw(wnd);
             } else if (wnd->paint_state != Painting) {

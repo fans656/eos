@@ -10,4 +10,11 @@
 void hlt_forever();
 void hexdump(void* addr, uint cnt);
 
+///////////////////////////////////////////////////////////////////
+
+template<class C> struct Reversed { C& c; };
+template<class C> auto begin(Reversed<C> c) { return c.c.rbegin(); }
+template<class C> auto end(Reversed<C> c) { return c.c.rend(); }
+template<class C> Reversed<C> reversed(C& c) { return {c}; }
+
 #endif

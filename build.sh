@@ -2,6 +2,10 @@ set -e  # stop on error
 
 CC=g++
 
+CFLAGS="-m32 -ffreestanding -fno-exceptions -fno-rtti -fno-use-cxa-atexit \
+    -nostdlib -nostdinc -masm=intel -static-libgcc -lgcc -std=c++14"
+DDFLAGS="conv=notrunc status=none"
+
 ROOT=`pwd`
 
 BIN=$ROOT/bin
@@ -13,9 +17,6 @@ BOOT=$KERNEL/boot
 
 LIBC=$SRC/libc
 PROG=$SRC/prog
-
-CFLAGS="-m32 -ffreestanding -fno-exceptions -fno-rtti -fno-use-cxa-atexit -nostdlib -nostdinc -masm=intel -static-libgcc -lgcc -std=c++11"
-DDFLAGS="conv=notrunc status=none"
 
 mkdir -p $BIN
 
