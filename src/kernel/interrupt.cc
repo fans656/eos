@@ -16,6 +16,7 @@ there's automatically `cli` before entering ISR and `sti` after returning from I
 #include "time.h"
 #include "process.h"
 #include "keyboard.h"
+#include "message.h"
 
 #define IRQ_PIT_TIMER 0
 #define IRQ_KEYBOARD 1
@@ -138,6 +139,20 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
                     (int)*(parg + 2), (int)*(parg + 3),
                     (int)*(parg + 4), (int)*(parg + 5),
                     (int)*(parg + 6), (int)*(parg + 7));
+            break;
+        case SYSCALL_GET_MESSAGE:
+            {
+                bool blocking = (bool)*(parg + 1);
+                void* msg = get_message((int)*parg, blocking);
+                if (msg == 0 && blocking) {
+                    do_schedule = 1;
+                    break;
+                } else {
+                    return (uint)msg;
+                }
+            }
+        case SYSCALL_PUT_MESSAGE:
+            put_message((int)*parg, (void*)*(parg + 1));
             break;
         default:
             panic("unknown syscall %d\n", callnum);

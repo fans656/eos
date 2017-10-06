@@ -94,6 +94,18 @@ struct List {
         return head->next->take()->data;
     }
     
+    bool remove(const T& target) {
+        auto it = begin();
+        for (auto t: *this) {
+            if (t == target) {
+                it.remove();
+                return true;
+            }
+            ++it;
+        }
+        return false;
+    }
+    
     bool empty() const { return size_ == 0; }
     size_t size() const { return size_; }
     iter begin() { return iter(head->next); }

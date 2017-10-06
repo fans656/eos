@@ -16,6 +16,7 @@ extern clock_t clock_counter;
 extern uint kernel_end;
 
 List<Process> ready_procs;
+List<Process> blocked_procs;
 List<Process> exited_procs;
 Process running_proc;
 uint current_esp;
@@ -148,6 +149,18 @@ uint process_schedule() {
     return (uint)running_proc;
 }
 
+void process_block() {
+    blocked_procs.append(running_proc);
+    running_proc->esp = current_esp;
+    running_proc = 0;
+}
+
+void process_unblock(Process proc) {
+    if (blocked_procs.remove(proc)) {
+        ready_procs.append(proc);
+    }
+}
+
 void process_sleep(uint ms) {
     CountDown* cd = (CountDown*)named_malloc(sizeof(CountDown), "CountDown");
     cd->cnt = (ms + PIT_MS_PRECISION - 1) / PIT_MS_PRECISION;
@@ -195,8 +208,9 @@ void init_process() {
 
     countdowns.construct();
     ready_procs.construct();
+    blocked_procs.construct();
     exited_procs.construct();
 
     ready_procs.append(proc_new("/bin/pa"));
-    //ready_procs.append(proc_new("/bin/pb"));
+    ready_procs.append(proc_new("/bin/pb"));
 }
