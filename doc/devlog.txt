@@ -1480,3 +1480,10 @@ https://askubuntu.com/questions/506510/what-is-the-difference-between-terminal-c
 2017-10-06 18:49:39
 感觉有必要把GUI放进一个单独的进程里，kernel无关
 于是需要IPC(进程间通信)，想到了一个利用内核中的List来PubSub的方式，搞起
+
+搞了搞发现不是PubSub，而是MessageQueue，实现了一下又发现不够用，需要的是1对1的那种通信，类似socket——两个endpoint定义一个socket
+但是我不打算现在去搞network protocol stack，所以最接近的概念是typed pipe
+
+咦，忽然发现我的MessageQueue也可以用，只要把Array改成Hash实现就好了，GUI server拿到一个create window的message后可以直接用client的wnd指针作为id发event
+
+~~~ 又要去实现一下hash map——之前已经实现了动态数组和链表

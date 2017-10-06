@@ -7,6 +7,7 @@
 #include "util.h"
 #include "keyboard.h"
 #include "message.h"
+#include "dict.h"
 
 extern "C" void main() {
     init_console();

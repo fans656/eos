@@ -1,6 +1,7 @@
 #include "message.h"
 #include "array.h"
 #include "list.h"
+#include "dict.h"
 #include "process.h"
 #include "stdio.h"
 
@@ -20,11 +21,11 @@ struct MessageQueue {
     }
 };
 
-Array<MessageQueue*> queues;
+Dict<int, MessageQueue*> queues;
 
 MessageQueue* get_queue(int id) {
-    while (id >= queues.size()) {
-        queues.append(new MessageQueue);
+    if (!queues.has_key(id)) {
+        queues.add(id, new MessageQueue);
     }
     return queues[id];
 }
@@ -43,7 +44,8 @@ extern "C" void* get_message(int id, bool blocking) {
 }
 
 extern "C" void put_message(int id, void* message) {
-    get_queue(id)->put(message);
+    auto q = get_queue(id);
+    q->put(message);
 }
 
 void init_message() {

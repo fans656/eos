@@ -1,7 +1,9 @@
 #include "stdio.h"
 #include "gui.h"
 
-struct Wnd : Window {
+struct Wnd : public Window {
+    Wnd() {
+    }
 };
 
 int main() {
