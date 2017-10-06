@@ -139,17 +139,6 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
                     (int)*(parg + 4), (int)*(parg + 5),
                     (int)*(parg + 6), (int)*(parg + 7));
             break;
-        //case SYSCALL_REGISTER_WINDOW:
-        //    return (uint)register_window((Window*)*parg);
-        //case SYSCALL_GET_EVENT: {
-        //    Event* ev = ((Window*)*parg)->get_event();
-        //    if (!ev) {
-        //        do_schedule = 1;
-        //        break;
-        //    } else {
-        //        return (uint)ev;
-        //    }
-        //                        }
         default:
             panic("unknown syscall %d\n", callnum);
     }
