@@ -137,7 +137,7 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
         case SYSCALL_REGISTER_WINDOW:
             return (uint)register_window((Window*)*parg);
         case SYSCALL_GET_EVENT: {
-            Event* ev = get_event((Window*)*parg);
+            Event* ev = ((Window*)*parg)->get_event();
             if (!ev) {
                 do_schedule = 1;
                 break;

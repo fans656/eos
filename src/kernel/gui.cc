@@ -7,6 +7,7 @@
 #include "process.h"
 #include "keyboard.h"
 #include "util.h"
+#include "graphics.h"
 
 List<Window*> top_wnds;
 List<Window*> event_waiting_wnds;
@@ -16,46 +17,87 @@ void wnd_draw(Window* wnd) {
 }
 
 int register_window(Window* wnd) {
-    wnd->proc = running_proc;
-    wnd->paint_state = Unpainted;
+    wnd->init();
+    wnd->on_create();
     top_wnds.append(wnd);
 }
 
-Event* get_event(Window* wnd) {
-    if (wnd->events.empty()) {
-        event_waiting_wnds.append(wnd);
+///////////////////////////////////////////////////////////// Canvas
+
+Canvas_::Canvas_(Window* wnd) {
+    brush_color = 0xffffff;
+    buffer = wnd->buffer;
+    bpp = screen_bpp;
+    pitch = wnd->width() * bpp;
+}
+
+///////////////////////////////////////////////////////////// Window
+
+void Window::init() {
+    proc = running_proc;
+    paint_state = Unpainted;
+    size_t size = width() * height() * screen_bpp;
+    buffer = new uchar[size];
+    canvas_ = new Canvas_(this);
+}
+
+Event* Window::get_event() {
+    if (events.empty()) {
+        event_waiting_wnds.append(this);
         process_make_event_waiting();
         return 0;
     } else {
-        return wnd->events.popleft();
+        return events.popleft();
     }
 }
+
+bool Window::try_paint() {
+    switch (paint_state) {
+        case Painted:
+            do_paint();
+            return true;
+        case Unpainted:
+            events.append(new PaintEvent_());
+            process_wake_event_waiting(proc);
+            paint_state = Painting;
+            return false;
+        case Painting:
+            return false;
+    }
+    panic("Window::try_paint shouldn't be here");
+}
+
+void Window::do_paint() {
+    int pitch = canvas_->pitch;
+    int bpp = canvas_->bpp;
+    for (int y = 0; y < height_; ++y) {
+        for (int x = 0; x < width_; ++x) {
+            uchar* p = buffer + y * pitch + x * bpp;
+            uint color = (*p << 16) | (*(p + 1) << 8) | *(p + 2);
+            ::draw_pixel(x + left_, y + top_, color);
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////// misc
 
 static bool screen_dirty;
 
 void gui_work() {
     if (screen_dirty) {
-        bool has_unpainted = false;
+        screen_dirty = false;
         for (auto wnd: reversed(top_wnds)) {
-            if (wnd->paint_state == Painted) {
-                wnd_draw(wnd);
-            } else if (wnd->paint_state != Painting) {
-                wnd->events.append(new PaintEvent);
-                wnd->paint_state = Painting;
-                process_wake_event_waiting(wnd->proc);
-                has_unpainted = true;
+            if (!wnd->try_paint()) {
+                screen_dirty = true;
             }
-        }
-        if (!has_unpainted) {
-            screen_dirty = false;
         }
     }
 }
 
 int onkey(uint key, bool up) {
     for (Window* wnd: top_wnds) {
-        wnd->events.append(new KeyboardEvent(key, up));
-        process_wake_event_waiting(wnd->proc);
+        wnd->post_event(new KeyboardEvent_(key, up));
+        process_wake_event_waiting(wnd->process());
     }
 }
 

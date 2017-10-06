@@ -1,12 +1,19 @@
 #include "stdio.h"
-#include "stdlib.h"
-#include "unistd.h"
-#include "graphics.h"
+#include "gui.h"
+
+struct Wnd : Window {
+    void on_create() {
+        resize(600, 100);
+        move(100, 400);
+    }
+    
+    void on_paint(PaintEvent ev) {
+        Canvas c = canvas();
+        c.fill_rect(0, 0, width(), height());
+    }
+};
 
 int main() {
-    uint* bmp = (uint*)load_file("/img/walle.bmp");
-    for (int y = 0; y <= 300; y += 5) {
-        sleep(1);
-        draw_bmp_at(bmp, 500, y);
-    }
+    Wnd* wnd = new Wnd;
+    gui_main(wnd);
 }

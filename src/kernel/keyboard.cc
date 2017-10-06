@@ -15,7 +15,15 @@ uint SCAN2VK[128] = {
     VK_F11,VK_F12,
 };
 
-const char* VK2NAME[128] = {
+const char* VK2NAME[256] = {
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+    "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
+    " ", "!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?",
+    "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+    "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "\\", "]", "^", "_",
+    "`", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+    "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "{", "|", "}", "~", "",
     "VK_Left",
     "VK_Right",
     "VK_Up",
@@ -71,13 +79,4 @@ void update_key_state(uchar scancode) {
         KeyboardListener onkey = (KeyboardListener)array_get(listeners, i);
         onkey(vk, up);
     }
-    return;
-
-    printf("%7s %2x ", up ? "Up" : "Down", scancode);
-    if (vk < 128) {
-        putchar(vk);
-    } else {
-        printf("%s", VK2NAME[vk - 128]);
-    }
-    putchar('\n');
 }

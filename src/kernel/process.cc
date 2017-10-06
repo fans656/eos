@@ -231,4 +231,5 @@ void init_process() {
     exited_procs = array_new(MAX_N_PROCS);
 
     array_append(ready_procs, proc_new("/bin/pa"));
+    array_append(ready_procs, proc_new("/bin/pb"));
 }
