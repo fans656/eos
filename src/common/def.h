@@ -21,9 +21,9 @@ enum {
     SYSCALL_MEMORY_BLIT,
 
     SYSCALL_BMP_BLIT,
-
-    SYSCALL_REGISTER_WINDOW,
-    SYSCALL_GET_EVENT,
+    
+    SYSCALL_GET_MESSAGE,
+    SYSCALL_PUT_MESSAGE,
 };
 
 typedef unsigned char uchar;

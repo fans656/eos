@@ -6,7 +6,6 @@
 #include "process.h"
 #include "util.h"
 #include "keyboard.h"
-#include "list.h"
 
 extern "C" void main() {
     init_console();
@@ -16,7 +15,6 @@ extern "C" void main() {
     init_filesystem();
     init_keyboard();
     init_graphics();
-    //init_gui();
     init_process();
 
     asm("sti");

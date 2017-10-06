@@ -1,9 +1,12 @@
 #include "stdio.h"
+#include "unistd.h"
 #include "graphics.h"
+#include "list.h"
+#include "eos.h"
 
 int main() {
-    char* bmp = (char*)load_file("/img/girl.bmp");
-    memory_blit(bmp_data(bmp), bmp_pitch(bmp),
-            0, 0, 0, 0,
-            bmp_width(bmp), bmp_height(bmp));
+    for (int i = 0; i < 3; ++i) {
+        printf("%d\n", i);
+        sleep(500);
+    }
 }

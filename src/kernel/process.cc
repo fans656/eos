@@ -7,18 +7,16 @@
 #include "math.h"
 #include "time.h"
 #include "string.h"
-#include "array.h"
+#include "list.h"
 
-#define MAX_N_PROCS 512
-#define MAX_COUNTDOWNS 512
 #define TIMESLICE_FACTOR 5
 #define CODE_SELECTOR (1 << 3)
 
 extern clock_t clock_counter;
 extern uint kernel_end;
 
-Array ready_procs;
-Array exited_procs;
+List<Process> ready_procs;
+List<Process> exited_procs;
 Process running_proc;
 uint current_esp;
 uint pid_alloc = 0;
@@ -28,8 +26,7 @@ typedef struct CountDown {
     Process proc;
 } CountDown;
 
-Array countdowns;
-Array event_waiting_procs;
+List<CountDown*> countdowns;
 
 static inline void map_elf(Process proc, ELFHeader* elf) {
     ProgramHeader* ph_beg = (ProgramHeader*)((char*)elf + elf->phoff);
@@ -126,70 +123,49 @@ Process proc_kernel() {
 }
 
 void process_exit(int status) {
-    array_append(exited_procs, running_proc);
+    exited_procs.append(running_proc);
     running_proc = 0;
 }
 
 void process_release() {
-    while (!array_empty(exited_procs)) {
-        Process proc = (Process)array_popleft(exited_procs);
+    while (!exited_procs.empty()) {
+        Process proc = exited_procs.popleft();
         unmap_pages(proc->pgdir, 0, KERNEL_BASE);
-        free(proc);
+        delete proc;
     }
 }
 
 uint process_schedule() {
     if (running_proc) {
         running_proc->esp = current_esp;
-        array_append(ready_procs, running_proc);
+        ready_procs.append(running_proc);
         running_proc = 0;
     }
-    if (array_empty(ready_procs)) {
+    if (ready_procs.empty()) {
         panic("no process");
     }
-    running_proc = (Process)array_popleft(ready_procs);
+    running_proc = ready_procs.popleft();
     return (uint)running_proc;
-}
-
-void process_wake_event_waiting(Process target) {
-    size_t i = 0;
-    while (i < array_size(event_waiting_procs)) {
-        Process proc = (Process)array_get(event_waiting_procs, i);
-        if (proc == target) {
-            array_remove(event_waiting_procs, i);
-            array_append(ready_procs, proc);
-            break;
-        }
-        ++i;
-    }
-}
-
-void process_make_event_waiting() {
-    array_append(event_waiting_procs, running_proc);
-    running_proc->esp = current_esp;
-    running_proc = 0;
 }
 
 void process_sleep(uint ms) {
     CountDown* cd = (CountDown*)named_malloc(sizeof(CountDown), "CountDown");
     cd->cnt = (ms + PIT_MS_PRECISION - 1) / PIT_MS_PRECISION;
     cd->proc = running_proc;
-    array_append(countdowns, cd);
+    countdowns.append(cd);
     running_proc->esp = current_esp;
     running_proc = 0;
 }
 
 void process_count_down() {
-    size_t i = 0;
-    while (i < array_size(countdowns)) {
-        CountDown* cd = (CountDown*)array_get(countdowns, i);
-        if (!--cd->cnt) {
-            array_append(ready_procs, cd->proc);
-            array_remove(countdowns, i);
-            free(cd);
-            continue;
+    auto it = countdowns.begin();
+    for (auto cd: countdowns) {
+        if (--cd->cnt == 0) {
+            ready_procs.append(cd->proc);
+            delete cd;
+            it.remove();
         }
-        ++i;
+        ++it;
     }
 }
 
@@ -201,21 +177,13 @@ void dump_procs() {
         printf("no running_proc\n");
     }
     printf("Ready: ");
-    for (int i = 0; i < array_size(ready_procs); ++i) {
-        Process proc = (Process)array_get(ready_procs, i);
+    for (auto proc: ready_procs) {
         printf("%d(%s) ", proc->pid, proc->path);
     }
     putchar('\n');
     printf("Count downs: ");
-    for (int i = 0; i < array_size(countdowns); ++i) {
-        CountDown* cd = (CountDown*)array_get(countdowns, i);
+    for (auto cd: countdowns) {
         Process proc = cd->proc;
-        printf("%d(%s) ", proc->pid, proc->path);
-    }
-    putchar('\n');
-    printf("Event waiting: ");
-    for (int i = 0; i < array_size(event_waiting_procs); ++i) {
-        Process proc = (Process)array_get(event_waiting_procs, i);
         printf("%d(%s) ", proc->pid, proc->path);
     }
     putchar('\n');
@@ -225,11 +193,10 @@ void dump_procs() {
 void init_process() {
     running_proc = proc_kernel();
 
-    countdowns = array_new(MAX_COUNTDOWNS);
-    event_waiting_procs = array_new(MAX_N_PROCS);
-    ready_procs = array_new(MAX_N_PROCS);
-    exited_procs = array_new(MAX_N_PROCS);
+    countdowns.construct();
+    ready_procs.construct();
+    exited_procs.construct();
 
-    array_append(ready_procs, proc_new("/bin/pa"));
-    //array_append(ready_procs, proc_new("/bin/pb"));
+    ready_procs.append(proc_new("/bin/pa"));
+    //ready_procs.append(proc_new("/bin/pb"));
 }

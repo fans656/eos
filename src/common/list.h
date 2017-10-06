@@ -28,24 +28,26 @@ struct List {
         }
     };
 
-    struct Iter {
+    struct iter {
         Node* node;
-        Iter(Node* node) : node(node) {}
+        iter(Node* node) : node(node) {}
         T operator*() { return node->data; }
-        Iter& operator++() { node = node->next; return *this; }
-        Iter& operator--() { node = node->prev; return *this; }
-        bool operator==(Iter o) { return node == o.node; }
-        bool operator!=(Iter o) { return !(*this == o); }
+        iter& operator++() { node = node->next; return *this; }
+        iter& operator--() { node = node->prev; return *this; }
+        bool operator==(iter o) { return node == o.node; }
+        bool operator!=(iter o) { return !(*this == o); }
+        void remove() { node->take(); }
     };
 
-    struct RIter {
+    struct riter {
         Node* node;
-        RIter(Node* node) : node(node) {}
+        riter(Node* node) : node(node) {}
         T operator*() { return node->data; }
-        RIter& operator++() { node = node->prev; return *this; }
-        RIter& operator--() { node = node->next; return *this; }
-        bool operator==(RIter o) { return node == o.node; }
-        bool operator!=(RIter o) { return !(*this == o); }
+        riter& operator++() { node = node->prev; return *this; }
+        riter& operator--() { node = node->next; return *this; }
+        bool operator==(riter o) { return node == o.node; }
+        bool operator!=(riter o) { return !(*this == o); }
+        void remove() { node->take(); }
     };
 
     Node* head;
@@ -94,10 +96,10 @@ struct List {
     
     bool empty() const { return size_ == 0; }
     size_t size() const { return size_; }
-    Iter begin() { return Iter(head->next); }
-    Iter end() { return Iter(tail); }
-    RIter rbegin() { return RIter(tail->prev); }
-    RIter rend() { return RIter(head); }
+    iter begin() { return iter(head->next); }
+    iter end() { return iter(tail); }
+    riter rbegin() { return riter(tail->prev); }
+    riter rend() { return riter(head); }
 };
 
 #endif

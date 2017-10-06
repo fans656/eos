@@ -1,5 +1,5 @@
 #include "keyboard.h"
-#include "array.h"
+#include "list.h"
 #include "stdio.h"
 
 // http://www.computer-engineering.org/ps2keyboard/scancodes1.html
@@ -61,22 +61,21 @@ const char* VK2NAME[256] = {
 };
 
 #define MAX_LISTENERS 64
-static Array listeners;
+static List<KeyboardListener> listeners;
 
 void init_keyboard() {
-    listeners = array_new(MAX_LISTENERS);
+    listeners.construct();
 }
 
 void listen_keyboard(KeyboardListener listener) {
-    array_append(listeners, (void*)listener);
+    listeners.append(listener);
 }
 
 void update_key_state(uchar scancode) {
     bool up = scancode & 0x80;
     scancode &= 0x7f;
     uchar vk = SCAN2VK[scancode];
-    for (int i = 0; i < array_size(listeners); ++i) {
-        KeyboardListener onkey = (KeyboardListener)array_get(listeners, i);
+    for (auto onkey: listeners) {
         onkey(vk, up);
     }
 }
