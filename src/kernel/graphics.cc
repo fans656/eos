@@ -136,6 +136,24 @@ void bmp_draw_at(void* bmp, int left, int top) {
     bmp_blit(bmp, 0, 0, left, top, bmp_width(bmp), bmp_height(bmp));
 }
 
+void memory_blit(
+        const char* buffer, int src_pitch,
+        int src_left, int src_top,
+        int dst_left, int dst_top,
+        int width, int height) {
+    int dst_pitch = screen_pitch;
+    int dst_offset = dst_left * screen_bpp;
+    int src_offset = src_left * screen_bpp;
+    int bytes_per_row = width * screen_bpp;
+    char* dst = (char*)(graphic_video_mem + dst_top * dst_pitch + dst_offset);
+    const char* src = (const char*)(buffer + src_top * src_pitch + src_offset);
+    while (height--) {
+        memcpy(dst, src, bytes_per_row);
+        dst += dst_pitch;
+        src += src_pitch;
+    }
+}
+
 void init_graphics() {
     graphic_video_mem = (uchar*)mode_info->framebuffer;
     if (!graphic_video_mem) {

@@ -5,7 +5,6 @@
 #include "graphics.h"
 #include "process.h"
 #include "util.h"
-#include "gui.h"
 #include "keyboard.h"
 #include "list.h"
 
@@ -17,12 +16,12 @@ extern "C" void main() {
     init_filesystem();
     init_keyboard();
     init_graphics();
-    init_gui();
+    //init_gui();
     init_process();
 
     asm("sti");
     while (true) {
-        gui_work();
+        //gui_work();
         process_release();
         asm("hlt");
     }

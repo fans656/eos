@@ -2,7 +2,6 @@
 #define LIST_H
 
 #include "def.h"
-#include "stdio.h"
 
 template<typename T>
 struct List {
@@ -99,14 +98,6 @@ struct List {
     Iter end() { return Iter(tail); }
     RIter rbegin() { return RIter(tail->prev); }
     RIter rend() { return RIter(head); }
-    
-    void dump() {
-        printf("List(%d): ", size_);
-        for (int x: *this) {
-            printf("%d ", x);
-        }
-        putchar('\n');
-    }
 };
 
 #endif

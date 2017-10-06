@@ -1476,3 +1476,7 @@ https://askubuntu.com/questions/506510/what-is-the-difference-between-terminal-c
 尝试了一下改为C++，改了N多warning之后居然可以了哈，-fno-exceptions -fno-rtti
 然后自己补一下new/delete让它用我的malloc/free
 还可以用C++11，range for loop爽的一逼好吗~~~
+
+2017-10-06 18:49:39
+感觉有必要把GUI放进一个单独的进程里，kernel无关
+于是需要IPC(进程间通信)，想到了一个利用内核中的List来PubSub的方式，搞起

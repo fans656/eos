@@ -9,7 +9,7 @@ for fname in os.listdir('.'):
     ret = os.system('g++ *.cc ../../libc/*.cc '
               '-m32 -ffreestanding -fno-exceptions -fno-rtti -nostdlib -nostdinc -std=c++11 '
               '-masm=intel '
-              '-I ../../libc '
+              '-I ../../libc -I ../../common '
               '-Wl,-e_start '
               '-o ../../../files/bin/{}'.format(fname))
     if ret:

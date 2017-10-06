@@ -1,18 +1,9 @@
-#include "gui.h"
-
-struct Wnd : Window {
-    void on_create() {
-        move(20, 30);
-    }
-
-    void on_paint(PaintEvent ev) {
-        auto c = canvas();
-        c.brush_color = 0x81DAF5;
-        c.fill_rect(0, 0, width(), height());
-    }
-};
+#include "stdio.h"
+#include "graphics.h"
 
 int main() {
-    Wnd* wnd = new Wnd;
-    gui_main(wnd);
+    char* bmp = (char*)load_file("/img/girl.bmp");
+    memory_blit(bmp_data(bmp), bmp_pitch(bmp),
+            0, 0, 0, 0,
+            bmp_width(bmp), bmp_height(bmp));
 }

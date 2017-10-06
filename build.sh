@@ -26,7 +26,7 @@ $CC $CFLAGS boot.c -o $BIN/boot.o -Wl,-Ttext=0x7e00 -Wl,-ebootmain
 
 cd $KERNEL
 nasm -f elf isr.asm -o $BIN/isr.o
-$CC $CFLAGS *.cc $BIN/isr.o -o $BIN/kernel.img -Wl,-Ttext=0xc0100000 -Wl,-eentry
+$CC $CFLAGS -I$SRC/common *.cc $BIN/isr.o -o $BIN/kernel.img -Wl,-Ttext=0xc0100000 -Wl,-eentry
 
 cd $TOOL
 ./build-prog.py  # compile user programs
