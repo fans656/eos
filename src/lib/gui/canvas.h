@@ -8,6 +8,7 @@
 struct Widget;
 struct Window;
 struct Surface;
+struct Bitmap;
 
 struct Canvas {
     Canvas(Widget* w);

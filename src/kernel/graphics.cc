@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "math.h"
 #include "util.h"
+#include "asm.h"
 
 // http://www.delorie.com/djgpp/doc/rbinter/ix/10/4F.html
 
@@ -154,6 +155,54 @@ void memory_blit(
     }
 }
 
+static inline void mouse_read_wait() {
+    while (!(inb(0x64) & 1)) {
+        continue;
+    }
+}
+
+static inline void mouse_write_wait() {
+    while (inb(0x64) & 2) {
+        continue;
+    }
+}
+
+static inline uchar mouse_command(uchar cmd) {
+    mouse_write_wait();
+    outb(0x64, 0xd4);  // command byte
+    mouse_write_wait();
+    outb(0x60, cmd);  // data byte
+    mouse_read_wait();
+    uchar ack = inb(0x60);  // ack from mouse
+    return ack;
+}
+
+// http://forum.osdev.org/viewtopic.php?t=10247
+// http://wiki.osdev.org/Mouse_Input
+// http://wiki.osdev.org/PS/2_Mouse
+void init_mouse() {
+    uchar status;
+
+    mouse_write_wait();  // enable aux mouse device
+    outb(0x64, 0xa8);
+    
+    mouse_write_wait();  // get compaq status
+    outb(0x64, 0x20);
+    mouse_read_wait();
+    status = inb(0x60);
+
+    status |= 0x02;  // enable IRQ12
+    status &= ~0x20;  // disable mouse clock
+    
+    mouse_write_wait();  // set compaq status
+    outb(0x64, 0x60);
+    mouse_write_wait();
+    outb(0x60, status);
+
+    mouse_command(0xf6);  // set defaults
+    mouse_command(0xf4);  // enable data reporting
+}
+
 void init_graphics() {
     graphic_video_mem = (uchar*)mode_info->framebuffer;
     if (!graphic_video_mem) {
@@ -188,6 +237,9 @@ void init_graphics() {
     video_mem = (ushort*)named_malloc(video_mem_size, "video_mem");
     memset(video_mem, 0, video_mem_size);
     cur_row = cur_col = 0;
+    
+    // init mouse
+    init_mouse();
 }
 
 int get_screen_width() {

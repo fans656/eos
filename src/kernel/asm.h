@@ -23,4 +23,10 @@ static inline void outw(ushort port, ushort val) {
     asm volatile ("outw %0, %1" :: "dN"(port), "a"(val));
 }
 
+static inline void wait_for(int port, uchar mask, uchar val) {
+    while ((inb(port) & mask) != val) {
+        ;
+    }
+}
+
 #endif

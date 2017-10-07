@@ -41,12 +41,6 @@ DiskInfo disk_info;
 
 uchar sector_buffer[BPS];
 
-void wait_for(int port, uchar mask, uchar val) {
-    while ((inb(port) & mask) != val) {
-        ;
-    }
-}
-
 void _400ns_delay() {
     inb(ALT_STATUS_PORT);
     inb(ALT_STATUS_PORT);

@@ -2,6 +2,7 @@
 h/ttp://wiki.osdev.org/8259_PIC
 http://wiki.osdev.org/IRQ
 http://wiki.osdev.org/I_Cant_Get_Interrupts_Working
+http://wiki.osdev.org/PIC#Programming_the_PIC_chips
 
 https://forum.arduino.cc/index.php?topic=65433.0
 there's automatically `cli` before entering ISR and `sti` after returning from ISR
@@ -18,11 +19,16 @@ there's automatically `cli` before entering ISR and `sti` after returning from I
 #include "keyboard.h"
 #include "message.h"
 
+#define IRQ_OFFSET 0x20
+
 #define IRQ_PIT_TIMER 0
 #define IRQ_KEYBOARD 1
+#define IRQ_MOUSE 12
 
 #define IRQ_MASK_TIMER 0xfe
+#define IRQ_MASK_SLAVE 0xfb
 #define IRQ_MASK_KEYBOARD 0xfd
+#define IRQ_MASK_MOUSE 0xef
 
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
@@ -85,12 +91,34 @@ void isr_page_fault() {
 extern "C" void isr_timer_asm();
 extern "C" void isr_syscall_asm();
 
-// interrupt 1 service routine, the keyboard
 void isr_keyboard() {
     asm volatile ("pushad");
     uchar scancode = inb(0x60);
     update_key_state(scancode);
     send_eoi(IRQ_KEYBOARD);
+    asm volatile ("popad; leave; iret");
+}
+
+uchar mouse_cycle = 0;
+uchar mouse_byte[3];
+
+void isr_mouse() {
+    asm volatile ("pushad");
+    uchar val = inb(0x60);
+    switch (mouse_cycle) {
+        case 0:
+            mouse_byte[mouse_cycle++] = val;
+            break;
+        case 1:
+            mouse_byte[mouse_cycle++] = val;
+            break;
+        case 2:
+            mouse_byte[mouse_cycle] = val;
+            mouse_cycle = 0;
+            printf("mouse packet %x\n", *(uint*)mouse_byte);
+            break;
+    }
+    send_eoi(IRQ_MOUSE);
     asm volatile ("popad; leave; iret");
 }
 
@@ -171,9 +199,9 @@ void pic_remap() {
 	io_wait();
 	outb(PIC2_COMMAND, ICW1_INIT+ICW1_ICW4);
 	io_wait();
-	outb(PIC1_DATA, 0x20);
+	outb(PIC1_DATA, IRQ_OFFSET);
 	io_wait();
-	outb(PIC2_DATA, 0x28);
+	outb(PIC2_DATA, IRQ_OFFSET + 8);
 	io_wait();
 	outb(PIC1_DATA, 4);
 	io_wait();
@@ -213,11 +241,8 @@ void init_pit() {
 
 void remap_hardware_interrupts() {
     pic_remap();
-    outb(0x21,
-            IRQ_MASK_TIMER
-            & IRQ_MASK_KEYBOARD
-            );
-    outb(0xa1, 0xff);
+    outb(0x21, IRQ_MASK_TIMER & IRQ_MASK_KEYBOARD & IRQ_MASK_SLAVE);
+    outb(0xa1, IRQ_MASK_MOUSE);
 }
 
 struct __attribute__((__packed__)) IDT {
@@ -259,8 +284,9 @@ void fill_idt_entries() {
     fill_idt_entry(0x0d, isr_gpf);
     fill_idt_entry(0x0e, isr_page_fault);
 
-    fill_idt_entry(0x20, isr_timer_asm);
-    fill_idt_entry(0x21, isr_keyboard);
+    fill_idt_entry(IRQ_OFFSET + IRQ_PIT_TIMER, isr_timer_asm);
+    fill_idt_entry(IRQ_OFFSET + IRQ_KEYBOARD, isr_keyboard);
+    fill_idt_entry(IRQ_OFFSET + IRQ_MOUSE, isr_mouse);
 
     fill_idt_entry(0x80, isr_syscall_asm);
 }

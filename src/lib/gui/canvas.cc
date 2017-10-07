@@ -2,6 +2,7 @@
 #include "widget.h"
 #include "window.h"
 #include "surface.h"
+#include "bitmap.h"
 #include "color.h"
 #include "math.h"
 #include "stdio.h"

@@ -4,7 +4,7 @@
 struct Wnd : public Window {
     void on_create() {
         Window::on_create();
-        move(50, 50);
+        move(300, 50);
         resize(400, 300);
     }
     
