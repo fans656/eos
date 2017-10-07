@@ -123,8 +123,8 @@ void isr_mouse() {
         case 2:
             mouse_bytes[mouse_cycle] = val;
             mouse_cycle = 0;
+            parse_mouse_event(mouse_bytes, mouse_events_pool[mouse_events_pool_idx]);
             if (gui_inited) {
-                parse_mouse_event(mouse_bytes, mouse_events_pool[mouse_events_pool_idx]);
                 replace_message(GUI_MOUSE_EVENT_ID, &mouse_events_pool[mouse_events_pool_idx]);
                 mouse_events_pool_idx = (mouse_events_pool_idx + 1) % mouse_events_pool_size;
             }
@@ -197,8 +197,6 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
         case SYSCALL_INIT_GUI:
             gui_inited = true;
             mouse_events_pool = new GUIMouseEvent[mouse_events_pool_size];
-            mouse_x = screen_width / 2;
-            mouse_y = screen_height / 2;
             return (uint)new GUIInfo(
                     get_screen_width(), get_screen_height(),
                     get_screen_pitch(), get_screen_bpp());

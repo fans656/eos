@@ -6,6 +6,7 @@
 #include "math.h"
 #include "util.h"
 #include "asm.h"
+#include "mouse.h"
 
 // http://www.delorie.com/djgpp/doc/rbinter/ix/10/4F.html
 
@@ -155,55 +156,6 @@ void memory_blit(
     }
 }
 
-static inline void mouse_read_wait() {
-    while (!(inb(0x64) & 1)) {
-        continue;
-    }
-}
-
-static inline void mouse_write_wait() {
-    while (inb(0x64) & 2) {
-        continue;
-    }
-}
-
-static inline uchar mouse_command(uchar cmd) {
-    mouse_write_wait();
-    outb(0x64, 0xd4);  // command byte
-    mouse_write_wait();
-    outb(0x60, cmd);  // data byte
-    mouse_read_wait();
-    uchar ack = inb(0x60);  // ack from mouse
-    return ack;
-}
-
-// http://forum.osdev.org/viewtopic.php?t=10247
-// http://wiki.osdev.org/Mouse_Input
-// http://wiki.osdev.org/PS/2_Mouse
-void init_mouse() {
-    uchar status;
-
-    mouse_write_wait();  // enable aux mouse device
-    outb(0x64, 0xa8);
-    
-    mouse_write_wait();  // get compaq status
-    outb(0x64, 0x20);
-    mouse_read_wait();
-    status = inb(0x60);
-
-    status |= 0x02;  // enable IRQ12
-    status &= ~0x20;  // disable mouse clock
-    
-    mouse_write_wait();  // set compaq status
-    outb(0x64, 0x60);
-    mouse_write_wait();
-    outb(0x60, status);
-
-    mouse_command(0xf6);  // set defaults
-    mouse_command(0xf4);  // enable data reporting
-    inb(0x60);
-}
-
 void init_graphics() {
     graphic_video_mem = (uchar*)mode_info->framebuffer;
     if (!graphic_video_mem) {
@@ -240,7 +192,7 @@ void init_graphics() {
     cur_row = cur_col = 0;
     
     // init mouse
-    init_mouse();
+    init_mouse(screen_width, screen_height);
 }
 
 int get_screen_width() {
@@ -264,6 +216,13 @@ void draw_pixel(int x, int y, uint color) {
     graphic_video_mem[i] = color & 0xff;
     graphic_video_mem[i + 1] = (color >> 8) & 0xff;
     graphic_video_mem[i + 2] = (color >> 16) & 0xff;
+}
+
+void invert_pixel(int x, int y) {
+    uint i = y * screen_pitch + x * screen_bpp;
+    graphic_video_mem[i] = ~graphic_video_mem[i];
+    graphic_video_mem[i + 1] = ~graphic_video_mem[i + 1];
+    graphic_video_mem[i + 2] = ~graphic_video_mem[i + 2];
 }
 
 void fill_rect(int left, int top, int width, int height, uint color) {

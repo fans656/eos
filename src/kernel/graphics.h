@@ -20,6 +20,8 @@ void screen_fill_black();
 void draw_pixel(int x, int y, uint color);
 void fill_rect(int left, int top, int width, int height, uint color);
 
+void invert_pixel(int x, int y);
+
 void draw_bmp(char* fpath);
 void draw_bmp_at(const char* fpath, int x, int y);
 

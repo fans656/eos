@@ -7,6 +7,7 @@
 #include "stdio.h"
 #include "surface.h"
 #include "unistd.h"
+#include "string.h"
 
 GUIInfo* init_gui() {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_INIT_GUI));
@@ -32,12 +33,32 @@ struct Server {
         screen_pitch = info->screen_pitch;
         screen_bpp = info->screen_bpp;
         delete info;
+        
+        mouse_x = screen_width / 2;
+        mouse_y = screen_height / 2;
+        
+        desktop = new char[screen_pitch * screen_height];
+        memset(desktop, 0x00, screen_pitch * screen_height);
+        memory_blit(desktop, screen_pitch, 0, 0, 0, 0, screen_width, screen_height);
+
+        size_t size = 5 * 5 * screen_bpp;
+        mouse_bitmap = new char[size];
+        memset(mouse_bitmap, 0xff, size);
+        
+        draw_mouse(mouse_x, mouse_y);
+    }
+    
+    void draw_mouse(int x, int y) {
+        memory_blit(desktop, screen_pitch, mouse_x, mouse_y, mouse_x, mouse_y, 5, 5);
+        memory_blit(mouse_bitmap, 15, 0, 0, x, y, 5, 5);
     }
     
     bool check_mouse() {
         GUIMouseEvent* ev = (GUIMouseEvent*)get_message(GUI_MOUSE_EVENT_ID, false);
         if (ev == 0) return false;
-        printf("%d %d\n", ev->x, ev->y);
+        draw_mouse(ev->x, ev->y);
+        mouse_x = ev->x;
+        mouse_y = ev->y;
         return true;
     }
     
@@ -97,6 +118,9 @@ struct Server {
     List<Window*> top_wnds;
     int screen_width, screen_height;
     int screen_pitch, screen_bpp;
+    int mouse_x, mouse_y;
+    char* mouse_bitmap;
+    char* desktop;
 };
 
 void gui_server() {
