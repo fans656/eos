@@ -1487,3 +1487,62 @@ https://askubuntu.com/questions/506510/what-is-the-difference-between-terminal-c
 咦，忽然发现我的MessageQueue也可以用，只要把Array改成Hash实现就好了，GUI server拿到一个create window的message后可以直接用client的wnd指针作为id发event
 
 ~~~ 又要去实现一下hash map——之前已经实现了动态数组和链表
+
+2017-10-08 03:10:33
+GUI搞了个开头，现在拥有：
+
+    1. 基本的IPC
+
+       kernel heap中放一个List(双链表)，kernel提供put_message/get_message的system call
+       这俩在isr(interrupt service routine)中执行List::append / List::popleft的操作
+       List的元素是void*，对于进程来说，可以任意new一个对象作为message——注意必须是new的，这样才放在kernel heap中，才能被别的进程看到
+       对于new/delete太慢的问题，可以提前new[]一个数组，然后重用其中的元素——kernel给gui server process发mouse event的时候就是这么做的
+       
+       API是这样的：put_message(int id, void* msg) / get_message(int id)
+       kernel会根据这个id去一个hash map拿到message queue(底层是一个List)，没有就创建一个
+       所以通过定义一些public的id，就实现了类似TCP 80端口的效果——这样client可以才知道给server的第一条消息该发给谁
+       然后server发给client的消息可以通过client提供的id来确定，比如GUI server发给GUI client的就是用了Window*指针作为id
+       
+       IPC还有改进的空间，比如提供锁，然后两个进程就可以共同读写一段内存——免去了List的操作(毕竟append/popleft要有不少指针操作)
+       以后呢还会搞linux常见的那些，pipe呀socket呀什么的(socket当然等到最后了，network protocol stack是最后再做的)
+    
+    2. GUI server/client
+        
+       GUI server是一个单独的进程，client进程通过一套API来跟server通信(底层用的就是上面的messaging IPC)
+       client的写法是inherit一个Window类，重载on_create, on_paint等virtual method，然后一个event loop取事件
+       server也是在一个while loop里头监听kernel发来的鼠标、键盘事件和client发来的各种request(比如create, move, resize, painted)
+
+           目前遇到了类似异步socket io的问题，就是server需要同时监听三个消息源(keyboard/mouse/clients)，
+           目前傻傻的做法是三个都non-blocking的poll一下，都没有就sleep(1)一下)
+           正确的做法应该是实现一个 get_message(id0, id1, id2, ...) —— 类似于select/epoll
+        
+       client把window client area画在一个buffer中(server把window frame也画在这个buffer)，然后告知server我画好了，
+       server就可以把这个buffer blit到graphic memory中，就在屏幕上显示出来了
+    
+    3. surface/canvas
+        
+       surface管理一个有width/height的buffer
+       canvas提供 fill_rect / draw_line / draw_bitmap 这类绘图API
+       多个canvas对应一个surface上的不同区域
+    
+    4. mouse
+        
+       写了一个PS2 mouse driver，其实就一个函数
+       硬件发来的是dx/dy这种偏移量信息，追踪鼠标的x/y坐标其实是GUI的事儿，比如把初始鼠标位置设为屏幕中心，
+       后续delta事件来的时候去 x += dx 修改位置
+
+缺的东西很多，感觉接下来能做好久：
+
+    - window z ordering
+        屏幕哪些区域要更新？谁画在谁上面？
+    - mouse cursor
+        鼠标指针画上去，动了，旧的地方得把它下面本来有的东西给恢复了
+    - text drawing
+        因为不是在黑底上画白字儿了，所以必须有alpha的概念——不用black/white是因为画出来字体效果很差，一点儿anti-aliasing都没有
+        然后还应该支持不同字号——怕就不是简单地加载多个bitmap就可以的了，这样超大字号就太占内存了
+    - alpha blending
+        至少画字体就需要这个，另外实现了的话就能加上透明窗口之类的nice to have
+    - png / jpg
+        GUI搞到一定程度会需要各种image resource，全用bmp的话太占(硬盘)空间——主要是为了不让git repo太大
+    - window drag
+        嗯..结合鼠标和窗口管理，也是最能测试咱的GUI manager性能的feature了

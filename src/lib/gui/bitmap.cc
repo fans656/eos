@@ -1,7 +1,7 @@
-#ifndef GRAPHICS_H
-#define GRAPHICS_H
-
-#include "../common/def.h"
+#include "def.h"
+#include "bitmap.h"
+#include "stdio.h"
+#include "string.h"
 
 typedef struct __attribute__((packed)) {
     char signature[2];
@@ -27,15 +27,24 @@ typedef struct __attribute__((packed)) {
 #define bmp_data(bmp) ((char*)(bmp) + BMP_HEADER((bmp))->offset)
 #define bmp_bpp(bmp) (BMP_INFO_HEADER((bmp))->bpp / 8)
 
-int bmp_pitch(void* bmp);
+static int bmp_pitch(void* bmp) {
+    BitmapInfoHeader* bih = BMP_INFO_HEADER(bmp);
+    return align4(bih->width * bih->bpp / 8);
+}
 
-void bmp_blit(void* bmp, int src_left, int src_top,
-        int dst_left, int dst_top, int width, int height);
-void draw_bmp_at(void* bmp, int left, int top);
+Bitmap::Bitmap(const char* path) {
+    char* bmp = (char*)load_file(path);
+    pitch = bmp_pitch(bmp);
+    width = bmp_width(bmp);
+    height = bmp_height(bmp);
+    buffer = new char[pitch * height];
 
-void memory_blit(const char* buffer, int src_pitch,
-        int src_left, int src_top,
-        int dst_left, int dst_top,
-        int width, int height);
-
-#endif
+    char* p = bmp_data(bmp) + pitch * (height - 1);
+    char* q = buffer;
+    for (int y = 0; y < height; ++y) {
+        memcpy(q, p, pitch);
+        q += pitch;
+        p -= pitch;
+    }
+    delete bmp;
+}

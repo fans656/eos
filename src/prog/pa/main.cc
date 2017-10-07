@@ -4,15 +4,15 @@
 struct Wnd : public Window {
     void on_create() {
         Window::on_create();
-        move(300, 50);
+        move(100, 200);
         resize(400, 300);
     }
     
     void on_paint(PaintEvent* ev) {
         Canvas c(this);
-        auto rc = rect();
-        auto pt = rc.center();
-        c.fill_rect(pt.x(), pt.y(), 20, 20);
+        //auto rc = rect();
+        //auto pt = rc.center();
+        //c.fill_rect(pt.x(), pt.y(), 20, 20);
     }
 };
 

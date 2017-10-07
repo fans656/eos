@@ -1,6 +1,8 @@
 #ifndef LIBC_DEF_H
 #define LIBC_DEF_H
 
+#define align4(x) (((x) + 3) / 4 * 4)
+
 enum {
     SYSCALL_EXIT,
 

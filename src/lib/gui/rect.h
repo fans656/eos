@@ -14,6 +14,11 @@ struct Rect {
     inline int width() const  { return width_; }
     inline int height() const  { return height_; }
     
+    inline void set_width(int width) { width_ = width; }
+    inline void set_height(int height) { height_ = height; }
+    
+    void intersect(const Rect& rc);
+    
     Point center() const { return Point(left() + width() / 2, top() + height() / 2); }
 
     int left_, top_, width_, height_;

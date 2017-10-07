@@ -69,12 +69,15 @@ void Window::on_size(SizeEvent* ev) {
 }
 
 void Window::on_system_paint(PaintEvent* ev) {
-    surface->fill_rect(0, 0, frame_width(), margin_top(), SteelBlue);  // top
-    surface->fill_rect(0, margin_top(), margin_left(), height(), SteelBlue);  // left
+    auto frame_color = SteelBlue;
+    surface->fill_rect(0, 0, frame_width(), margin_top(), frame_color);  // top
+    surface->fill_rect(0, margin_top(), margin_left(), height(), frame_color);  // left
     surface->fill_rect(frame_width() - margin_right(), margin_top(),
-            margin_right(), height(), SteelBlue);  // right
+            margin_right(), height(), frame_color);  // right
     surface->fill_rect(0, frame_height() - margin_bottom(),
-            frame_width(), margin_bottom(), SteelBlue);  // bottom
+            frame_width(), margin_bottom(), frame_color);  // bottom
+    surface->fill_rect(margin_left(), margin_top(),
+            width(), height(), LightSteelBlue);  // client
 }
 
 void Window::on_paint(PaintEvent* ev) {

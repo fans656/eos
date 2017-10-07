@@ -3,11 +3,41 @@
 #include "window.h"
 #include "eos.h"
 #include "list.h"
-#include "graphics.h"
 #include "stdio.h"
 #include "surface.h"
+#include "canvas.h"
 #include "unistd.h"
 #include "string.h"
+#include "bitmap.h"
+
+typedef struct __attribute__((packed)) {
+    char signature[2];
+    uint file_size;
+    uint _reserved;
+    uint offset;
+} BitmapHeader;
+
+typedef struct __attribute__((packed)) {
+    uint header_size;
+    uint width;
+    uint height;
+    ushort planes;
+    ushort bpp;
+    uint compression;
+    uchar _notcare[20];
+} BitmapInfoHeader;
+
+#define BMP_INFO_HEADER(bmp) ((BitmapInfoHeader*)((char*)(bmp) + sizeof(BitmapHeader)))
+#define BMP_HEADER(bmp) ((BitmapHeader*)(bmp))
+#define bmp_width(bmp) (BMP_INFO_HEADER((bmp))->width)
+#define bmp_height(bmp) (BMP_INFO_HEADER((bmp))->height)
+#define bmp_data(bmp) ((char*)(bmp) + BMP_HEADER((bmp))->offset)
+#define bmp_bpp(bmp) (BMP_INFO_HEADER((bmp))->bpp / 8)
+
+static int bmp_pitch(void* bmp) {
+    BitmapInfoHeader* bih = BMP_INFO_HEADER(bmp);
+    return align4(bih->width * bih->bpp / 8);
+}
 
 GUIInfo* init_gui() {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_INIT_GUI));
@@ -36,21 +66,19 @@ struct Server {
         
         mouse_x = screen_width / 2;
         mouse_y = screen_height / 2;
-        
-        desktop = new char[screen_pitch * screen_height];
-        memset(desktop, 0x00, screen_pitch * screen_height);
-        memory_blit(desktop, screen_pitch, 0, 0, 0, 0, screen_width, screen_height);
 
-        size_t size = 5 * 5 * screen_bpp;
-        mouse_bitmap = new char[size];
-        memset(mouse_bitmap, 0xff, size);
+        desktop = new Surface(screen_width, screen_height, screen_bpp);
+        canvas = new Canvas(desktop);
+        background = new Bitmap("/img/snow-leopard.bmp");
         
-        draw_mouse(mouse_x, mouse_y);
+        canvas->draw_bitmap(background, 0, 0);
+        memory_blit(desktop->buffer, desktop->pitch, 0, 0, 0, 0, screen_width, screen_height);
+        printf("hello eos!\n");
     }
     
     void draw_mouse(int x, int y) {
-        memory_blit(desktop, screen_pitch, mouse_x, mouse_y, mouse_x, mouse_y, 5, 5);
-        memory_blit(mouse_bitmap, 15, 0, 0, x, y, 5, 5);
+        //memory_blit(desktop, screen_pitch, mouse_x, mouse_y, mouse_x, mouse_y, 5, 5);
+        //memory_blit(mouse_bitmap, 15, 0, 0, x, y, 5, 5);
     }
     
     bool check_mouse() {
@@ -116,11 +144,14 @@ struct Server {
     }
 
     List<Window*> top_wnds;
+
     int screen_width, screen_height;
     int screen_pitch, screen_bpp;
     int mouse_x, mouse_y;
-    char* mouse_bitmap;
-    char* desktop;
+
+    Surface* desktop;
+    Canvas* canvas;
+    Bitmap* background;
 };
 
 void gui_server() {
