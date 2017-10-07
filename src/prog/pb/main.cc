@@ -1,11 +1,14 @@
 #include "stdio.h"
-#include "unistd.h"
-#include "graphics.h"
-#include "list.h"
-#include "eos.h"
+#include "gui.h"
+
+struct Wnd : public Window {
+    void on_create() {
+        Window::on_create();
+        move(20, 300);
+        resize(50, 200);
+    }
+};
 
 int main() {
-    for (int i = 0; i < 10; ++i) {
-        put_message(0, new int(i));
-    }
+    gui_exec(new Wnd);
 }

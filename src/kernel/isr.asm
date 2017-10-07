@@ -19,9 +19,9 @@ isr_timer_asm:
     mov [current_esp], eax
 
     mov eax, [clock_counter]
-    and eax, 0x07  ; schedule every 8 times (80ms)
-    cmp eax, 0
-    jne isr_timer_asm_Finish
+    ;and eax, 0x01  ; schedule every 8 times (80ms)
+    ;cmp eax, 0
+    ;jne isr_timer_asm_Finish
     call process_schedule
     cmp eax, 0
     je isr_timer_asm_Finish

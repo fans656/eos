@@ -1,57 +1,62 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include "surface.h"
-#include "event.h"
-#include "stdio.h"
-#include "eos.h"
 #include "gui_message.h"
 
-struct App;
+struct Surface;
 
 struct Window {
-    Window() {
-    }
+    Window();
+    ~Window();
     
-    void show() {}
+    int left() const { return left_ + margin_left; }
+    int top() const { return top_ + margin_top; }
+    int right() const { return width_ - margin_right; }
+    int bottom() const { return height_ - margin_bottom; }
+    int width() const { return width_ - margin_left - margin_right; }
+    int height() const { return height_ - margin_top - margin_bottom; }
     
-    virtual void on_event(WindowEvent* ev) {
-        switch (ev->type) {
-            case CreateEventType:
-                on_create();
-                break;
-            case PaintEventType:
-                on_paint((PaintEvent*)ev);
-                put_message(GUI_MESSAGE_ID, new WindowPaintedMessage(this));
-                break;
-        }
-    }
+    int frame_left() const { return left_; }
+    int frame_top() const { return top_; }
+    int frame_width() const { return width_; }
+    int frame_height() const { return height_; }
     
-    virtual void on_create() {
-        printf("Window-%x on_create\n");
-    }
+    void move(int x, int y);
+    void resize(int width, int height);
     
-    virtual void on_paint(PaintEvent* ev) {
-        printf("Window-%x on_paint\n");
-    }
-    
+    virtual void on_event(EventMessage* ev);
+    virtual void on_create();
+    virtual void on_move(MoveEvent* ev);
+    virtual void on_size(SizeEvent* ev);
+    virtual void on_paint(PaintEvent* ev);
+
+    void on_system_paint(PaintEvent* ev);
+
     bool destroyed() { return false; }
+    void exec();
     
-    Event* get_event() { return 0; }
+    void set_pos(int x, int y) {
+        left_ = x;
+        top_ = y;
+    }
+
+    void set_client_size(int width, int height) {
+        set_size(width + margin_left + margin_right,
+                height + margin_top + margin_bottom);
+    }
     
-    void set_app(App* app) { this->app = app; }
+    void set_size(int width, int height) {
+        width_ = width;
+        height_ = height;
+    }
 
     Surface* surface;
-    App* app;
+    
+    int left_, top_;
+    int width_, height_;
+    int margin_left, margin_right, margin_top, margin_bottom;
 };
 
-struct Desktop : public Window {
-    Desktop() {
-    }
-    
-    virtual void on_paint(PaintEvent ev) {
-        printf("Desktop::on_paint()\n");
-    }
-};
+void gui_exec(Window* wnd);
 
 #endif

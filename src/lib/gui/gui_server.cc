@@ -3,47 +3,68 @@
 #include "window.h"
 #include "eos.h"
 #include "list.h"
-#include "stdio.h"
 #include "graphics.h"
+#include "stdio.h"
+#include "surface.h"
 
 struct Server {
-    void create_window(Window* wnd) {
+    void exec() {
+        while (true) {
+            WindowMessage* msg = (WindowMessage*)get_message(GUI_MESSAGE_ID);
+            if (!msg) continue;
+            switch (msg->type) {
+                case WM_Create:
+                    on_create(msg->wnd);
+                    break;
+                case WM_Update:
+                    on_update(msg->wnd);
+                    break;
+                case WM_Move:
+                    on_move((WMMove*)msg);
+                    break;
+                case WM_Resize:
+                    on_resize((WMResize*)msg);
+                    break;
+                case WM_Painted:
+                    on_painted(msg->wnd);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    void on_create(Window* wnd) {
         top_wnds.append(wnd);
-        put_message((int)wnd->app, new CreateEvent(wnd));
-        put_message((int)wnd->app, new PaintEvent(wnd));
+        put_message((int)wnd, new WEOnCreate);
+        put_message((int)wnd, new WEOnSize(wnd->width(), wnd->height()));
+    }
+
+    void on_update(Window* wnd) {
+        put_message((int)wnd, new WEOnPaint);
     }
     
-    void on_window_painted(Window* wnd) {
-        char* bmp = (char*)load_file("/img/girl.bmp");
-        memory_blit(bmp_data(bmp), bmp_pitch(bmp), 0, 0, 400, 0, bmp_width(bmp), bmp_height(bmp));
+    void on_move(WMMove* msg) {
+        auto wnd = msg->wnd;
+        wnd->set_pos(msg->x, msg->y);
+        put_message((int)wnd, new WEOnMove(msg->x, msg->y));
+    }
+    
+    void on_resize(WMResize* msg) {
+        auto wnd = msg->wnd;
+        wnd->set_size(msg->width, msg->height);
+        put_message((int)wnd, new WEOnSize(msg->width, msg->height));
+    }
+    
+    void on_painted(Window* wnd) {
+        memory_blit(wnd->surface->buffer, wnd->surface->pitch,
+                0, 0, wnd->frame_left(), wnd->frame_top(),
+                wnd->frame_width(), wnd->frame_height());
     }
     
     List<Window*> top_wnds;
 };
 
 void gui_server() {
-    Server server;
-    while (true) {
-        Message* msg = (Message*)get_message(GUI_MESSAGE_ID);
-        if (msg) {
-            switch (msg->type) {
-                case CreateWindow:
-                    {
-                        printf("server got CreateWindow\n");
-                        CreateWindowMessage* msg_ = (CreateWindowMessage*)msg;
-                        server.create_window(msg_->wnd);
-                        break;
-                    }
-                case WindowPainted:
-                    {
-                        printf("server got WindowPainted\n");
-                        WindowPaintedMessage* msg_ = (WindowPaintedMessage*)msg;
-                        server.on_window_painted(msg_->wnd);
-                        break;
-                    }
-                default:
-                    break;
-            }
-        }
-    }
+    Server().exec();
 }

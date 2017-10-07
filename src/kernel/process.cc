@@ -9,7 +9,6 @@
 #include "string.h"
 #include "list.h"
 
-#define TIMESLICE_FACTOR 5
 #define CODE_SELECTOR (1 << 3)
 
 extern clock_t clock_counter;
@@ -213,4 +212,5 @@ void init_process() {
 
     ready_procs.append(proc_new("/bin/gui"));
     ready_procs.append(proc_new("/bin/pa"));
+    //ready_procs.append(proc_new("/bin/pb"));
 }
