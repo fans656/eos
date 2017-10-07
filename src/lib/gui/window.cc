@@ -15,10 +15,10 @@ constexpr int DEF_WND_CLIENT_HEIGHT = 240;
 Window::Window() {
     set_pos(0, 0);
     set_client_size(DEF_WND_CLIENT_WIDTH, DEF_WND_CLIENT_HEIGHT);
-    margin_left = DEF_MARGIN_LEFT;
-    margin_right = DEF_MARGIN_RIGHT;
-    margin_top = DEF_MARGIN_TOP;
-    margin_bottom = DEF_MARGIN_BOTTOM;
+    margin_left_ = DEF_MARGIN_LEFT;
+    margin_right_ = DEF_MARGIN_RIGHT;
+    margin_top_ = DEF_MARGIN_TOP;
+    margin_bottom_ = DEF_MARGIN_BOTTOM;
 }
 
 Window::~Window() {
@@ -31,8 +31,8 @@ void Window::move(int x, int y) {
 
 void Window::resize(int width, int height) {
     put_message(GUI_MESSAGE_ID, new WMResize(this,
-                width + margin_left + margin_right,
-                height + margin_top + margin_bottom));
+                width + margin_left_ + margin_right_,
+                height + margin_top_ + margin_bottom_));
 }
 
 void Window::on_event(EventMessage* ev) {
@@ -69,12 +69,12 @@ void Window::on_size(SizeEvent* ev) {
 }
 
 void Window::on_system_paint(PaintEvent* ev) {
-    surface->fill_rect(0, 0, frame_width(), margin_top, SteelBlue);  // top
-    surface->fill_rect(0, margin_top, margin_left, height(), SteelBlue);  // left
-    surface->fill_rect(frame_width() - margin_right, margin_top,
-            margin_right, height(), SteelBlue);  // right
-    surface->fill_rect(0, frame_height() - margin_bottom,
-            frame_width(), margin_bottom, SteelBlue);  // bottom
+    surface->fill_rect(0, 0, frame_width(), margin_top(), SteelBlue);  // top
+    surface->fill_rect(0, margin_top(), margin_left(), height(), SteelBlue);  // left
+    surface->fill_rect(frame_width() - margin_right(), margin_top(),
+            margin_right(), height(), SteelBlue);  // right
+    surface->fill_rect(0, frame_height() - margin_bottom(),
+            frame_width(), margin_bottom(), SteelBlue);  // bottom
 }
 
 void Window::on_paint(PaintEvent* ev) {

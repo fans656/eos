@@ -9,7 +9,10 @@ struct Wnd : public Window {
     }
     
     void on_paint(PaintEvent* ev) {
-        printf("user on_paint\n");
+        Canvas c(this);
+        auto rc = rect();
+        auto pt = rc.center();
+        c.fill_rect(pt.x(), pt.y(), 20, 20);
     }
 };
 
