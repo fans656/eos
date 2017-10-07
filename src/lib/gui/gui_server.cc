@@ -6,32 +6,64 @@
 #include "graphics.h"
 #include "stdio.h"
 #include "surface.h"
+#include "unistd.h"
+
+GUIInfo* init_gui() {
+    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_INIT_GUI));
+}
 
 struct Server {
     void exec() {
+        init_gui();
         while (true) {
-            WindowMessage* msg = (WindowMessage*)get_message(GUI_MESSAGE_ID);
-            if (!msg) continue;
-            switch (msg->type) {
-                case WM_Create:
-                    on_create(msg->wnd);
-                    break;
-                case WM_Update:
-                    on_update(msg->wnd);
-                    break;
-                case WM_Move:
-                    on_move((WMMove*)msg);
-                    break;
-                case WM_Resize:
-                    on_resize((WMResize*)msg);
-                    break;
-                case WM_Painted:
-                    on_painted(msg->wnd);
-                    break;
-                default:
-                    break;
+            bool worked = false;
+            worked |= check_mouse();
+            worked |= check_message();
+            if (!worked) {
+                sleep(1);
             }
         }
+    }
+    
+    void init_gui() {
+        GUIInfo* info = ::init_gui();
+        screen_width = info->screen_width;
+        screen_height = info->screen_height;
+        screen_pitch = info->screen_pitch;
+        screen_bpp = info->screen_bpp;
+        delete info;
+    }
+    
+    bool check_mouse() {
+        GUIMouseEvent* ev = (GUIMouseEvent*)get_message(GUI_MOUSE_EVENT_ID, false);
+        if (ev == 0) return false;
+        printf("%d %d\n", ev->x, ev->y);
+        return true;
+    }
+    
+    bool check_message() {
+        WindowMessage* msg = (WindowMessage*)get_message(GUI_MESSAGE_ID, false);
+        if (!msg) return false;
+        switch (msg->type) {
+            case WM_Create:
+                on_create(msg->wnd);
+                break;
+            case WM_Update:
+                on_update(msg->wnd);
+                break;
+            case WM_Move:
+                on_move((WMMove*)msg);
+                break;
+            case WM_Resize:
+                on_resize((WMResize*)msg);
+                break;
+            case WM_Painted:
+                on_painted(msg->wnd);
+                break;
+            default:
+                break;
+        }
+        return true;
     }
 
     void on_create(Window* wnd) {
@@ -61,8 +93,10 @@ struct Server {
                 0, 0, wnd->frame_left(), wnd->frame_top(),
                 wnd->frame_width(), wnd->frame_height());
     }
-    
+
     List<Window*> top_wnds;
+    int screen_width, screen_height;
+    int screen_pitch, screen_bpp;
 };
 
 void gui_server() {

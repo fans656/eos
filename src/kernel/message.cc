@@ -5,22 +5,6 @@
 #include "process.h"
 #include "stdio.h"
 
-struct MessageQueue {
-    List<void*> messages;
-    List<Process> blocked_procs;
-    
-    bool empty() const { return messages.empty(); }
-    void* get() { return messages.popleft(); }
-
-    void put(void* msg) {
-        messages.append(msg);
-        if (!blocked_procs.empty()) {
-            auto proc = blocked_procs.popleft();
-            process_unblock(proc);
-        }
-    }
-};
-
 Dict<int, MessageQueue*> queues;
 
 MessageQueue* get_queue(int id) {
@@ -46,6 +30,11 @@ extern "C" void* get_message(int id, bool blocking) {
 extern "C" void put_message(int id, void* message) {
     auto q = get_queue(id);
     q->put(message);
+}
+
+extern "C" void replace_message(int id, void* message) {
+    auto q = get_queue(id);
+    q->replace(message);
 }
 
 void init_message() {

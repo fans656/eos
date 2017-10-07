@@ -18,6 +18,8 @@ there's automatically `cli` before entering ISR and `sti` after returning from I
 #include "process.h"
 #include "keyboard.h"
 #include "message.h"
+#include "graphics.h"
+#include "mouse.h"
 
 #define IRQ_OFFSET 0x20
 
@@ -100,22 +102,32 @@ void isr_keyboard() {
 }
 
 uchar mouse_cycle = 0;
-uchar mouse_byte[3];
+uchar mouse_bytes[3];
+bool gui_inited = false;
+GUIMouseEvent* mouse_events_pool = 0;
+size_t mouse_events_pool_idx = 0;
+constexpr size_t mouse_events_pool_size = 256;
 
 void isr_mouse() {
     asm volatile ("pushad");
     uchar val = inb(0x60);
     switch (mouse_cycle) {
         case 0:
-            mouse_byte[mouse_cycle++] = val;
+            if (val & 0x08) {
+                mouse_bytes[mouse_cycle++] = val;
+            }
             break;
         case 1:
-            mouse_byte[mouse_cycle++] = val;
+            mouse_bytes[mouse_cycle++] = val;
             break;
         case 2:
-            mouse_byte[mouse_cycle] = val;
+            mouse_bytes[mouse_cycle] = val;
             mouse_cycle = 0;
-            printf("mouse packet %x\n", *(uint*)mouse_byte);
+            if (gui_inited) {
+                parse_mouse_event(mouse_bytes, mouse_events_pool[mouse_events_pool_idx]);
+                replace_message(GUI_MOUSE_EVENT_ID, &mouse_events_pool[mouse_events_pool_idx]);
+                mouse_events_pool_idx = (mouse_events_pool_idx + 1) % mouse_events_pool_size;
+            }
             break;
     }
     send_eoi(IRQ_MOUSE);
@@ -182,6 +194,14 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
         case SYSCALL_PUT_MESSAGE:
             put_message((int)*parg, (void*)*(parg + 1));
             break;
+        case SYSCALL_INIT_GUI:
+            gui_inited = true;
+            mouse_events_pool = new GUIMouseEvent[mouse_events_pool_size];
+            mouse_x = screen_width / 2;
+            mouse_y = screen_height / 2;
+            return (uint)new GUIInfo(
+                    get_screen_width(), get_screen_height(),
+                    get_screen_pitch(), get_screen_bpp());
         default:
             panic("unknown syscall %d\n", callnum);
     }

@@ -15,6 +15,7 @@ enum Type {
     WE_OnMove,
     WE_OnSize,
     WE_OnPaint,
+    WE_OnMouse,
 };
 
 struct Message {
@@ -86,5 +87,12 @@ struct WEOnPaint : public EventMessage {
     WEOnPaint() : EventMessage(WE_OnPaint) {}
 };
 typedef WEOnPaint PaintEvent;
+
+struct WEOnMouse : public EventMessage {
+    WEOnMouse() : EventMessage(WE_OnMouse) {}
+    
+    int x, y;
+};
+typedef WEOnPaint MouseEvent;
 
 #endif

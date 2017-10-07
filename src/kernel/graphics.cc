@@ -201,6 +201,7 @@ void init_mouse() {
 
     mouse_command(0xf6);  // set defaults
     mouse_command(0xf4);  // enable data reporting
+    inb(0x60);
 }
 
 void init_graphics() {
@@ -246,16 +247,16 @@ int get_screen_width() {
     return screen_width;
 }
 
+int get_screen_height() {
+    return screen_height;
+}
+
 int get_screen_pitch() {
     return screen_pitch;
 }
 
 int get_screen_bpp() {
     return screen_bpp;
-}
-
-int get_screen_height() {
-    return screen_height;
 }
 
 void draw_pixel(int x, int y, uint color) {

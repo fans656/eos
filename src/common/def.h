@@ -2,7 +2,7 @@
 #define LIBC_DEF_H
 
 enum {
-    SYSCALL_EXIT = 0,
+    SYSCALL_EXIT,
 
     SYSCALL_PRINTF,
 
@@ -24,6 +24,14 @@ enum {
     
     SYSCALL_GET_MESSAGE,
     SYSCALL_PUT_MESSAGE,
+
+    SYSCALL_INIT_GUI,
+};
+
+enum {
+    GUI_MESSAGE_ID,
+    GUI_KEYBOARD_EVENT_ID,
+    GUI_MOUSE_EVENT_ID,
 };
 
 typedef unsigned char uchar;
@@ -35,5 +43,23 @@ typedef uint size_t;
 #define bool uchar
 #define true 1
 #define false 0
+
+struct GUIInfo {
+    int screen_width;
+    int screen_height;
+    int screen_pitch;
+    int screen_bpp;
+    
+    GUIInfo(int width, int height, int pitch, int bpp)
+        : screen_width(width), screen_height(height),
+        screen_pitch(pitch), screen_bpp(bpp) {
+    }
+};
+
+struct GUIMouseEvent {
+    ushort x, y;
+    bool left;
+    bool right;
+};
 
 #endif

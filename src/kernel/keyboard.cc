@@ -60,7 +60,6 @@ const char* VK2NAME[256] = {
     "VK_F12",
 };
 
-#define MAX_LISTENERS 64
 static List<KeyboardListener> listeners;
 
 void init_keyboard() {

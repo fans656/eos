@@ -12,9 +12,8 @@ void init_graphics();
 
 int get_screen_width();
 int get_screen_height();
-
-int get_pitch();
-int get_bytes_per_pixel();
+int get_screen_pitch();
+int get_screen_bpp();
 
 void screen_fill_black();
 
