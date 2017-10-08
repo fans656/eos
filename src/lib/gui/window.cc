@@ -12,9 +12,17 @@ constexpr int DEF_MARGIN_BOTTOM = 2;
 constexpr int DEF_WND_CLIENT_WIDTH = 320;
 constexpr int DEF_WND_CLIENT_HEIGHT = 240;
 
+Window::Window(int x, int y, int width, int height) {
+    init(x, y, width, height);
+}
+
 Window::Window() {
-    set_pos(0, 0);
-    set_client_size(DEF_WND_CLIENT_WIDTH, DEF_WND_CLIENT_HEIGHT);
+    init(0, 0, DEF_WND_CLIENT_WIDTH, DEF_WND_CLIENT_HEIGHT);
+}
+
+void Window::init(int x, int y, int width, int height) {
+    set_pos(x, y);
+    set_client_size(width, height);
     margin_left_ = DEF_MARGIN_LEFT;
     margin_right_ = DEF_MARGIN_RIGHT;
     margin_top_ = DEF_MARGIN_TOP;
@@ -26,19 +34,28 @@ Window::~Window() {
 }
 
 void Window::move(int x, int y) {
-    put_message(GUI_MESSAGE_ID, new WMMove(this, x, y));
+    if (created) {
+        put_message(GUI_MESSAGE_ID, new WMMove(this, x, y));
+    } else {
+        set_pos(x, y);
+    }
 }
 
 void Window::resize(int width, int height) {
-    put_message(GUI_MESSAGE_ID, new WMResize(this,
-                width + margin_left_ + margin_right_,
-                height + margin_top_ + margin_bottom_));
+    int w = width + margin_left_ + margin_right_;
+    int h = height + margin_top_ + margin_bottom_;
+    if (created) {
+        put_message(GUI_MESSAGE_ID, new WMResize(this, w, h));
+    } else {
+        set_size(w, h);
+    }
 }
 
 void Window::on_event(EventMessage* ev) {
     switch (ev->type) {
         case WE_OnCreate:
             on_create();
+            created = true;
             break;
         case WE_OnMove:
             on_move((MoveEvent*)ev);

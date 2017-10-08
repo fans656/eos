@@ -8,6 +8,7 @@ struct Surface;
 
 struct Window {
     Window();
+    Window(int x, int y, int width, int height);
     ~Window();
     
     int left() const { return left_ + margin_left_; }
@@ -42,6 +43,7 @@ struct Window {
 
     void on_system_paint(PaintEvent* ev);
 
+    void init(int x, int y, int width, int height);
     bool destroyed() { return false; }
     void exec();
     
@@ -65,6 +67,7 @@ struct Window {
     int left_, top_;
     int width_, height_;
     int margin_left_, margin_right_, margin_top_, margin_bottom_;
+    bool created = false;
 };
 
 void gui_exec(Window* wnd);
