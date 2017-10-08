@@ -5,8 +5,8 @@
 Surface::Surface(int width, int height, int bpp) {
     this->bpp = bpp;
     pitch = align4(width * bpp);
-    this->width = width;
-    this->height = height;
+    width_ = width;
+    height_ = height;
     buffer = new char[pitch * height];
 }
 
@@ -23,10 +23,7 @@ void Surface::fill_rect(int left, int top, int width, int height, uint color) {
 }
 
 void Surface::draw_pixel(int x, int y, uint color) {
-    char* p = buffer + y * pitch + x * bpp;
-    *p++ = color >> 16;
-    *p++ = (color >> 8) & 0xff;
-    *p++ = color & 0xff;
+    *(uint*)(buffer + y * pitch + x * bpp) = color;
 }
 
 void Surface::blit(char* src_buffer, int src_pitch,

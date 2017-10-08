@@ -5,5 +5,6 @@
 #include "gui/window.h"
 #include "gui/gui_server.h"
 #include "gui/canvas.h"
+#include "gui/bitmap.h"
 
 #endif

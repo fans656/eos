@@ -64,7 +64,7 @@ void Window::on_size(SizeEvent* ev) {
     if (surface) {
         delete surface;
     }
-    surface = new Surface(frame_width(), frame_height(), 3);
+    surface = new Surface(frame_width(), frame_height(), 4);
     put_message(GUI_MESSAGE_ID, new WMUpdate(this));
 }
 

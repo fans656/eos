@@ -25,8 +25,8 @@ Canvas::Canvas(Window* w) {
 
 Canvas::Canvas(Surface* surface) {
     surface_left_ = surface_top_ = 0;
-    surface_right_ = surface->width;
-    surface_bottom_ = surface->height;
+    surface_right_ = surface->width();
+    surface_bottom_ = surface->height();
     this->surface = surface;
     init();
 }
@@ -52,25 +52,31 @@ void Canvas::fill_rect(const Rect& rect, uint color) {
 }
 
 void Canvas::draw_bitmap(Bitmap* bitmap, int x, int y) {
-    draw_bitmap(bitmap, 0, 0, x, y, bitmap->width, bitmap->height);
+    draw_bitmap(bitmap, 0, 0, x, y, bitmap->width(), bitmap->height());
 }
 
 void Canvas::draw_bitmap(Bitmap* bitmap, int src_x, int src_y,
         int dst_x, int dst_y, int width, int height) {
     Rect src_rc(src_x, src_y, width, height);
-    Rect bitmap_rc(0, 0, bitmap->width, bitmap->height);
+    Rect bitmap_rc(0, 0, bitmap->width(), bitmap->height());
     src_rc.intersect(bitmap_rc);
 
     Rect dst_rc(dst_x, dst_y, src_rc.width(), src_rc.height());
-    dst_rc.intersect(client_to_surface(src_rc));
-
-    src_rc.set_width(dst_rc.width());
-    src_rc.set_height(dst_rc.height());
+    Rect surface_rc(0, 0, surface->width(), surface->height());
+    dst_rc = client_to_surface(dst_rc);
+    dst_rc.intersect(surface_rc);
 
     surface->blit(bitmap->buffer, bitmap->pitch,
             src_rc.left(), src_rc.top(),
             dst_rc.left(), dst_rc.top(),
-            dst_rc.width(), dst_rc.height());
+            min(src_rc.width(), dst_rc.width()),
+            min(src_rc.height(), dst_rc.height()));
+}
+
+void Canvas::draw_bitmap_nocheck(Bitmap* bitmap, int src_x, int src_y,
+        int dst_x, int dst_y, int width, int height) {
+    surface->blit(bitmap->buffer, bitmap->pitch,
+            src_x, src_y, dst_x, dst_y, width, height);
 }
 
 void Canvas::translate(int dx, int dy) {

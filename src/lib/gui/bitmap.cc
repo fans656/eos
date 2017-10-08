@@ -34,17 +34,20 @@ static int bmp_pitch(void* bmp) {
 
 Bitmap::Bitmap(const char* path) {
     char* bmp = (char*)load_file(path);
-    pitch = bmp_pitch(bmp);
-    width = bmp_width(bmp);
-    height = bmp_height(bmp);
-    buffer = new char[pitch * height];
+    int width = width_ = bmp_width(bmp);
+    int height = height_ = bmp_height(bmp);
+    pitch = width * 4;
+    buffer = new char[width * height * 4];
 
-    char* p = bmp_data(bmp) + pitch * (height - 1);
-    char* q = buffer;
+    char* src_data = bmp_data(bmp);
+    int src_pitch = bmp_pitch(bmp);
+    uint* q = (uint*)buffer;
     for (int y = 0; y < height; ++y) {
-        memcpy(q, p, pitch);
-        q += pitch;
-        p -= pitch;
+        for (int x = 0; x < width; ++x) {
+            uchar* p = (uchar*)src_data + (height - 1 - y) * src_pitch + x * 3;
+            uint color = *p | (*(p + 1) << 8) | (*(p + 2) << 16);
+            *q++ = color;
+        }
     }
     delete bmp;
 }

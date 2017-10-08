@@ -7,6 +7,9 @@ struct Surface {
     Surface(int width, int height, int bpp);
     ~Surface();
     
+    inline int width() const { return width_; }
+    inline int height() const { return height_; }
+    
     void fill_rect(int left, int top, int width, int height, uint color);
     void draw_pixel(int x, int y, uint color);
     void blit(char* src_buffer, int pitch, int src_left,
@@ -14,7 +17,7 @@ struct Surface {
     
     int bpp;
     int pitch;
-    int width, height;
+    int width_, height_;
     char* buffer;
 };
 

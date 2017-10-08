@@ -10,13 +10,13 @@ constexpr uint RGB2BGR(uint rgb) {
 }
 
 // http://www.html-color-names.com/color-chart.php
-constexpr uint AliceBlue =         RGB2BGR(0xf0f8ff);
-constexpr uint RoyalBlue =         RGB2BGR(0x4169e1);
-constexpr uint DarkSlateBlue =     RGB2BGR(0x483d8b); 
-constexpr uint SteelBlue =         RGB2BGR(0x4682b4); 
-constexpr uint LightSteelBlue =    RGB2BGR(0xb0c4de); 
-constexpr uint GhostWhite =        RGB2BGR(0xf8f8ff); 
+constexpr uint AliceBlue =         0xf0f8ff;
+constexpr uint RoyalBlue =         0x4169e1;
+constexpr uint DarkSlateBlue =     0x483d8b; 
+constexpr uint SteelBlue =         0x4682b4; 
+constexpr uint LightSteelBlue =    0xb0c4de; 
+constexpr uint GhostWhite =        0xf8f8ff; 
 
-constexpr uint White =        RGB2BGR(0xffffff); 
+constexpr uint White =        0xffffff; 
 
 #endif

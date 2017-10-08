@@ -10,7 +10,7 @@
 
 // http://www.delorie.com/djgpp/doc/rbinter/ix/10/4F.html
 
-typedef struct  __attribute__ ((packed)) {
+struct  __attribute__ ((packed)) vbe_mode_info_structure {
    ushort attributes;  // deprecated
    uchar window_a;    // deprecated
    uchar window_b;   // deprecated
@@ -46,7 +46,7 @@ typedef struct  __attribute__ ((packed)) {
    uint off_screen_mem_off;
    ushort off_screen_mem_size;
    uchar reserved1[206];
-} vbe_mode_info_structure;
+};
 
 #define CHARSET_SIZE 128
 
@@ -59,11 +59,14 @@ int screen_pitch;
 int screen_bpp;
 int screen_bytes;
 
-uchar* font_bmp;
-uchar* font_bmp_data;
+int font_bmp_width;
+int font_bmp_height;
 uint font_glyph_width;
 uint font_glyph_height;
 uint font_bpr;  // bytes per row of the font bmp image
+
+uint* font_data;
+void draw_char2(char ch, int row, int col);
 
 typedef struct __attribute__((packed)) {
     char signature[2];
@@ -92,50 +95,6 @@ typedef struct __attribute__((packed)) {
 int bmp_pitch(void* bmp) {
     BitmapInfoHeader* bih = BMP_INFO_HEADER(bmp);
     return align4(bih->width * bih->bpp / 8);
-}
-
-void bmp_blit_nocheck(void* bmp,
-        int src_left, int src_top,
-        int dst_left, int dst_top,
-        int width, int height) {
-    int dst_pitch = screen_pitch;
-    int src_pitch = bmp_pitch(bmp);
-    int dst_offset = dst_left * screen_bpp;
-    int src_offset = src_left * screen_bpp;
-    int n = width * screen_bpp;
-    char* dst = (char*)(graphic_video_mem + dst_top * dst_pitch + dst_offset);
-    char* src = (char*)(bmp_data(bmp) + (bmp_height(bmp) - 1 - src_top) * src_pitch + src_offset);
-    while (height--) {
-        memcpy(dst, src, n);
-        dst += dst_pitch;
-        src -= src_pitch;
-    }
-}
-
-void bmp_blit(void* bmp,
-        int src_left, int src_top,
-        int dst_left, int dst_top,
-        int width, int height) {
-
-    int src_width = bmp_width(bmp);
-    int src_height = bmp_height(bmp);
-    
-    dst_left = restricted(dst_left, 0, screen_width);
-    dst_top = restricted(dst_top, 0, screen_height);
-
-    src_left = restricted(src_left, 0, src_width);
-    src_top = restricted(src_top, 0, src_height);
-    
-    width = min(min(width, screen_width - dst_left), src_width - src_left);
-    height = min(min(height, screen_height - dst_top), src_height - src_top);
-    
-    if (width && height) {
-        bmp_blit_nocheck(bmp, src_left, src_top, dst_left, dst_top, width, height);
-    }
-}
-
-void bmp_draw_at(void* bmp, int left, int top) {
-    bmp_blit(bmp, 0, 0, left, top, bmp_width(bmp), bmp_height(bmp));
 }
 
 void memory_blit(
@@ -175,13 +134,27 @@ void init_graphics() {
     reload_cr3(kernel_pgdir);
     
     // init font
-    font_bmp = (uchar*)load_file("/font/font.bmp");
-    font_bmp_data = (uchar*)bmp_data(font_bmp);
+    uchar* font_bmp = (uchar*)load_file("/font/font.bmp");
+    uchar* font_bmp_data = (uchar*)bmp_data(font_bmp);
 
     BitmapInfoHeader* bih = (BitmapInfoHeader*)(font_bmp + sizeof(BitmapHeader));
     font_glyph_width = bmp_width(font_bmp) / CHARSET_SIZE;
     font_glyph_height = bmp_height(font_bmp);
     font_bpr = bmp_pitch(font_bmp);
+
+    font_bmp_width = bmp_width(font_bmp);
+    font_bmp_height = bmp_height(font_bmp);
+    size_t font_data_size = font_bmp_width * font_bmp_height;
+    font_data = new uint[font_data_size];
+    uint* q = font_data;
+    for (int y = 0; y < font_bmp_height; ++y) {
+        for (int x = 0; x < font_bmp_width; ++x) {
+            uchar* p = font_bmp_data + (font_glyph_height - 1 - y) * font_bpr + x * 3;
+            uint color = *p | (*(p + 1) << 8) | (*(p + 2) << 16);
+            *q++ = color;
+        }
+    }
+    delete font_bmp;
     
     // init virtual console
     COLS = screen_width / font_glyph_width;
@@ -249,12 +222,13 @@ void draw_char(char ch, int row, int col) {
     int src_left = ch * font_glyph_width;
     int dst_left = col * font_glyph_width;
     int dst_top = row * font_glyph_height;
-    bmp_blit_nocheck(font_bmp, src_left, 0, dst_left, dst_top,
+    memory_blit((char*)font_data, font_bmp_width * screen_bpp,
+            src_left, 0, dst_left, dst_top,
             font_glyph_width, font_glyph_height);
 }
 
 void sync_console_at(int row, int col) {
-    if (font_bmp) {
+    if (font_data) {
         ushort val = CHAR(row, col);
         if (val) {
             draw_char((char)(val & 0xff), row, col);
@@ -263,7 +237,7 @@ void sync_console_at(int row, int col) {
 }
 
 void sync_console() {
-    if (font_bmp) {
+    if (font_data) {
         for (int i = 0; i < ROWS; ++i) {
             for (int j = 0; j < COLS; ++j) {
                 ushort val = CHAR(i, j);

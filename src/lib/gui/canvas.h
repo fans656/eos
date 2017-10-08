@@ -26,7 +26,10 @@ struct Canvas {
     void draw_rect(int left, int top, int width, int height, uint color);
     
     void draw_bitmap(Bitmap* bitmap, int x, int y);
-    void draw_bitmap(Bitmap* bitmap, int src_x, int src_y, int dst_x, int dst_y, int width, int height);
+    void draw_bitmap(Bitmap* bitmap, int src_x, int src_y,
+            int dst_x, int dst_y, int width, int height);
+    void draw_bitmap_nocheck(Bitmap* bitmap, int src_x, int src_y,
+            int dst_x, int dst_y, int width, int height);
 
     void draw_text(int x, int y, const char* text);
 

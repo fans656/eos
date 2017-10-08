@@ -169,11 +169,6 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
             return (uint)fsize((FILE*)*parg);
         case SYSCALL_LOAD_FILE:
             return (uint)load_file((const char*)*parg);
-        case SYSCALL_BMP_BLIT:
-            bmp_blit((void*)*parg,
-                    (int)*(parg + 1), (int)*(parg + 2), (int)*(parg + 3),
-                    (int)*(parg + 4), (int)*(parg + 5), (int)*(parg + 6));
-            break;
         case SYSCALL_MEMORY_BLIT:
             memory_blit((char*)*parg, (int)*(parg + 1),
                     (int)*(parg + 2), (int)*(parg + 3),

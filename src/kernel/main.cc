@@ -22,7 +22,6 @@ extern "C" void main() {
 
     asm("sti");
     while (true) {
-        //gui_work();
         process_release();
         asm("hlt");
     }
