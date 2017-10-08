@@ -39,8 +39,22 @@ struct Canvas {
     void restore();
     
     void init();
+
+    int restricted_x(int x);
+    int restricted_y(int y);
+
     void client_to_surface(int& x, int& y);
     Rect client_to_surface(const Rect& rc);
+
+    void surface_to_client(int& x, int& y);
+    Rect surface_to_client(const Rect& rc);
+    
+    inline int surface_left() const { return surface_left_; }
+    inline int surface_top() const { return surface_top_; }
+    inline int surface_right() const { return surface_right_; }
+    inline int surface_bottom() const { return surface_bottom_; }
+    inline int surface_width() const { return surface_right() - surface_left(); }
+    inline int surface_height() const { return surface_bottom() - surface_top(); }
     
     int origin_left_, origin_top_;
     int surface_left_, surface_top_, surface_right_, surface_bottom_;

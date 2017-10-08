@@ -9,7 +9,7 @@ struct Wnd : public Window {
     
     void on_paint(PaintEvent* ev) {
         Canvas c(this);
-        c.draw_bitmap(img, (width() - img->width()) / 2, 0);
+        c.draw_bitmap(img, (width() - img->width()) / 2, -25);
     }
     
     Bitmap* img;

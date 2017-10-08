@@ -38,8 +38,15 @@ void Canvas::fill_rect(int left, int top, int width, int height) {
 void Canvas::fill_rect(int left, int top, int width, int height, uint color) {
     int right = left + width;
     int bottom = top + height;
+
     client_to_surface(left, top);
     client_to_surface(right, bottom);
+
+    left = restricted_x(left);
+    right = restricted_x(right);
+    top = restricted_y(top);
+    bottom = restricted_y(bottom);
+
     surface->fill_rect(left, top, right - left, bottom - top, color);
 }
 
@@ -57,20 +64,27 @@ void Canvas::draw_bitmap(Bitmap* bitmap, int x, int y) {
 
 void Canvas::draw_bitmap(Bitmap* bitmap, int src_x, int src_y,
         int dst_x, int dst_y, int width, int height) {
-    Rect src_rc(src_x, src_y, width, height);
     Rect bitmap_rc(0, 0, bitmap->width(), bitmap->height());
-    src_rc.intersect(bitmap_rc);
+    Rect rc(src_x, src_y, width, height);
+    rc.intersect(bitmap_rc);
+    rc.translate(dst_x, dst_y);
 
-    Rect dst_rc(dst_x, dst_y, src_rc.width(), src_rc.height());
-    Rect surface_rc(0, 0, surface->width(), surface->height());
-    dst_rc = client_to_surface(dst_rc);
-    dst_rc.intersect(surface_rc);
+    rc = client_to_surface(rc);
+    rc.intersect(surface_left(), surface_top(), surface_width(), surface_height());
+    int new_dst_x = rc.left();
+    int new_dst_y = rc.top();
 
+    rc = surface_to_client(rc);
+    rc.translate(-dst_x, -dst_y);
+    rc.intersect(bitmap_rc);
+
+    int new_src_x = rc.left();
+    int new_src_y = rc.top();
+    
     surface->blit(bitmap->buffer, bitmap->pitch,
-            src_rc.left(), src_rc.top(),
-            dst_rc.left(), dst_rc.top(),
-            min(src_rc.width(), dst_rc.width()),
-            min(src_rc.height(), dst_rc.height()));
+            new_src_x, new_src_y,
+            new_dst_x, new_dst_y,
+            rc.width(), rc.height());
 }
 
 void Canvas::draw_bitmap_nocheck(Bitmap* bitmap, int src_x, int src_y,
@@ -85,8 +99,13 @@ void Canvas::translate(int dx, int dy) {
 }
 
 void Canvas::client_to_surface(int& x, int& y) {
-    x = restricted(x + origin_left_ + surface_left_, surface_left_, surface_right_);
-    y = restricted(y + origin_top_ + surface_top_, surface_top_, surface_bottom_);
+    x = x + origin_left_ + surface_left_;
+    y = y + origin_top_ + surface_top_;
+}
+
+void Canvas::surface_to_client(int& x, int& y) {
+    x = x - origin_left_ - surface_left_;
+    y = y - origin_top_ - surface_top_;
 }
 
 Rect Canvas::client_to_surface(const Rect& rc) {
@@ -97,6 +116,24 @@ Rect Canvas::client_to_surface(const Rect& rc) {
     client_to_surface(left, top);
     client_to_surface(right, bottom);
     return Rect(left, top, right - left, bottom - top);
+}
+
+Rect Canvas::surface_to_client(const Rect& rc) {
+    int left = rc.left();
+    int top = rc.top();
+    int right = rc.right();
+    int bottom = rc.bottom();
+    surface_to_client(left, top);
+    surface_to_client(right, bottom);
+    return Rect(left, top, right - left, bottom - top);
+}
+
+int Canvas::restricted_x(int x) {
+    return restricted(x, surface_left_, surface_right_);
+}
+
+int Canvas::restricted_y(int y) {
+    return restricted(y, surface_top_, surface_bottom_);
 }
 
 void Canvas::init() {

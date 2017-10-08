@@ -67,26 +67,14 @@ SwithToVesaMode:
     int 0x10
     cmp ax, 0x004f
     jne Panic
-
-    ; tmp query mode info
-    mov dx, 0x143
-    mov ax, 0
-    mov es, ax
-    mov di, 0xb00
-    mov cx, dx
-    mov ax, 0x4f01
-    int 0x10
-    cmp ax, 0x004f
-    jne Panic
     
-    mov dx, 0x4118  ; 1024x768 24bit color
-    mov dx, 0x4115  ; 800x600 24bit color
-    mov dx, 0x4143  ; 800x600 32bit color
-
+    ;mov dx, 0x4115  ; 800x600 24bit color
+    ;mov dx, 0x4118  ; 1024x768 24bit color
     ;mov dx, 0x4176  ; 1280x768 24bit color
-    ;mov dx, 0x4177  ; 1280x768 32bit color
-
     ;mov dx, 0x4191  ; 1920x1080 24bit color
+
+    mov dx, 0x4143  ; 800x600 32bit color
+    ;mov dx, 0x4177  ; 1280x768 32bit color
 
     ; query mode info
     mov ax, 0

@@ -1546,3 +1546,31 @@ GUI搞了个开头，现在拥有：
         GUI搞到一定程度会需要各种image resource，全用bmp的话太占(硬盘)空间——主要是为了不让git repo太大
     - window drag
         嗯..结合鼠标和窗口管理，也是最能测试咱的GUI manager性能的feature了
+    - graphics primitives
+        draw line/ellipse/...
+
+2017-10-08 19:22:17
+捋一捋接下来可以做的东西的依赖关系：
+    
+    [0] mouse cursor
+    [1] window z ordering
+    [2] window dragging
+    [3] alpha blending
+    [4] png
+    [5] text drawing
+    [6] graphics primitives
+    
+
+    [6] primitives -> [0] mouse cursor (画一个三角形的鼠标)
+
+    [4] png ------> [0] mouse cursor (用图片画鼠标)
+    [3] alpha --/
+                \-> [5] text drawing (alpha mask + grayscale 可以画anti-aliasing的text)
+    
+    [1] z-order ---------> [2] window dragging
+    [0] mouse cursor -/
+
+看样子，先png和alpha blending吧
+
+
+https://www.w3.org/TR/PNG/
