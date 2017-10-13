@@ -9,53 +9,14 @@
 #include "unistd.h"
 #include "string.h"
 #include "bitmap.h"
-
-typedef struct __attribute__((packed)) {
-    char signature[2];
-    uint file_size;
-    uint _reserved;
-    uint offset;
-} BitmapHeader;
-
-typedef struct __attribute__((packed)) {
-    uint header_size;
-    uint width;
-    uint height;
-    ushort planes;
-    ushort bpp;
-    uint compression;
-    uchar _notcare[20];
-} BitmapInfoHeader;
-
-#define BMP_INFO_HEADER(bmp) ((BitmapInfoHeader*)((char*)(bmp) + sizeof(BitmapHeader)))
-#define BMP_HEADER(bmp) ((BitmapHeader*)(bmp))
-#define bmp_width(bmp) (BMP_INFO_HEADER((bmp))->width)
-#define bmp_height(bmp) (BMP_INFO_HEADER((bmp))->height)
-#define bmp_data(bmp) ((char*)(bmp) + BMP_HEADER((bmp))->offset)
-#define bmp_bpp(bmp) (BMP_INFO_HEADER((bmp))->bpp / 8)
-
-static int bmp_pitch(void* bmp) {
-    BitmapInfoHeader* bih = BMP_INFO_HEADER(bmp);
-    return align4(bih->width * bih->bpp / 8);
-}
+#include "png.h"
+#include "stdlib.h"
 
 GUIInfo* init_gui() {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_INIT_GUI));
 }
 
 struct Server {
-    void exec() {
-        init_gui();
-        while (true) {
-            bool worked = false;
-            worked |= check_mouse();
-            worked |= check_message();
-            if (!worked) {
-                sleep(1);
-            }
-        }
-    }
-    
     void init_gui() {
         GUIInfo* info = ::init_gui();
         screen_width = info->screen_width;
@@ -74,6 +35,18 @@ struct Server {
         canvas->draw_bitmap(background, 0, 0);
         memory_blit(desktop->buffer, desktop->pitch, 0, 0, 0, 0, screen_width, screen_height);
         printf("hello eos!\n");
+    }
+
+    void exec() {
+        init_gui();
+        while (true) {
+            bool worked = false;
+            worked |= check_mouse();
+            worked |= check_message();
+            if (!worked) {
+                sleep(1);
+            }
+        }
     }
     
     void draw_mouse(int x, int y) {

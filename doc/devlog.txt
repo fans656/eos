@@ -1574,3 +1574,59 @@ GUI搞了个开头，现在拥有：
 
 
 https://www.w3.org/TR/PNG/
+
+2017-10-10 03:01:26
+PNG的decoder死活写不对，主要卡在DEFLATE算法的解析，，仔细仔细再仔细
+
+各种references:
+
+https://tools.ietf.org/html/rfc1950
+zlib standard
+
+https://tools.ietf.org/html/rfc1951
+DEFLATE standard
+
+http://www.zlib.net/feldspar.html
+An Explanation of the Deflate Algorithm
+
+http://www.gzip.org/algorithm.txt
+decode effectively
+
+http://create.stephan-brumme.com/deflate-decoder/
+C++ source to uncompress DEFLATE data
+
+2017-10-10 23:38:29
+我靠，知道哪里错了
+btype和code的bit序是反的，比如对于 zlib.compress('a') 来说，去掉zlib header后的data是：
+
+    byte-1   byte-0   
+    00000100 01001011 
+         \       /\|\-- bfinal = 1
+          ---+---  |-- bmethod = 01 = 1 => fix compression
+             |-- code = 10010001 = 97 => 'a'
+
+之前不管怎么调 next_bits 都不行的原因是当code调对了btype就错了，btype调对了code就错了
+回头再仔细看看RFC1951到底是哪里理解错了导致这个操蛋的bug
+
+
+method 1 (fix compression) 应该没问题了，先歇了吧，，然后搞method 2的tree construction
+然后就可以decode啦！——不考虑性能地把一个png图片decode成raw pixels，然后画出来(先用pyqt)，然后尝试alpha blending
+然后移植到C，在eos的桌面上画一个带alpha channel的walle!
+
+2017-10-12 00:40:20
+好像总算是突破了，大部分文件可以python的zlib压缩后用我的函数成功解压
+但有几个文件(t.pdf 8MB, 等...)似乎还有bug，之后再说吧，，先试试unfiltered的png画出来是什么样子(qt)
+
+成功~ 虽然色彩完全不对(这是因为还没有unfilter)，但是能看出图片中物体的轮廓了，证明解压正确
+那么这周内应该可以画上半透明的walle了~
+
+2017-10-12 23:14:37
+终于搞定了，在pyside里画出了半透明的png图片，，然后还小优化了一下效率，从2.X秒到了1.6秒——也许可以再优化一点，但python大约也就这个速度了
+
+来，看20分钟能不能移植到C
+
+2017-10-14 01:46:46
+昨晚没搞定，弄到快两点——今儿也要到2点了，，但是终于搞定啦！
+可以在屏幕上画出decoded的PNG图片了
+
+明儿可以试试alpha blending

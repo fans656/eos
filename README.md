@@ -17,6 +17,7 @@
 - Paging
 - malloc/free
 - Process
+- PNG decoder
 
 ## Future
 
@@ -25,7 +26,7 @@
   - Mouse
   - Windows
   - Font
-  - JPG/PNG/..
+  - JPG
   - Video
   - Audio
 - Networking
@@ -47,8 +48,22 @@
 
 [Modern Operating Systems - 4th Edition](https://github.com/yuanhui-yang/Modern-Operating-Systems/blob/master/Modern%20Operating%20Systems%20-%204th%20Edition.pdf)
 
-### Topics
+### Disk
 
 [ATA Interface Reference Manual - Seagate](http://bit.ly/2ynS9BO)
 
+### Memory
+
 [A Malloc Tutorial](http://www.inf.udec.cl/~leo/Malloc_tutorial.pdf)
+
+### PNG
+
+[zlib format](http://www.ietf.org/rfc/rfc1950.txt)
+
+[DEFLATE algorithm](http://www.ietf.org/rfc/rfc1951.txt)
+
+[PNG format](https://www.w3.org/TR/PNG/)
+
+[optimize DEFLATE](http://www.gzip.org/algorithm.txt)
+
+[unfilter](https://github.com/elanthis/upng)

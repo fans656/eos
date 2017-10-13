@@ -81,7 +81,7 @@ void Canvas::draw_bitmap(Bitmap* bitmap, int src_x, int src_y,
     int new_src_x = rc.left();
     int new_src_y = rc.top();
     
-    surface->blit(bitmap->buffer, bitmap->pitch,
+    surface->blit(bitmap->buffer, bitmap->pitch(),
             new_src_x, new_src_y,
             new_dst_x, new_dst_y,
             rc.width(), rc.height());
@@ -89,7 +89,7 @@ void Canvas::draw_bitmap(Bitmap* bitmap, int src_x, int src_y,
 
 void Canvas::draw_bitmap_nocheck(Bitmap* bitmap, int src_x, int src_y,
         int dst_x, int dst_y, int width, int height) {
-    surface->blit(bitmap->buffer, bitmap->pitch,
+    surface->blit(bitmap->buffer, bitmap->pitch(),
             src_x, src_y, dst_x, dst_y, width, height);
 }
 

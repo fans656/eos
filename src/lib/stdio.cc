@@ -27,3 +27,20 @@ size_t fsize(FILE* fp) {
 void* load_file(const char* path) {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_LOAD_FILE));
 }
+
+void hexdump(const void* addr, uint cnt) {
+    const uchar* p = (const uchar*)addr;
+    for (int i = 0; i < cnt; ++i) {
+        if (i % 16) {
+            printf(" ");
+            if (i % 8 == 0) {
+                printf(" ");
+            }
+        }
+        if (i && i % 16 == 0) {
+            printf("\n");
+        }
+        printf("%1x", *p++);
+    }
+    printf("\n");
+}

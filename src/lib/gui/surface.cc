@@ -7,7 +7,7 @@ Surface::Surface(int width, int height, int bpp) {
     pitch = align4(width * bpp);
     width_ = width;
     height_ = height;
-    buffer = new char[pitch * height];
+    buffer = new uchar[pitch * height];
 }
 
 Surface::~Surface() {
@@ -26,12 +26,12 @@ void Surface::draw_pixel(int x, int y, uint color) {
     *(uint*)(buffer + y * pitch + x * bpp) = color;
 }
 
-void Surface::blit(char* src_buffer, int src_pitch,
+void Surface::blit(uchar* src_buffer, int src_pitch,
         int src_left, int src_top,
         int dst_left, int dst_top,
         int width, int height) {
-    char* p = src_buffer + src_top * src_pitch + src_left * bpp;
-    char* q = buffer + dst_top * pitch + dst_left * bpp;
+    uchar* p = src_buffer + src_top * src_pitch + src_left * bpp;
+    uchar* q = buffer + dst_top * pitch + dst_left * bpp;
     for (int i = 0; i < height; ++i) {
         memcpy(q, p, width * bpp);
         p += src_pitch;

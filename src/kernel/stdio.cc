@@ -97,7 +97,7 @@ int print_bin(uint val, int width) {
 }
 
 void print_hex_byte(uint val) {
-    putchar(HEX(val >> 4));
+    putchar(HEX((val >> 4) & 0xf));
     putchar(HEX(val & 0x0f));
 }
 
@@ -179,7 +179,11 @@ int _printf(const char** pfmt) {
                 width = printf_get_width(&(p));
                 switch (*p) {
                     case 'x':
-                        print_hex_dword(*arg++);
+                        if (width == 1) {
+                            print_hex_byte(*arg++);
+                        } else {
+                            print_hex_dword(*arg++);
+                        }
                         res += 8;
                         break;
                     case 'd':

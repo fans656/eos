@@ -14,4 +14,6 @@ size_t fwrite(const void* data, size_t size, size_t count, FILE* fp);
 size_t fsize(FILE* fp);
 void* load_file(const char* path);
 
+void hexdump(const void* addr, uint cnt);
+
 #endif

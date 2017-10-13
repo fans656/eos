@@ -5,10 +5,11 @@ struct Bitmap {
     Bitmap(const char* path);
     inline int width() const { return width_; }
     inline int height() const { return height_; }
+    inline int pitch() const { return pitch_; }
     
     int width_, height_;
-    int pitch;
-    char* buffer;
+    int pitch_;
+    uchar* buffer;
 };
 
 #endif
