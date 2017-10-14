@@ -5,13 +5,13 @@
 struct Wnd : public Window {
     void on_create() {
         Window::on_create();
-        img = new Bitmap("/img/png.png");
+        img = new Bitmap("/img/snow-leopard.bmp");
         resize(img->width(), img->height());
     }
     
     void on_paint(PaintEvent* ev) {
         Canvas c(this);
-        c.draw_bitmap(img, (width() - img->width()) / 2, (height() - img->height()) / 2);
+        c.draw_bitmap(img, 0, 0);
     }
     
     Bitmap* img;
@@ -21,7 +21,6 @@ int main() {
     Wnd* wnd = new Wnd;
     wnd->set_attribute(WINDOW_CAPTION, false);
     wnd->set_attribute(WINDOW_FRAME, false);
-    //wnd->set_attribute(WINDOW_TRANSPARENT, true);
-    wnd->move(100, 100);
+    wnd->move(0, 0);
     gui_exec(wnd);
 }

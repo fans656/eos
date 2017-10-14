@@ -1633,3 +1633,6 @@ method 1 (fix compression) 应该没问题了，先歇了吧，，然后搞metho
 
 2017-10-14 14:11:35
 alpha blending搞定
+
+2017-10-14 20:20:39
+) make desktop a separate process

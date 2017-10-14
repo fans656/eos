@@ -27,13 +27,6 @@ struct Server {
         
         mouse_x = screen_width / 2;
         mouse_y = screen_height / 2;
-
-        desktop = new Surface(screen_width, screen_height, screen_bpp);
-        canvas = new Canvas(desktop);
-        background = new Bitmap("/img/snow-leopard.bmp");
-        
-        canvas->draw_bitmap(background, 0, 0);
-        memory_blit(desktop->buffer(), desktop->pitch(), 0, 0, 0, 0, screen_width, screen_height);
     }
 
     void exec() {
@@ -120,10 +113,6 @@ struct Server {
     int screen_width, screen_height;
     int screen_pitch, screen_bpp;
     int mouse_x, mouse_y;
-
-    Surface* desktop;
-    Canvas* canvas;
-    Bitmap* background;
 };
 
 void gui_server() {

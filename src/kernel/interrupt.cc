@@ -20,6 +20,7 @@ there's automatically `cli` before entering ISR and `sti` after returning from I
 #include "message.h"
 #include "graphics.h"
 #include "mouse.h"
+#include "process.h"
 
 #define IRQ_OFFSET 0x20
 
@@ -81,11 +82,14 @@ void isr_page_fault() {
     asm volatile("mov eax, [ebp + 8]; mov %0, eax" : "=m"(eip));
     
     if ((err & PF_P) == 0) {
-        panic("PageFault err %x vaddr %x eip %x %s\n",
+        printf("PageFault err %x vaddr %x eip %x %s\n",
                 err, vaddr, eip, (err & PF_W) ? "W" : "R");
     } else {
         panic("isr_page_fault | err: %x, vaddr: %x\n", err, vaddr);
     }
+    
+    dump_procs();
+    panic("");
 
     asm("popad; pop eax; leave; iret");
 }

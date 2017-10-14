@@ -27,4 +27,6 @@ void process_count_down();
 
 void init_process();
 
+void dump_procs();
+
 #endif

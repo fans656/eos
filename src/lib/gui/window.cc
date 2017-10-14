@@ -22,6 +22,8 @@ Window::Window(int x, int y, int width, int height, uint attr) {
 }
 
 void Window::init(int x, int y, int width, int height, uint attr) {
+    surface = 0;
+
     set_pos(x, y);
     set_client_size(width, height);
     wnd_attr = attr;

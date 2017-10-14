@@ -211,6 +211,7 @@ void init_process() {
     exited_procs.construct();
 
     ready_procs.append(proc_new("/bin/gui"));
+    ready_procs.append(proc_new("/bin/desktop"));
     ready_procs.append(proc_new("/bin/pa"));
     //ready_procs.append(proc_new("/bin/pb"));
 }
