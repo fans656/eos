@@ -10,7 +10,7 @@ struct Wnd : public Window {
         Window::on_create();
         img = new Bitmap("/img/png.png");
         img2 = new Bitmap("/img/walle.png");
-        resize(600, 400);
+        resize(500, 400);
         timer2 = set_timer(200);
     }
     
@@ -36,8 +36,8 @@ struct Wnd : public Window {
 
 int main() {
     Wnd* wnd = new Wnd;
-    wnd->set_attribute(WINDOW_CAPTION, false);
-    wnd->set_attribute(WINDOW_FRAME, false);
+    //wnd->set_attribute(WINDOW_CAPTION, false);
+    //wnd->set_attribute(WINDOW_FRAME, false);
     //wnd->set_attribute(WINDOW_TRANSPARENT, true);
     wnd->move(100, 100);
     gui_exec(wnd);

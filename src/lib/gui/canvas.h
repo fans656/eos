@@ -32,6 +32,8 @@ struct Canvas {
             int dst_x, int dst_y, int width, int height);
 
     void draw_text(int x, int y, const char* text);
+    
+    void blit(Surface* src, int x, int y, int width, int height);
 
     void translate(int dx, int dy);
     

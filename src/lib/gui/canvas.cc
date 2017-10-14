@@ -98,6 +98,20 @@ void Canvas::draw_bitmap_nocheck(Bitmap* bitmap, int src_x, int src_y,
             src_x, src_y, dst_x, dst_y, width, height);
 }
 
+void Canvas::blit(Surface* src, int x, int y, int width, int height) {
+    Rect rc(0, 0, width, height);
+    rc.translate(x, y);
+    rc.intersect(surface_left(), surface_top(), surface_width(), surface_height());
+    int dst_x = rc.left();
+    int dst_y = rc.top();
+    rc.translate(-x, -y);
+    int src_x = rc.left();
+    int src_y = rc.top();
+
+    surface->blit(src->alt_buffer(), src->pitch(),
+            src_x, src_y, dst_x, dst_y, rc.width(), rc.height());
+}
+
 void Canvas::translate(int dx, int dy) {
     origin_top_ += dx;
     origin_left_ += dy;

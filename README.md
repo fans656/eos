@@ -68,3 +68,5 @@
 [optimize DEFLATE](http://www.gzip.org/algorithm.txt)
 
 [unfilter](https://github.com/elanthis/upng)
+
+[DEFLATE C++ source](http://create.stephan-brumme.com/deflate-decoder/)

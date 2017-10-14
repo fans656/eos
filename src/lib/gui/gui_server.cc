@@ -25,6 +25,9 @@ struct Server {
         screen_bpp = info->screen_bpp;
         delete info;
         
+        screen = new Surface(screen_width, screen_height, screen_bpp);
+        canvas = new Canvas(screen);
+        
         mouse_x = screen_width / 2;
         mouse_y = screen_height / 2;
     }
@@ -103,9 +106,16 @@ struct Server {
     }
     
     void on_painted(Window* wnd) {
+        composite(wnd);
+        memory_blit(screen->buffer(), screen->pitch(),
+                wnd->frame_left(), wnd->frame_top(),
+                wnd->frame_left(), wnd->frame_top(),
+                wnd->frame_width(), wnd->frame_height());
+    }
+    
+    void composite(Window* wnd) {
         wnd->surface->switch_dst();
-        memory_blit(wnd->surface->alt_buffer(), wnd->surface->pitch(),
-                0, 0, wnd->frame_left(), wnd->frame_top(),
+        canvas->blit(wnd->surface, wnd->frame_left(), wnd->frame_top(),
                 wnd->frame_width(), wnd->frame_height());
     }
 
@@ -114,6 +124,9 @@ struct Server {
     int screen_width, screen_height;
     int screen_pitch, screen_bpp;
     int mouse_x, mouse_y;
+    
+    Surface* screen;
+    Canvas* canvas;
 };
 
 void gui_server() {

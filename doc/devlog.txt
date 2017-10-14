@@ -1635,4 +1635,7 @@ method 1 (fix compression) 应该没问题了，先歇了吧，，然后搞metho
 alpha blending搞定
 
 2017-10-14 20:20:39
-) make desktop a separate process
+. make desktop a separate process
+
+
+知道那些page fault老出在malloc是啥原因了：不是人malloc的问题，而是别的代码缓冲区溢出，把人malloc维护链表用的header给写乱了
