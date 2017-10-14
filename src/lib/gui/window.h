@@ -41,6 +41,7 @@ struct Window {
     
     void move(int x, int y);
     void resize(int width, int height);
+    void update();
 
     uint attribute() const { return wnd_attr; }
     void set_attribute(uint attr, bool val);

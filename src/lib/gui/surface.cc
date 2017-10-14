@@ -9,10 +9,12 @@ Surface::Surface(int width, int height, int bpp) {
     width_ = width;
     height_ = height;
     dst = new uchar[pitch_ * height];
+    alt_dst = new uchar[pitch_ * height];
 }
 
 Surface::~Surface() {
     delete[] dst;
+    delete[] alt_dst;
 }
 
 void Surface::fill_rect(int left, int top, int width, int height, uint color) {

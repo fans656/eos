@@ -103,7 +103,8 @@ struct Server {
     }
     
     void on_painted(Window* wnd) {
-        memory_blit(wnd->surface->buffer(), wnd->surface->pitch(),
+        wnd->surface->switch_dst();
+        memory_blit(wnd->surface->alt_buffer(), wnd->surface->pitch(),
                 0, 0, wnd->frame_left(), wnd->frame_top(),
                 wnd->frame_width(), wnd->frame_height());
     }

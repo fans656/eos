@@ -60,6 +60,10 @@ void Window::resize(int width, int height) {
     }
 }
 
+void Window::update() {
+    put_message(GUI_MESSAGE_ID, new WMUpdate(this));
+}
+
 void Window::set_attribute(uint attr, bool val) {
     switch (attr) {
         case WINDOW_CAPTION:

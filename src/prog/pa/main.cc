@@ -3,27 +3,35 @@
 #include "gui.h"
 #include "eos.h"
 #include "unistd.h"
+#include "algorithm.h"
 
 struct Wnd : public Window {
     void on_create() {
         Window::on_create();
         img = new Bitmap("/img/png.png");
-        resize(img->width(), img->height());
-        timer1 = set_timer(1000);
-        timer2 = set_timer(2000);
+        img2 = new Bitmap("/img/walle.png");
+        resize(600, 400);
+        timer2 = set_timer(200);
     }
     
     void on_paint(PaintEvent* ev) {
         Canvas c(this);
-        c.draw_bitmap(img, (width() - img->width()) / 2, (height() - img->height()) / 2);
+        c.draw_bitmap(img, x, (height() - img->height()) / 2);
     }
     
     void on_timer(TimerEvent* ev)  {
-        printf("timer %d\n", ev->id);
+        x += 10;
+        if (x + img->width() > width()) {
+            swap(img, img2);
+            x = 0;
+        }
+        update();
     }
     
     Bitmap* img;
+    Bitmap* img2;
     uint timer1, timer2;
+    int x;
 };
 
 int main() {

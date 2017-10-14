@@ -2,6 +2,7 @@
 #define SURFACE_H
 
 #include "def.h"
+#include "algorithm.h"
 
 struct Surface {
     Surface(int width, int height, int bpp);
@@ -11,6 +12,7 @@ struct Surface {
     inline int height() const { return height_; }
     inline int pitch() const { return pitch_; }
     inline uchar* buffer() const { return dst; }
+    inline uchar* alt_buffer() const { return alt_dst; }
     
     void fill_rect(int left, int top, int width, int height, uint color);
     void draw_pixel(int x, int y, uint color);
@@ -23,10 +25,13 @@ struct Surface {
             const uchar* src_fg, int src_fg_pitch, int src_fg_left, int src_fg_top,
             int width, int height);
     
+    void switch_dst() { swap(dst, alt_dst); }
+    
     int bpp;
     int pitch_;
     int width_, height_;
     uchar* dst;
+    uchar* alt_dst;
 };
 
 #endif
