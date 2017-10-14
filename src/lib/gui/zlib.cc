@@ -73,6 +73,7 @@ public:
         Leaf* leaves;
         if (lens) {
             leaves = new Leaf[n];
+            memset(leaves, 0, max(n, 19) * sizeof(Leaf));
             for (int i = 0; i < n; ++i) leaves[i] = Leaf(lens[i]);
         } else {
             n = 288;
@@ -94,13 +95,15 @@ public:
         }
         max_len = max;
 
-        int* cnt = new int[max + 1];
+        auto cnt = new int[max + 1];
         memset(cnt, 0, (max + 1) * sizeof(int));
         for (int i = 0; i < n; ++i) {
-            ++cnt[leaves[i].len];
+            if (leaves[i].len) {
+                ++cnt[leaves[i].len];
+            }
         }
         
-        int* next = new int[max + 1];
+        auto next = new int[max + 1];
         memset(next, 0, (max + 1) * sizeof(int));
         for (int i = min; i <= max; ++i) {
             next[i] = (next[i - 1] + cnt[i - 1]) << 1;
@@ -115,6 +118,7 @@ public:
         
         int nd = 1 << max;
         d = new Symbol[nd];
+        memset(d, 0, nd * sizeof(Symbol));
         for (int i = 0; i < n; ++i) {
             auto& leaf = leaves[i];
             auto code = leaf.code;
@@ -177,8 +181,7 @@ uint parse_distance(BitBuffer& buf, HuffmanTree* tree) {
 }
 
 uchar* inflate(BitBuffer& buf, uchar* dst, HuffmanTree* lit_tree, HuffmanTree* dis_tree = 0) {
-    uchar* dst_beg = dst;
-    while (true) {
+    for (int i = 0;; ++i) {
         auto symbol = lit_tree->next_symbol(buf);
         if (symbol < 256) {
             *dst++ = symbol;
@@ -205,7 +208,7 @@ void parse_tree(BitBuffer& buf, HuffmanTree*& lit_tree, HuffmanTree*& dis_tree) 
         auto val = buf.pop(3);
         lens[ORDER[i]] = val;
     }
-    HuffmanTree len_tree(lens, hlen);
+    HuffmanTree len_tree(lens, 19);
     
     auto all_lens = new uint[hlit + hdis];
     auto last_symbol = 0;

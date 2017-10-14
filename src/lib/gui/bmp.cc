@@ -42,7 +42,7 @@ uchar* load_bmp(const char* path, int& width, int& height) {
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             uchar* p = (uchar*)data + (height - 1 - y) * pitch + x * 3;
-            uint color = *p | (*(p + 1) << 8) | (*(p + 2) << 16);
+            uint color = *p | (*(p + 1) << 8) | (*(p + 2) << 16) | (255 << 24);
             *q++ = color;
         }
     }

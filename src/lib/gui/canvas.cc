@@ -80,11 +80,16 @@ void Canvas::draw_bitmap(Bitmap* bitmap, int src_x, int src_y,
 
     int new_src_x = rc.left();
     int new_src_y = rc.top();
-    
-    surface->blit(bitmap->buffer, bitmap->pitch(),
-            new_src_x, new_src_y,
-            new_dst_x, new_dst_y,
-            rc.width(), rc.height());
+
+    if (bitmap->opaque()) {
+        surface->blit(bitmap->buffer, bitmap->pitch(),
+                new_src_x, new_src_y, new_dst_x, new_dst_y,
+                rc.width(), rc.height());
+    } else {
+        surface->alpha_blit(bitmap->buffer, bitmap->pitch(),
+                new_src_x, new_src_y, new_dst_x, new_dst_y,
+                rc.width(), rc.height());
+    }
 }
 
 void Canvas::draw_bitmap_nocheck(Bitmap* bitmap, int src_x, int src_y,

@@ -18,6 +18,7 @@
 - malloc/free
 - Process
 - PNG decoder
+- Alpha blending
 
 ## Future
 

@@ -3,6 +3,6 @@
 
 #include "def.h"
 
-uchar* load_png(const char* path, int& width, int& height);
+uchar* load_png(const char* path, int& width, int& height, bool& opaque);
 
 #endif

@@ -1630,3 +1630,6 @@ method 1 (fix compression) 应该没问题了，先歇了吧，，然后搞metho
 可以在屏幕上画出decoded的PNG图片了
 
 明儿可以试试alpha blending
+
+2017-10-14 14:11:35
+alpha blending搞定

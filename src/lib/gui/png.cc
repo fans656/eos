@@ -28,7 +28,7 @@ uint hton(uint x) {
         | ((x >> 24) & 0xff);
 }
 
-inline char paeth(char a, char b, char c) {
+inline int paeth(int a, int b, int c) {
     auto p = a + b - c;
     auto pa = abs(p - a);
     auto pb = abs(p - b);
@@ -91,7 +91,6 @@ void unfilter(int type, uchar* dst, uchar* line, uchar* pline, int n) {
             }
             break;
         case 4:
-            exit(0);
             if (pline) {
                 for (int i = 0; i < 4; ++i) {
                     *dst++ = *line = *line + paeth(0, *pline++, 0);
@@ -115,7 +114,7 @@ void unfilter(int type, uchar* dst, uchar* line, uchar* pline, int n) {
     }
 }
 
-uchar* load_png(const char* path, int& width, int& height) {
+uchar* load_png(const char* path, int& width, int& height, bool& opaque) {
     uchar* data = (uchar*)load_file(path);
     data += 8;  // skip signature
     uchar* idat;
@@ -161,6 +160,7 @@ uchar* load_png(const char* path, int& width, int& height) {
     decompress(raw, idat);
     delete[] idat;
     uchar* out = new uchar[width * height * 4];
+    opaque = true;
     for (int y = 0; y < height; ++y) {
         uchar* line = raw + 1 + y * line_pitch;
         uchar* pline = y > 0 ? line - line_pitch : 0;
@@ -176,6 +176,9 @@ uchar* load_png(const char* path, int& width, int& height) {
             uchar g = (color >> 8) & 0xff;
             uchar r = color & 0xff;
             color = (a << 24) | (r << 16) | (g << 8) | b;
+            if (a != 255) {
+                opaque = false;
+            }
         }
     }
     delete[] raw;

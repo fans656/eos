@@ -33,8 +33,9 @@ struct Server {
         background = new Bitmap("/img/snow-leopard.bmp");
         
         canvas->draw_bitmap(background, 0, 0);
-        memory_blit(desktop->buffer, desktop->pitch, 0, 0, 0, 0, screen_width, screen_height);
-        printf("hello eos!\n");
+        auto png = new Bitmap("/img/png.png");
+        canvas->draw_bitmap(png, 20, (screen_height - png->height()) / 2);
+        memory_blit(desktop->buffer(), desktop->pitch(), 0, 0, 0, 0, screen_width, screen_height);
     }
 
     void exec() {
@@ -111,7 +112,7 @@ struct Server {
     }
     
     void on_painted(Window* wnd) {
-        memory_blit(wnd->surface->buffer, wnd->surface->pitch,
+        memory_blit(wnd->surface->buffer(), wnd->surface->pitch(),
                 0, 0, wnd->frame_left(), wnd->frame_top(),
                 wnd->frame_width(), wnd->frame_height());
     }

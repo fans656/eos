@@ -5,22 +5,23 @@
 struct Wnd : public Window {
     void on_create() {
         Window::on_create();
-        //img = new Bitmap("/img/girl.bmp");
-        img = new Bitmap("/img/girl2.png");
-        resize(img->width(), img->height());
+        img_bk = new Bitmap("/img/trans-back.png");
+        img = new Bitmap("/img/png.png");
+        resize(img_bk->width(), img_bk->height());
     }
     
     void on_paint(PaintEvent* ev) {
         Canvas c(this);
-        //c.draw_bitmap(img, (width() - img->width()) / 2, -25);
-        c.draw_bitmap(img, 0, 0);
+        c.draw_bitmap(img_bk, 0, 0);
+        c.draw_bitmap(img, (width() - img->width()) / 2, (height() - img->height()) / 2);
     }
     
     Bitmap* img;
+    Bitmap* img_bk;
 };
 
 int main() {
     Wnd* wnd = new Wnd;
-    wnd->move(100, 100);
+    wnd->move(200, 100);
     gui_exec(wnd);
 }
