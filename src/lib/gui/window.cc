@@ -5,28 +5,35 @@
 #include "color.h"
 #include "stdio.h"
 
-constexpr int DEF_MARGIN_TOP = 20;
+constexpr int DEF_MARGIN_TOP = 2;
 constexpr int DEF_MARGIN_LEFT = 2;
 constexpr int DEF_MARGIN_RIGHT = 2;
 constexpr int DEF_MARGIN_BOTTOM = 2;
+constexpr int DEF_CAPTION_HEIGHT = 20;
 constexpr int DEF_WND_CLIENT_WIDTH = 320;
 constexpr int DEF_WND_CLIENT_HEIGHT = 240;
 
-Window::Window(int x, int y, int width, int height) {
-    init(x, y, width, height);
+Window::Window(uint attr) {
+    init(0, 0, DEF_WND_CLIENT_WIDTH, DEF_WND_CLIENT_HEIGHT, attr);
 }
 
-Window::Window() {
-    init(0, 0, DEF_WND_CLIENT_WIDTH, DEF_WND_CLIENT_HEIGHT);
+Window::Window(int x, int y, int width, int height, uint attr) {
+    init(x, y, width, height, attr);
 }
 
-void Window::init(int x, int y, int width, int height) {
+void Window::init(int x, int y, int width, int height, uint attr) {
     set_pos(x, y);
     set_client_size(width, height);
-    margin_left_ = DEF_MARGIN_LEFT;
-    margin_right_ = DEF_MARGIN_RIGHT;
-    margin_top_ = DEF_MARGIN_TOP;
-    margin_bottom_ = DEF_MARGIN_BOTTOM;
+    wnd_attr = attr;
+    if (attr & WINDOW_FRAME) {
+        margin_left_ = DEF_MARGIN_LEFT;
+        margin_right_ = DEF_MARGIN_RIGHT;
+        margin_top_ = DEF_MARGIN_TOP;
+        margin_bottom_ = DEF_MARGIN_BOTTOM;
+    }
+    if (attr & WINDOW_CAPTION) {
+        margin_top_ += DEF_CAPTION_HEIGHT;
+    }
 }
 
 Window::~Window() {
@@ -48,6 +55,44 @@ void Window::resize(int width, int height) {
         put_message(GUI_MESSAGE_ID, new WMResize(this, w, h));
     } else {
         set_size(w, h);
+    }
+}
+
+void Window::set_attribute(uint attr, bool val) {
+    switch (attr) {
+        case WINDOW_CAPTION:
+            if (val) {
+                if (!(wnd_attr & WINDOW_CAPTION)) {
+                    margin_top_ += DEF_CAPTION_HEIGHT;
+                }
+            } else {
+                if (wnd_attr & WINDOW_CAPTION) {
+                    margin_top_ -= DEF_CAPTION_HEIGHT;
+                }
+            }
+            break;
+        case WINDOW_FRAME:
+            if (val) {
+                if (!(wnd_attr & WINDOW_FRAME)) {
+                    margin_left_ += DEF_MARGIN_LEFT;
+                    margin_top_ += DEF_MARGIN_TOP;
+                    margin_right_ += DEF_MARGIN_RIGHT;
+                    margin_bottom_ += DEF_MARGIN_BOTTOM;
+                }
+            } else {
+                if (wnd_attr & WINDOW_FRAME) {
+                    margin_left_ -= DEF_MARGIN_LEFT;
+                    margin_top_ -= DEF_MARGIN_TOP;
+                    margin_right_ -= DEF_MARGIN_RIGHT;
+                    margin_bottom_ -= DEF_MARGIN_BOTTOM;
+                }
+            }
+            break;
+    }
+    if (val) {
+        wnd_attr |= attr;
+    } else {
+        wnd_attr &= ~attr;
     }
 }
 
@@ -94,7 +139,7 @@ void Window::on_system_paint(PaintEvent* ev) {
     surface->fill_rect(0, frame_height() - margin_bottom(),
             frame_width(), margin_bottom(), frame_color);  // bottom
     surface->fill_rect(margin_left(), margin_top(),
-            width(), height(), LightSteelBlue);  // client
+            width(), height(), 0xffeeeeee);  // client
 }
 
 void Window::on_paint(PaintEvent* ev) {

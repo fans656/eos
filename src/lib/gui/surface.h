@@ -18,6 +18,10 @@ struct Surface {
             int dst_left, int dst_top, int width, int height);
     void alpha_blit(uchar* src, int src_pitch, int src_left, int src_top,
             int dst_left, int dst_top, int width, int height);
+    void alpha_blit(uchar* dst, int dst_pitch, int dst_left, int dst_top,
+            const uchar* src_bg, int src_bg_pitch, int src_bg_left, int src_bg_top,
+            const uchar* src_fg, int src_fg_pitch, int src_fg_left, int src_fg_top,
+            int width, int height);
     
     int bpp;
     int pitch_;

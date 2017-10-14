@@ -1,14 +1,21 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
+#include "def.h"
 #include "gui_message.h"
 #include "rect.h"
+
+constexpr uint WINDOW_FRAME = 0x01;
+constexpr uint WINDOW_CAPTION = 0x02;
+constexpr uint WINDOW_TRANSPARENT = 0x04;
+
+constexpr uint WINDOW_DEFAULT_ATTR = WINDOW_FRAME | WINDOW_CAPTION;
 
 struct Surface;
 
 struct Window {
-    Window();
-    Window(int x, int y, int width, int height);
+    Window(uint attr = WINDOW_DEFAULT_ATTR);
+    Window(int x, int y, int width, int height, uint attr = WINDOW_DEFAULT_ATTR);
     ~Window();
     
     int left() const { return left_ + margin_left_; }
@@ -34,6 +41,9 @@ struct Window {
     
     void move(int x, int y);
     void resize(int width, int height);
+
+    uint attribute() const { return wnd_attr; }
+    void set_attribute(uint attr, bool val);
     
     virtual void on_event(EventMessage* ev);
     virtual void on_create();
@@ -43,7 +53,7 @@ struct Window {
 
     void on_system_paint(PaintEvent* ev);
 
-    void init(int x, int y, int width, int height);
+    void init(int x, int y, int width, int height, uint attr);
     bool destroyed() { return false; }
     void exec();
     
@@ -68,6 +78,7 @@ struct Window {
     int width_, height_;
     int margin_left_, margin_right_, margin_top_, margin_bottom_;
     bool created = false;
+    uint wnd_attr;
 };
 
 void gui_exec(Window* wnd);

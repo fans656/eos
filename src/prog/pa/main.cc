@@ -12,7 +12,7 @@ struct Wnd : public Window {
     
     void on_paint(PaintEvent* ev) {
         Canvas c(this);
-        c.draw_bitmap(img_bk, 0, 0);
+        //c.draw_bitmap(img_bk, 0, 0);
         c.draw_bitmap(img, (width() - img->width()) / 2, (height() - img->height()) / 2);
     }
     
@@ -22,6 +22,9 @@ struct Wnd : public Window {
 
 int main() {
     Wnd* wnd = new Wnd;
-    wnd->move(200, 100);
+    wnd->set_attribute(WINDOW_CAPTION, false);
+    wnd->set_attribute(WINDOW_FRAME, false);
+    //wnd->set_attribute(WINDOW_TRANSPARENT, true);
+    wnd->move(100, 100);
     gui_exec(wnd);
 }

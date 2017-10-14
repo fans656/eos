@@ -33,8 +33,6 @@ struct Server {
         background = new Bitmap("/img/snow-leopard.bmp");
         
         canvas->draw_bitmap(background, 0, 0);
-        auto png = new Bitmap("/img/png.png");
-        canvas->draw_bitmap(png, 20, (screen_height - png->height()) / 2);
         memory_blit(desktop->buffer(), desktop->pitch(), 0, 0, 0, 0, screen_width, screen_height);
     }
 
