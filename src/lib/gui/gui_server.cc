@@ -116,13 +116,10 @@ struct Server {
     void composite(Window* wnd) {
         wnd->surface->switch_dst();
         blit_window(wnd);
-        for (auto it = wnds.find(wnd); it != wnds.begin(); --it) {
-            blit_window(*it);
-        }
     }
     
     void blit_window(Window* wnd) {
-        canvas->blit(wnd->surface, wnd->frame_left(), wnd->frame_top(),
+        canvas->alpha_blit(wnd->surface, wnd->frame_left(), wnd->frame_top(),
                 wnd->frame_width(), wnd->frame_height());
     }
 

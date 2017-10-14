@@ -117,6 +117,16 @@ struct List {
         return it;
     }
     
+    riter rfind(const T& target) {
+        auto it = rbegin();
+        for (; it != rend(); ++it) {
+            if (*it == target) {
+                return it;
+            }
+        }
+        return it;
+    }
+    
     bool empty() const { return size_ == 0; }
     size_t size() const { return size_; }
     iter begin() { return iter(head->next); }

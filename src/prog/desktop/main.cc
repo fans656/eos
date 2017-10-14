@@ -9,9 +9,9 @@ struct Wnd : public Window {
         imgs = new Bitmap*[3];
         imgs[0] = img;
         imgs[1] = new Bitmap("/img/cheetah.png");
-        imgs[2] = new Bitmap("/img/walle-desktop.png");
+        //imgs[2] = new Bitmap("/img/walle-desktop.png");
         resize(img->width(), img->height());
-        set_timer(1000);
+        //set_timer(3000);
     }
     
     void on_paint(PaintEvent* ev) {
@@ -20,7 +20,7 @@ struct Wnd : public Window {
     }
     
     void on_timer(TimerEvent* ev) {
-        i_img = (i_img + 1) % 3;
+        i_img = (i_img + 1) % 2;
         img = imgs[i_img];
         update();
     }

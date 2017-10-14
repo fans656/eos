@@ -151,8 +151,13 @@ void Window::on_system_paint(PaintEvent* ev) {
             margin_right(), height(), frame_color);  // right
     surface->fill_rect(0, frame_height() - margin_bottom(),
             frame_width(), margin_bottom(), frame_color);  // bottom
-    surface->fill_rect(margin_left(), margin_top(),
-            width(), height(), 0xffeeeeee);  // client
+    if (wnd_attr & WINDOW_TRANSPARENT) {
+        surface->fill_rect(margin_left(), margin_top(),
+                width(), height(), 0x0);  // client
+    } else {
+        surface->fill_rect(margin_left(), margin_top(),
+                width(), height(), 0xffeeeeee);  // client
+    }
 }
 
 void Window::on_paint(PaintEvent* ev) {

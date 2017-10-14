@@ -58,6 +58,7 @@ void Surface::alpha_blit(uchar* src, int src_pitch,
             uchar& dst_blue = *q;
             uchar& dst_green = *(q + 1);
             uchar& dst_red = *(q + 2);
+            uchar& dst_alpha = *(q + 3);
             const uchar& src_blue = *p;
             const uchar& src_green = *(p + 1);
             const uchar& src_red = *(p + 2);
@@ -65,6 +66,7 @@ void Surface::alpha_blit(uchar* src, int src_pitch,
             dst_blue = alpha_over(dst_blue, src_blue, alpha);
             dst_green = alpha_over(dst_green, src_green, alpha);
             dst_red = alpha_over(dst_red, src_red, alpha);
+            dst_alpha = alpha_over(dst_alpha, alpha, alpha);
             p += bpp;
             q += bpp;
         }

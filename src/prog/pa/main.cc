@@ -11,7 +11,7 @@ struct Wnd : public Window {
         img = new Bitmap("/img/png.png");
         img2 = new Bitmap("/img/walle.png");
         resize(500, 400);
-        timer2 = set_timer(200);
+        timer2 = set_timer(500);
     }
     
     void on_paint(PaintEvent* ev) {
@@ -36,9 +36,9 @@ struct Wnd : public Window {
 
 int main() {
     Wnd* wnd = new Wnd;
-    //wnd->set_attribute(WINDOW_CAPTION, false);
-    //wnd->set_attribute(WINDOW_FRAME, false);
-    //wnd->set_attribute(WINDOW_TRANSPARENT, true);
+    wnd->set_attribute(WINDOW_CAPTION, false);
+    wnd->set_attribute(WINDOW_FRAME, false);
+    wnd->set_attribute(WINDOW_TRANSPARENT, true);
     wnd->move(100, 100);
     gui_exec(wnd);
 }
