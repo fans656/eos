@@ -98,6 +98,10 @@ void Window::set_attribute(uint attr, bool val) {
     }
 }
 
+uint Window::set_timer(uint ms, bool singleshot) {
+    return ::set_timer(ms, (uint)this, singleshot);
+}
+
 void Window::on_event(EventMessage* ev) {
     switch (ev->type) {
         case WE_OnCreate:
@@ -114,6 +118,9 @@ void Window::on_event(EventMessage* ev) {
             on_system_paint((PaintEvent*)ev);
             on_paint((PaintEvent*)ev);
             put_message(GUI_MESSAGE_ID, new WMPainted(this));
+            break;
+        case WE_OnTimer:
+            on_timer((TimerEvent*)ev);
             break;
     }
 }
@@ -145,6 +152,9 @@ void Window::on_system_paint(PaintEvent* ev) {
 }
 
 void Window::on_paint(PaintEvent* ev) {
+}
+
+void Window::on_timer(TimerEvent* ev) {
 }
 
 void Window::exec() {

@@ -21,6 +21,10 @@ void put_message(int id, void* message) {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_PUT_MESSAGE));
 }
 
+uint set_timer(uint ms, uint id, bool singleshot) {
+    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_SET_TIMER));
+}
+
 void memory_blit(
         const uchar* buffer, int src_pitch,
         int src_left, int src_top,

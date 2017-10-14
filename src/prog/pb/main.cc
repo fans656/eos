@@ -1,14 +1,9 @@
 #include "stdio.h"
-#include "gui.h"
-
-struct Wnd : public Window {
-    void on_create() {
-        Window::on_create();
-        move(20, 300);
-        resize(50, 200);
-    }
-};
+#include "unistd.h"
 
 int main() {
-    gui_exec(new Wnd);
+    for (int i = 0; ; ++i) {
+        sleep(1000);
+        printf("Proc B %d\n", i);
+    }
 }

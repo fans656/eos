@@ -1,10 +1,14 @@
 #ifndef GUI_MESSAGE_H
 #define GUI_MESSAGE_H
 
+#include "def.h"
+
 struct Window;
 
 enum Type {
-    WM_Create,
+    WE_OnTimer = MESSAGE_TIMER,
+
+    WM_Create = 1024,
     WM_Show,
     WM_Update,
     WM_Move,
@@ -94,5 +98,11 @@ struct WEOnMouse : public EventMessage {
     int x, y;
 };
 typedef WEOnPaint MouseEvent;
+
+struct WEOnTimer : public EventMessage {
+    WEOnTimer() : EventMessage(WE_OnTimer) {}
+    uint id;
+};
+typedef WEOnTimer TimerEvent;
 
 #endif

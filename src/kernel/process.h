@@ -24,6 +24,7 @@ void process_block();
 void process_unblock(Process proc);
 void process_sleep(uint ms);
 void process_count_down();
+uint set_timer(uint ms, uint queue_id, bool singleshot);
 
 void init_process();
 

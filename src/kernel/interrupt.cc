@@ -193,6 +193,8 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
         case SYSCALL_PUT_MESSAGE:
             put_message((int)*parg, (void*)*(parg + 1));
             break;
+        case SYSCALL_SET_TIMER:
+            return (uint)set_timer((uint)*parg, (uint)*(parg + 1), (bool)*(parg + 2));
         case SYSCALL_INIT_GUI:
             gui_inited = true;
             mouse_events_pool = new GUIMouseEvent[mouse_events_pool_size];

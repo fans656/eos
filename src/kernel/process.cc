@@ -8,6 +8,7 @@
 #include "time.h"
 #include "string.h"
 #include "list.h"
+#include "message.h"
 
 #define CODE_SELECTOR (1 << 3)
 
@@ -21,10 +22,60 @@ Process running_proc;
 uint current_esp;
 uint pid_alloc = 0;
 
-typedef struct CountDown {
+static inline uint ms2tick(uint ms) {
+    return (ms + PIT_MS_PRECISION - 1) / PIT_MS_PRECISION;
+}
+
+struct CountDown {
+    CountDown(uint ms) : cnt(ms2tick(ms)), dead_(false) {}
+
+    virtual void count() {
+        --cnt;
+    }
+    
+    inline bool dead() const { return dead_; }
+    
     uint cnt;
+    bool dead_;
+};
+
+struct TimerCountDown : public CountDown {
+    TimerCountDown(uint ms, uint queue_id, uint timer_id, bool singleshot = false)
+        : CountDown(ms), queue_id(queue_id), timer_id(timer_id), singleshot(singleshot) {
+            initial_cnt = cnt;
+    }
+    
+    void count() {
+        CountDown::count();
+        if (cnt == 0) {
+            if (singleshot) {
+                dead_ = true;
+            } else {
+                cnt = initial_cnt;
+            }
+            put_message(queue_id, new KernelTimerEvent(timer_id));
+        }
+    }
+
+    uint initial_cnt;
+    uint queue_id;
+    uint timer_id;
+    bool singleshot;
+};
+
+struct SleepCountDown : public CountDown {
+    SleepCountDown(uint ms, Process proc) : CountDown(ms), proc(proc) {}
+    
+    void count() {
+        CountDown::count();
+        if (cnt == 0) {
+            dead_ = true;
+            ready_procs.append(proc);
+        }
+    }
+    
     Process proc;
-} CountDown;
+};
 
 List<CountDown*> countdowns;
 
@@ -161,9 +212,7 @@ void process_unblock(Process proc) {
 }
 
 void process_sleep(uint ms) {
-    CountDown* cd = (CountDown*)named_malloc(sizeof(CountDown), "CountDown");
-    cd->cnt = (ms + PIT_MS_PRECISION - 1) / PIT_MS_PRECISION;
-    cd->proc = running_proc;
+    auto cd = new SleepCountDown(ms, running_proc);
     countdowns.append(cd);
     running_proc->esp = current_esp;
     running_proc = 0;
@@ -172,13 +221,21 @@ void process_sleep(uint ms) {
 void process_count_down() {
     auto it = countdowns.begin();
     for (auto cd: countdowns) {
-        if (--cd->cnt == 0) {
-            ready_procs.append(cd->proc);
+        cd->count();
+        if (cd->dead()) {
             delete cd;
             it.remove();
         }
         ++it;
     }
+}
+
+static uint timer_id_alloc = 0;
+
+uint set_timer(uint ms, uint queue_id, bool singleshot) {
+    uint timer_id = timer_id_alloc++;
+    countdowns.append(new TimerCountDown(ms, queue_id, timer_id, singleshot));
+    return timer_id;
 }
 
 void dump_procs() {
@@ -192,12 +249,12 @@ void dump_procs() {
     for (auto proc: ready_procs) {
         printf("%d(%s) ", proc->pid, proc->path);
     }
-    putchar('\n');
-    printf("Count downs: ");
-    for (auto cd: countdowns) {
-        Process proc = cd->proc;
-        printf("%d(%s) ", proc->pid, proc->path);
-    }
+    //putchar('\n');
+    //printf("Count downs: ");
+    //for (auto cd: countdowns) {
+    //    Process proc = cd->proc;
+    //    printf("%d(%s) ", proc->pid, proc->path);
+    //}
     putchar('\n');
     printf("======================================= dump_procs end\n");
 }

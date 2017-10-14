@@ -19,6 +19,7 @@ enum {
     SYSCALL_LOAD_FILE,
 
     SYSCALL_SLEEP,
+    SYSCALL_SET_TIMER,
 
     SYSCALL_MEMORY_BLIT,
 
@@ -34,6 +35,10 @@ enum {
     GUI_MESSAGE_ID,
     GUI_KEYBOARD_EVENT_ID,
     GUI_MOUSE_EVENT_ID,
+};
+
+enum {
+    MESSAGE_TIMER = 1,
 };
 
 typedef unsigned char uchar;
@@ -62,6 +67,12 @@ struct GUIMouseEvent {
     ushort x, y;
     bool left;
     bool right;
+};
+
+struct KernelTimerEvent {
+    uint type;
+    uint id;
+    KernelTimerEvent(uint id) : type(MESSAGE_TIMER), id(id) {}
 };
 
 #endif

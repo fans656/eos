@@ -45,11 +45,14 @@ struct Window {
     uint attribute() const { return wnd_attr; }
     void set_attribute(uint attr, bool val);
     
+    uint set_timer(uint ms, bool singleshot = false);
+    
     virtual void on_event(EventMessage* ev);
     virtual void on_create();
     virtual void on_move(MoveEvent* ev);
     virtual void on_size(SizeEvent* ev);
     virtual void on_paint(PaintEvent* ev);
+    virtual void on_timer(TimerEvent* ev);
 
     void on_system_paint(PaintEvent* ev);
 
