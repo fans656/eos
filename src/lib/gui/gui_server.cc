@@ -84,7 +84,7 @@ struct Server {
     }
 
     void on_create(Window* wnd) {
-        top_wnds.append(wnd);
+        wnds.append(wnd);
         put_message((int)wnd, new WEOnCreate);
         put_message((int)wnd, new WEOnSize(wnd->width(), wnd->height()));
     }
@@ -115,11 +115,18 @@ struct Server {
     
     void composite(Window* wnd) {
         wnd->surface->switch_dst();
+        blit_window(wnd);
+        for (auto it = wnds.find(wnd); it != wnds.begin(); --it) {
+            blit_window(*it);
+        }
+    }
+    
+    void blit_window(Window* wnd) {
         canvas->blit(wnd->surface, wnd->frame_left(), wnd->frame_top(),
                 wnd->frame_width(), wnd->frame_height());
     }
 
-    List<Window*> top_wnds;
+    List<Window*> wnds;
 
     int screen_width, screen_height;
     int screen_pitch, screen_bpp;

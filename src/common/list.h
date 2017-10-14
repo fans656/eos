@@ -106,6 +106,17 @@ struct List {
         return false;
     }
     
+    iter find(const T& target) {
+        auto it = begin();
+        for (auto x: *this) {
+            if (x == target) {
+                return it;
+            }
+            ++it;
+        }
+        return it;
+    }
+    
     bool empty() const { return size_ == 0; }
     size_t size() const { return size_; }
     iter begin() { return iter(head->next); }
