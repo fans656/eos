@@ -7,6 +7,7 @@ struct Bitmap {
     inline int height() const { return height_; }
     inline int pitch() const { return pitch_; }
     inline bool opaque() const { return opaque_; }
+    inline uchar* data() const { return buffer; }
     
     int width_, height_;
     int pitch_;

@@ -103,13 +103,19 @@ void memory_blit(
         int dst_left, int dst_top,
         int width, int height) {
     int dst_pitch = screen_pitch;
-    int dst_offset = dst_left * screen_bpp;
-    int src_offset = src_left * screen_bpp;
-    int bytes_per_row = width * screen_bpp;
+    int dst_offset = dst_left << 2;
+    int src_offset = src_left << 2;
     char* dst = (char*)(graphic_video_mem + dst_top * dst_pitch + dst_offset);
     const char* src = (const char*)(buffer + src_top * src_pitch + src_offset);
     while (height--) {
-        memcpy(dst, src, bytes_per_row);
+        asm volatile(
+                "mov esi, %0;"
+                "mov edi, %1;"
+                "mov ecx, %2;"
+                "cld;"
+                "rep movsd;"
+                :: "a"(src), "b"(dst), "c"(width)
+                );
         dst += dst_pitch;
         src += src_pitch;
     }

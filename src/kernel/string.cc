@@ -9,6 +9,10 @@ void* memset(void* ptr, uchar value, uint cnt) {
 }
 
 void* memcpy(void* dst, const void* src, uint cnt) {
+    switch (cnt & 0x11) {
+        case 0:
+            return memcpy_dword(dst, src, cnt);
+    }
     const uchar* p = (const uchar*)src;
     uchar* q = (uchar*)dst;
     while (cnt--) {
