@@ -20,6 +20,10 @@ void operator delete(void* p) {
     free(p);
 }
 
+void operator delete(void* p, uint _) {
+    free(p);
+}
+
 void* operator new[](size_t n) {
     return malloc(n);
 }

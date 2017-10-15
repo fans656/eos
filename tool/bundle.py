@@ -32,10 +32,10 @@ def write_entry(block, fpath, has_next, i_data_block):
     return i_data_block + blocks
 
 
-img = open('../bin/eos.img', 'rb+')
+img = open('bin/eos.img', 'rb+')
 
 fpaths = []
-base = '../files'
+base = 'files'
 for dirpath, dirs, fnames in os.walk(base):
     for fname in fnames:
         fpath = os.path.join(dirpath, fname)
