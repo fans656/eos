@@ -11,6 +11,7 @@ typedef uint clock_t;
 clock_t clock();
 extern "C" void clock_tick();
 
+void _timeit(const char** pfmt);
 void timeit(const char* fmt, ...);
 
 #endif

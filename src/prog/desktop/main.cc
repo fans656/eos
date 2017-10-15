@@ -6,12 +6,12 @@ struct Wnd : public Window {
     void on_create() {
         Window::on_create();
         img = new Bitmap("/img/snow-leopard.bmp");
-        //imgs = new Bitmap*[3];
-        //imgs[0] = img;
-        //imgs[1] = new Bitmap("/img/cheetah.png");
-        //imgs[2] = new Bitmap("/img/walle-desktop.png");
+        imgs = new Bitmap*[3];
+        imgs[0] = img;
+        imgs[1] = new Bitmap("/img/cheetah.png");
+        imgs[2] = new Bitmap("/img/walle-desktop.png");
         resize(img->width(), img->height());
-        //set_timer(3000);
+        set_timer(1000);
     }
     
     void on_paint(PaintEvent* ev) {
@@ -19,15 +19,15 @@ struct Wnd : public Window {
         c.draw_bitmap(img, 0, 0);
     }
     
-    //void on_timer(TimerEvent* ev) {
-    //    i_img = (i_img + 1) % 2;
-    //    img = imgs[i_img];
-    //    update();
-    //}
+    void on_timer(TimerEvent* ev) {
+        i_img = (i_img + 1) % 3;
+        img = imgs[i_img];
+        update();
+    }
     
     Bitmap* img;
-    //Bitmap** imgs;
-    //int i_img = 0;
+    Bitmap** imgs;
+    int i_img = 0;
 };
 
 int main() {

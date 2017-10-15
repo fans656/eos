@@ -4,6 +4,8 @@
 #include "string.h"
 #include "math.h"
 #include "stdio.h"
+#include "time.h"
+#include "unistd.h"
 
 class BitBuffer {
 public:
@@ -47,14 +49,14 @@ public:
 };
 
 struct Leaf {
-    int len;
-    uint code;
+    uchar len;
+    ushort code;
     Leaf(int len = 0) : len(len), code(0) {}
 };
 
 struct Symbol {
     int val;
-    int len;
+    uchar len;
     Symbol(int val = 0, int len = 0) : val(val), len(len) {}
 };
 
@@ -69,25 +71,18 @@ uint reversed_bits(uint x, int n) {
 
 class HuffmanTree {
 public:
-    HuffmanTree(uint* lens = 0, int n = 0) {
-        Leaf* leaves;
-        if (lens) {
-            leaves = new Leaf[n];
-            memset(leaves, 0, max(n, 19) * sizeof(Leaf));
-            for (int i = 0; i < n; ++i) leaves[i] = Leaf(lens[i]);
-        } else {
-            n = 288;
-            leaves = new Leaf[n];
+    HuffmanTree(uint* lens = DEF_LENS, int n = 288) {
+        if (lens == DEF_LENS && lens[0] == 0) {
             int i = 0;
-            for (; i < 144; ++i) leaves[i] = Leaf(8);
-            for (; i < 256; ++i) leaves[i] = Leaf(9);
-            for (; i < 280; ++i) leaves[i] = Leaf(7);
-            for (; i < 288; ++i) leaves[i] = Leaf(8);
+            for (; i < 144; ++i) lens[i] = 8;
+            for (; i < 256; ++i) lens[i] = 9;
+            for (; i < 280; ++i) lens[i] = 7;
+            for (; i < 288; ++i) lens[i] = 8;
         }
 
-        int min = 999, max = 0;
+        int min = MAX_CODE_LEN, max = 0;
         for (int i = 0; i < n; ++i) {
-            int len = leaves[i].len;
+            auto len = lens[i];
             if (len) {
                 if (len < min) min = len;
                 else if (len > max) max = len;
@@ -95,35 +90,24 @@ public:
         }
         max_len = max;
 
-        auto cnt = new int[max + 1];
-        memset(cnt, 0, (max + 1) * sizeof(int));
+        int cnt[MAX_CODE_LEN] = {0};
         for (int i = 0; i < n; ++i) {
-            if (leaves[i].len) {
-                ++cnt[leaves[i].len];
+            auto len = lens[i];
+            if (len) {
+                ++cnt[len];
             }
         }
         
-        auto next = new int[max + 1];
-        memset(next, 0, (max + 1) * sizeof(int));
+        int next[MAX_CODE_LEN] = {0};
         for (int i = min; i <= max; ++i) {
             next[i] = (next[i - 1] + cnt[i - 1]) << 1;
         }
         
+        d = new Symbol[1 << max];
         for (int i = 0; i < n; ++i) {
-            auto& leaf = leaves[i];
-            if (leaf.len) {
-                leaf.code = next[leaf.len]++;
-            }
-        }
-        
-        int nd = 1 << max;
-        d = new Symbol[nd];
-        memset(d, 0, nd * sizeof(Symbol));
-        for (int i = 0; i < n; ++i) {
-            auto& leaf = leaves[i];
-            auto code = leaf.code;
-            auto len = leaf.len;
+            auto len = lens[i];
             if (len) {
+                auto code = next[len]++;
                 if (len == max) {
                     d[reversed_bits(code, len)] = Symbol(i, len);
                 } else {
@@ -134,10 +118,6 @@ public:
                 }
             }
         }
-        
-        delete[] leaves;
-        delete[] cnt;
-        delete[] next;
     }
 
     ~HuffmanTree() {
@@ -150,34 +130,51 @@ public:
         buf.remove(symbol.len);
         return symbol.val;
     }
+    
+    static constexpr int MAX_CODE_LEN = 16;
+    static uint DEF_LENS[288];
 
     Symbol* d;
     int max_len;
 };
 
+uint HuffmanTree::DEF_LENS[288] = {0};
+
 uint parse_length(BitBuffer& buf, uint symbol) {
-    if (symbol < 265) {
-        return symbol - 254;
-    } else if (symbol == 285) {
-        return 258;
-    } else {
-        symbol -= 265;
-        auto bits = symbol / 4 + 1;
-        auto base = (1 << (bits + 2)) + 3;
-        return base + (1 << bits) * (symbol % 4) + buf.pop(bits);
-    }
+    static constexpr ushort SYM_TO_LEN[] = {
+        /* 257 */   3, /* 258 */   4, /* 259 */   5,
+        /* 260 */   6, /* 261 */   7, /* 262 */   8, /* 263 */   9, /* 264 */  10,
+        /* 265 */  11, /* 266 */  13, /* 267 */  15, /* 268 */  17, /* 269 */  19,
+        /* 270 */  23, /* 271 */  27, /* 272 */  31, /* 273 */  35, /* 274 */  43,
+        /* 275 */  51, /* 276 */  59, /* 277 */  67, /* 278 */  83, /* 279 */  99,
+        /* 280 */ 115, /* 281 */ 131, /* 282 */ 163, /* 283 */ 195, /* 284 */ 227,
+        /* 285 */ 258
+    };
+    static constexpr uchar EXTRA_BITS[] = {
+        /* 257 */ 0, /* 258 */ 0, /* 259 */ 0, /* 260 */ 0,
+        /* 261 */ 0, /* 262 */ 0, /* 263 */ 0, /* 264 */ 0,
+        /* 265 */ 1, /* 266 */ 1, /* 267 */ 1, /* 268 */ 1,
+        /* 269 */ 2, /* 270 */ 2, /* 271 */ 2, /* 272 */ 2,
+        /* 273 */ 3, /* 274 */ 3, /* 275 */ 3, /* 276 */ 3,
+        /* 277 */ 4, /* 278 */ 4, /* 279 */ 4, /* 280 */ 4,
+        /* 281 */ 5, /* 282 */ 5, /* 283 */ 5, /* 284 */ 5,
+        /* 285 */ 0
+    };
+    symbol -= 257;
+    return SYM_TO_LEN[symbol] + buf.pop(EXTRA_BITS[symbol]);
 }
 
 uint parse_distance(BitBuffer& buf, HuffmanTree* tree) {
+    static constexpr ushort SYM_TO_DIS[] = {
+         1,     2,    3,    4,    5,    7,    9,    13,    17,    25,
+        33,    49,   65,   97,  129,  193,  257,   385,   513,   769,
+      1025,  1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
+    };
+    static constexpr uchar EXTRA_BITS[] = {
+        0,  0,  1,  2,  3, 4,  5,  6,  7,  8, 9, 10, 11, 12, 13, 14
+    };
     uint symbol = tree ? tree->next_symbol(buf) : reversed_bits(buf.pop(5), 5);
-    if (symbol < 4) {
-        return symbol + 1;
-    } else if (symbol < 30) {
-        auto bits = (symbol >> 1) - 1;
-        auto base = (1 << (bits + 1)) + 1;
-        auto diff = (1 << bits) * (symbol - (symbol >> 1 << 1));
-        return base + diff + buf.pop(bits);
-    }
+    return SYM_TO_DIS[symbol] + buf.pop(EXTRA_BITS[symbol / 2]);
 }
 
 uchar* inflate(BitBuffer& buf, uchar* dst, HuffmanTree* lit_tree, HuffmanTree* dis_tree = 0) {

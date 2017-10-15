@@ -21,8 +21,9 @@ extern "C" void main() {
     init_message();
 
     asm("sti");
+
     while (true) {
         process_release();
-        asm("hlt");
+        process_yield();
     }
 }

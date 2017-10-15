@@ -11,7 +11,7 @@
 // http://www.delorie.com/djgpp/doc/rbinter/ix/10/4F.html
 
 struct  __attribute__ ((packed)) vbe_mode_info_structure {
-   ushort attributes;  // deprecated
+   ushort attributes;
    uchar window_a;    // deprecated
    uchar window_b;   // deprecated
    ushort granularity;  // deprecated

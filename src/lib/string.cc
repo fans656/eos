@@ -1,4 +1,5 @@
 #include "string.h"
+#include "stdio.h"
 
 void* memset(void* ptr, uchar value, uint cnt) {
     uchar* p = (uchar*)ptr;
@@ -9,12 +10,25 @@ void* memset(void* ptr, uchar value, uint cnt) {
 }
 
 void* memcpy(void* dst, const void* src, uint cnt) {
-    const uchar* p = (const uchar*)src;
-    uchar* q = (uchar*)dst;
-    while (cnt--) {
-        *q++ = *p++;
+    if (!((uint)dst & 3) && !(cnt & 3)) {
+        asm volatile(
+                "mov esi, %0;"
+                "mov edi, %1;"
+                "mov ecx, %2;"
+                "cld;"
+                "rep movsd;"
+                :: "a"(src), "b"(dst), "c"(cnt >> 2));
+        return dst;
+    } else {
+        asm volatile(
+                "mov esi, %0;"
+                "mov edi, %1;"
+                "mov ecx, %2;"
+                "cld;"
+                "rep movsb;"
+                :: "a"(src), "b"(dst), "c"(cnt));
+        return dst;
     }
-    return dst;
 }
 
 void* strcpy(char* dst, const char* src) {

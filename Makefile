@@ -29,19 +29,19 @@ $(BIN)/eos.img: $(BIN)/mbr.img $(BIN)/boot.img $(BIN)/kernel.img $(TOOL)/bundle.
 $(BIN)/mbr.img: $(BOOT)/mbr.asm
 	@echo "=============================================== Compiling MBR"
 	@mkdir -p $(BIN)
-	nasm $(BOOT)/mbr.asm -o $(BIN)/mbr.img -f bin
+	nasm $(BOOT)/mbr.asm -o $(BIN)/mbr.img -f bin || exit
 
 $(BIN)/boot.img: $(BOOT)/boot.c
 	@echo "=============================================== Compiling bootloader"
 	@mkdir -p $(BIN)
-	$(CC) $(CFLAGS) $(BOOT)/boot.c -o $(BIN)/boot.o -Wl,-Ttext=0x7e00 -Wl,-ebootmain
+	$(CC) $(CFLAGS) $(BOOT)/boot.c -o $(BIN)/boot.o -Wl,-Ttext=0x7e00 -Wl,-ebootmain || exit
 	objcopy $(BIN)/boot.o $(BIN)/boot.img -j .text -O binary  # copy boot.o .text so mbr can jmp to it
 
 $(BIN)/kernel.img: $(KERNEL)/*.cc
 	@echo "=============================================== Compiling kernel"
 	@mkdir -p $(BIN)
 	nasm -f elf $(KERNEL)/isr.asm -o $(BIN)/isr.o
-	$(CC) $(CFLAGS) -I$(SRC)/common $(KERNEL)/*.cc $(BIN)/isr.o -o $(BIN)/kernel.img -Wl,-Ttext=0xc0100000 -Wl,-eentry
+	$(CC) $(CFLAGS) -I$(SRC)/common $(KERNEL)/*.cc $(BIN)/isr.o -o $(BIN)/kernel.img -Wl,-Ttext=0xc0100000 -Wl,-eentry || exit
 
 $(USER_BIN)/*: $(PROG)/* $(BIN)/lib/*.o
 	@echo "=============================================== Compiling user programs"
@@ -53,7 +53,7 @@ $(USER_BIN)/*: $(PROG)/* $(BIN)/lib/*.o
 $(BIN)/lib/*.o: $(LIB)/*.cc $(LIB)/gui/*.cc
 	@echo "=============================================== Compiling library"
 	@mkdir -p $(BIN)/lib
-	cd $(BIN)/lib; $(CC) ../../$(LIB)/*.cc ../../$(LIB)/gui/*.cc -c $(CFLAGS) -I../../$(LIB)/../common -I../../$(LIB); cd -
+	cd $(BIN)/lib; $(CC) ../../$(LIB)/*.cc ../../$(LIB)/gui/*.cc -c $(CFLAGS) -I../../$(LIB)/../common -I../../$(LIB) || exit; cd -
 
 clean:
 	rm -rf $(BIN)/*

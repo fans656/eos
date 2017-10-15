@@ -4,6 +4,8 @@
 #include "math.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "time.h"
+#include "unistd.h"
 
 #define MAKE_DWORD(a,b,c,d) (((a) << 24) | ((b) << 16) | ((c) << 8) | d)
 
@@ -118,7 +120,7 @@ uchar* load_png(const char* path, int& width, int& height, bool& opaque) {
     uchar* data = (uchar*)load_file(path);
     data += 8;  // skip signature
     uchar* idat;
-    size_t idat_len;
+    size_t idat_len = 0;
     int line_pitch;
     uchar* p = data;
     while (true) {
@@ -140,6 +142,8 @@ uchar* load_png(const char* path, int& width, int& height, bool& opaque) {
         p += 4;
     }
     p = data;
+
+    // concat IDATs
     idat = new uchar[idat_len];
     uchar* q = idat;
     while (true) {
@@ -156,9 +160,13 @@ uchar* load_png(const char* path, int& width, int& height, bool& opaque) {
         }
         p += 4;
     }
+    
+    // decompress
     uchar* raw = new uchar[line_pitch * height];
     decompress(raw, idat);
     delete[] idat;
+
+    // unfilter
     uchar* out = new uchar[width * height * 4];
     opaque = true;
     for (int y = 0; y < height; ++y) {

@@ -15,9 +15,10 @@ void clock_tick() {
     process_count_down();
 }
 
-void timeit(const char* fmt, ...) {
+void _timeit(const char** pfmt) {
     static clock_t begs[MAX_TIMEIT_NESTING];
     static int n = 0;
+    const char* fmt = *pfmt;
 
     if (!fmt) {
         if (n == MAX_TIMEIT_NESTING) {
@@ -32,7 +33,11 @@ void timeit(const char* fmt, ...) {
         for (int i = 0; i < n; ++i) {
             printf("  ");
         }
-        _printf(&fmt);
+        _printf(pfmt);
         printf(": %dms\n", (clock() - begs[n]) * PIT_MS_PRECISION);
     }
+}
+
+void timeit(const char* fmt, ...) {
+    _timeit(&fmt);
 }

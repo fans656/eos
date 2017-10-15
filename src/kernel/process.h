@@ -17,6 +17,7 @@ extern uint current_esp;
 extern Process running_proc;
 
 extern "C" uint process_schedule();
+extern "C" void process_yield();
 void process_exit(int status);
 void process_release();
 

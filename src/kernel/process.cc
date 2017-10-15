@@ -199,6 +199,10 @@ uint process_schedule() {
     return (uint)running_proc;
 }
 
+void process_yield() {
+    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_YIELD));
+}
+
 void process_block() {
     blocked_procs.append(running_proc);
     running_proc->esp = current_esp;
@@ -249,12 +253,6 @@ void dump_procs() {
     for (auto proc: ready_procs) {
         printf("%d(%s) ", proc->pid, proc->path);
     }
-    //putchar('\n');
-    //printf("Count downs: ");
-    //for (auto cd: countdowns) {
-    //    Process proc = cd->proc;
-    //    printf("%d(%s) ", proc->pid, proc->path);
-    //}
     putchar('\n');
     printf("======================================= dump_procs end\n");
 }
@@ -268,7 +266,7 @@ void init_process() {
     exited_procs.construct();
 
     ready_procs.append(proc_new("/bin/gui"));
-    //ready_procs.append(proc_new("/bin/desktop"));
-    //ready_procs.append(proc_new("/bin/pa"));
+    ready_procs.append(proc_new("/bin/desktop"));
+    ready_procs.append(proc_new("/bin/pa"));
     //ready_procs.append(proc_new("/bin/pb"));
 }

@@ -150,6 +150,9 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
             process_sleep((uint)*parg);
             do_schedule = 1;
             break;
+        case SYSCALL_YIELD:
+            do_schedule = 1;
+            break;
         case SYSCALL_MALLOC:
             return (uint)malloc((size_t)*parg);
         case SYSCALL_FREE:
@@ -195,6 +198,9 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
             break;
         case SYSCALL_SET_TIMER:
             return (uint)set_timer((uint)*parg, (uint)*(parg + 1), (bool)*(parg + 2));
+        case SYSCALL_TIMEIT:
+            _timeit((const char**)parg);
+            break;
         case SYSCALL_INIT_GUI:
             gui_inited = true;
             mouse_events_pool = new GUIMouseEvent[mouse_events_pool_size];
