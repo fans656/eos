@@ -70,3 +70,7 @@
 [unfilter](https://github.com/elanthis/upng)
 
 [DEFLATE C++ source](http://create.stephan-brumme.com/deflate-decoder/)
+
+## Related projects
+
+[GUI prototype](https://github.com/fans656/eos-gui-prototype)

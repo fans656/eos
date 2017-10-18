@@ -1681,3 +1681,111 @@ parse_length和parse_distance都用查表方式，又省了100多ms
 
 2017-10-16 00:07:17
 嗯...接下来想搞GUI感觉需要先在Qt环境下模拟一番了，先得把概念性的东西都实验清楚了，，不然概念不清加上bug，恐怕会走不动
+
+2017-10-16 17:08:48
+用qt写gui的prototype，实现了鼠标拖动窗口，但是有残影——感觉有必要仔细思索一下server/client的状态维护，以及哪些操作要在哪里做
+
+这个prototype是放在另一个repo里的：
+https://github.com/fans656/eos-gui-prototype
+
+2017-10-16 20:57:24
+残影一时解决不了
+
+再来，仔细一点，写测试，加个控制台
+
+2017-10-17 14:32:16
+加了控制台-log viewer，完美实现window drag(爽~)
+接下来其实有好多东西，但一时不知措手哪样，在这里列一下：
+
+    - transparent window
+    - material border shadow
+    - desktop icons
+    - minimize/maximize/close
+    - draw mouse
+    - resizing
+    - task bar
+    
+    - font
+    - graphic primitives
+    - play video
+
+2017-10-17 18:38:00
+有几样东西不打算第一期做了：
+
+    - play video
+        需要写h.264之类的解码器，这比图片解码要复杂多了，应该要费很大劲
+        而且常用的视频编码种类那么多，不像图片实现个png/jpg就覆盖一大半了
+        所以可能等二期posix compliant之后移植第三方的库吧
+    - 3d graphics
+        这个领域此前一直没弄过，需要先涉猎一番，然后再尝试在操作系统里弄
+    - browser
+        需要JavaScript引擎，所以编译原理咯，这又是另一个极大的项目了
+        但是tcp/ip stack还是可以搞一下的，实现到可以ping可以wget
+
+audio也许不难，可能搞搞——mp3播放器，，那么也许作为终极demo搞个超级玛丽？
+
+2017-10-17 21:33:58
+transparent window搞定，弄一下无caption的drag
+就是说如果window是transparent的，那么drag发生在窗体里alpha非0的像素上时可以拖动——对比非transparent窗口只能在caption内拖动
+搞定(2017-10-17 21:51:28)
+
+再搞一下穿透透明窗体的hit test
+搞定(2017-10-17 21:55:21)
+
+    + transparent window
+    - material border shadow
+    - desktop icons
+    - minimize/maximize/close
+    - draw mouse
+    - resizing
+    - task bar
+
+下一个，material border shadow
+搞定(2017-10-17 22:37:18)
+虽然不是很完美——应该用圆角矩形的阴影，但是我还不知道用算法怎么画(不用算法的话可以用4个PNG图片画角落)，等之后搞graphic primitives时再弄吧
+
+    + transparent window
+    + material border shadow
+    - desktop icons
+    - minimize/maximize/close
+    - draw mouse
+    - resizing
+    - task bar
+
+2017-10-18 15:11:46
+又搞定一个，desktop icons；另外加一个，window title
+
+    + transparent window
+    + material border shadow
+    + desktop icons
+    - window title
+    - minimize/maximize/close
+    - draw mouse
+    - resizing
+    - task bar
+
+搞定了title和close(2017-10-18 16:29:11)，下来搞一下taskbar
+
+    + transparent window
+    + material border shadow
+    + desktop icons
+    + window title
+    + close
+    - task bar
+    - minimize/maximize
+    - draw mouse
+    - resizing
+
+taskbar也OK了(2017-10-18 16:59:22)，可以显示打开了的窗口和当前窗口
+
+    + transparent window
+    + material border shadow
+    + desktop icons
+    + window title
+    + close
+    + task bar
+    - minimize/maximize
+    - draw mouse
+    - resizing
+
+怎么接下来的有点儿不想做了呢，，prototype要不就写到这儿？回头去优化真正的系统
