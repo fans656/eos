@@ -1896,3 +1896,7 @@ PIT的oscillator频率是1193181.666666...Hz
 尴尬了...开了切换(每次都reload cr3)也还是380ms左右...
 
 补一句，host上是150ms左右
+
+2017-10-19 23:42:58
+https://stackoverflow.com/a/283164/3881776
+再来个detour project吧——研究一下malloc的实现

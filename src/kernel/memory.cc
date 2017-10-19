@@ -6,6 +6,7 @@
 #include "math.h"
 #include "process.h"
 #include "time.h"
+#include "malloc.h"
 
 #if 0
 #define STATIC_MALLOC
@@ -221,7 +222,7 @@ void free(void* addr) {
     try_merge(cur->prev, cur);
 
     Header* last = tail->prev;
-    if (!last->used) {
+    if (!last->used && last->size >= 1 * MB) {
         remove(last);
         sbrk(-last->size);
     }
@@ -347,6 +348,7 @@ void init_memory() {
         memset(page, 0, PAGE_SIZE);
         *pde++ = V2P(page) | PTE_P | PTE_W;
     }
+    reload_cr3(kernel_pgdir);
     // init malloc free list
     head->addr = 0;
     tail->addr = (uchar*)0xffffffff;
@@ -357,8 +359,30 @@ void init_memory() {
     head->prev = tail->next = 0;
     head->next = tail;
     tail->prev = head;
+    
+    init_malloc();
+}
 
-    reload_cr3(kernel_pgdir);
+void dump_malloc_list() {
+    printf("================================== malloc list\n");
+    size_t free_cnt = 0, used_cnt = 0;
+    size_t free_size = 0, used_size = 0;
+    for (auto p = head; p; p = p->next) {
+        if (p->used) {
+            ++used_cnt;
+            used_size += p->size;
+        } else {
+            ++free_cnt;
+            free_size += p->size;
+        }
+        printf("%x(%x) %c %8d %s \n",
+                p, p->next, p->used ? 'U' : 'F', p->size, p->name);
+    }
+    printf("%d used %d, %d free %d, %d total %d\n",
+            used_cnt, used_size,
+            free_cnt, free_size,
+            used_cnt + free_cnt, used_size + free_size);
+    printf("================================== malloc list end\n");
 }
 
 void test_32_mb_write_speed_test() {

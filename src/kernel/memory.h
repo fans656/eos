@@ -10,8 +10,9 @@ void init_memory();
 void map_pages(uint pgdir[], uint vbeg, uint size);
 void unmap_pages(uint pgdir[], uint vbeg, uint size);
 
+void* sbrk(int incr);
 void* named_malloc(size_t size, const char* name);
 void* malloc(size_t nbytes);
 void free(void* addr);
 
-void memory_test();
+void dump_malloc_list();
