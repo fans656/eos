@@ -17,10 +17,11 @@ START16:
     mov ds, ax
     mov es, ax
     mov ss, ax
+    mov sp, _start
     
     call LoadBootloader
     call GetMemoryMap
-    call SwithToVesaMode
+    call SwitchToVesaMode
     
     ; open A20  http://wiki.osdev.org/A20
     ; this method is not perfect, but simple and reliable enough
@@ -57,7 +58,7 @@ DiskAddressPacket:
     dd 1  ; LBA low
     dd 0  ; LBA high
 
-SwithToVesaMode:
+SwitchToVesaMode:
     pushad
     
     xor ax, ax

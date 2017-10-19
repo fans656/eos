@@ -14,4 +14,6 @@ extern "C" void clock_tick();
 void _timeit(const char** pfmt);
 void timeit(const char* fmt, ...);
 
+void test_loop_count_between_timer_interrupt();
+
 #endif

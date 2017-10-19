@@ -1,4 +1,5 @@
 #include "def.h"
+#include "stdio.h"
 
 // C++ doesn't support "designated initializers", what a shame
 // in C this can be written as
@@ -35,6 +36,10 @@ __attribute__((__aligned__(PAGE_SIZE))) uint kernel_pgdir[N_PDE] = {
 void main();
 
 extern "C" void entry() {
+    // right now we are in codes that assume themselves at higher half
+    // but paging isn't enabled yet
+    // so we must use position independent code
+    // and jump to higher half as quickly as possible
     asm volatile(
             // enable 4M page
             "mov eax, cr4;"

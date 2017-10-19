@@ -4,14 +4,14 @@
 
 #define MAX_TIMEIT_NESTING 128
 
-clock_t clock_counter = 0;
+clock_t current_ticks = 0;
 
 clock_t clock() {
-    return clock_counter;
+    return current_ticks;
 }
 
 void clock_tick() {
-    ++clock_counter;
+    ++current_ticks;
     process_count_down();
 }
 
@@ -40,4 +40,20 @@ void _timeit(const char** pfmt) {
 
 void timeit(const char* fmt, ...) {
     _timeit(&fmt);
+}
+
+void test_loop_count_between_timer_interrupt() {
+    asm("sti");
+    uint max = 0;
+    while (true) {
+        uint cnt = 0;
+        uint old = current_ticks;
+        while (current_ticks == old) {
+            ++cnt;
+        }
+        if (cnt > max) {
+            max = cnt;
+            printf("Max %d loop count between two timer interrupts\n", max);
+        }
+    }
 }

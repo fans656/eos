@@ -1,7 +1,7 @@
 global isr_timer_asm
 global isr_syscall_asm
 
-extern clock_counter
+extern current_ticks
 extern running_proc
 extern kernel_end
 extern current_esp
@@ -18,11 +18,6 @@ isr_timer_asm:
     mov eax, esp
     mov [current_esp], eax
 
-    mov eax, [clock_counter]
-    ;jmp isr_timer_asm_Finish
-    ;and eax, 0x01
-    ;cmp eax, 0
-    ;jne isr_timer_asm_Finish
     call process_schedule
     cmp eax, 0
     je isr_timer_asm_Finish
@@ -36,7 +31,7 @@ isr_timer_asm:
 isr_timer_asm_Finish:
     call clock_tick
     
-    mov al, 0x20
+    mov al, 0x20  ; EOI
     out 0x20, al
 
     popad

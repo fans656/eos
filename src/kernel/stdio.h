@@ -1,4 +1,5 @@
 #include "def.h"
+#include "filesystem.h"
 
 extern int ROWS, COLS;
 extern int cur_row, cur_col;

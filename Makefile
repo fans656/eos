@@ -14,6 +14,9 @@ LIB=$(SRC)/lib
 PROG=$(SRC)/prog
 USER_BIN=files/bin
 
+LIB_INC=-I../../$(LIB)/../common -I../../$(LIB)  -I../../$(LIB)/libc
+USER_INC=-I$(LIB) -I$(SRC)/common -I$(SRC)/lib/libc
+
 run: $(BIN)/eos.img
 	@curl -XPOST --data-binary "@bin/eos.img" host:6560
 
@@ -37,7 +40,7 @@ $(BIN)/boot.img: $(BOOT)/boot.c
 	$(CC) $(CFLAGS) $(BOOT)/boot.c -o $(BIN)/boot.o -Wl,-Ttext=0x7e00 -Wl,-ebootmain || exit
 	objcopy $(BIN)/boot.o $(BIN)/boot.img -j .text -O binary  # copy boot.o .text so mbr can jmp to it
 
-$(BIN)/kernel.img: $(KERNEL)/*.cc
+$(BIN)/kernel.img: $(KERNEL)/*.cc $(KERNEL)/*.h $(KERNEL)/isr.asm
 	@echo "=============================================== Compiling kernel"
 	@mkdir -p $(BIN)
 	nasm -f elf $(KERNEL)/isr.asm -o $(BIN)/isr.o
@@ -47,13 +50,13 @@ $(USER_BIN)/*: $(PROG)/* $(BIN)/lib/*.o
 	@echo "=============================================== Compiling user programs"
 	@mkdir -p $(USER_BIN)
 	for dirname in $(PROG)/*; do $(CC) $$dirname/*.cc $(BIN)/lib/*.o \
-		$(CFLAGS) -I$(LIB) -I$(SRC)/common \
+		$(CFLAGS) $(USER_INC) \
 		-o $(USER_BIN)/`basename $$dirname` -Wl,-e_start || exit; done
 
 $(BIN)/lib/*.o: $(LIB)/*.cc $(LIB)/gui/*.cc
 	@echo "=============================================== Compiling library"
 	@mkdir -p $(BIN)/lib
-	cd $(BIN)/lib; $(CC) ../../$(LIB)/*.cc ../../$(LIB)/gui/*.cc -c $(CFLAGS) -I../../$(LIB)/../common -I../../$(LIB) || exit; cd -
+	cd $(BIN)/lib; $(CC) ../../$(LIB)/*.cc ../../$(LIB)/libc/*.cc ../../$(LIB)/gui/*.cc -c $(CFLAGS) $(LIB_INC) || exit; cd -
 
 clean:
 	rm -rf $(BIN)/*

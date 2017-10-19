@@ -9,6 +9,10 @@ ushort* video_mem = (ushort*)P2V(VIDEO_MEM);
 
 int cur_row = 0, cur_col = 0;
 
+#ifdef GRAPHIC_MODE
+#define set_cursor(row, col)
+#define enable_cursor()
+#else
 // http://wiki.osdev.org/Text_Mode_Cursor
 void set_cursor(int row, int col) {
     cur_row = row;
@@ -20,16 +24,17 @@ void set_cursor(int row, int col) {
     outb(0x3d5, pos >> 8);
 }
 
-void disable_cursor() {
-    outb(0x3d4, 0x0a);
-    outb(0x3d5, 0x3f);
-}
-
 void enable_cursor() {
     outb(0x3d4, 0x0a);
     outb(0x3d5, inb(0x3d5) & 0xc0 | 0);
     outb(0x3d4, 0x0b);
     outb(0x3d5, inb(0x3e0) & 0xe0 | 15);
+}
+#endif
+
+void disable_cursor() {
+    outb(0x3d4, 0x0a);
+    outb(0x3d5, 0x3f);
 }
 
 void scroll_down() {
@@ -56,10 +61,6 @@ void newline() {
         --cur_row;
     }
     carrige();
-}
-
-void newline2() {
-    ++cur_row;
 }
 
 void putchar(char ch) {

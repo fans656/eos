@@ -8,12 +8,14 @@
 #include "keyboard.h"
 #include "message.h"
 #include "dict.h"
+#include "bmp.h"
+#include "math.h"
+#include "time.h"
 
 extern "C" void main() {
     init_console();
     init_interrupt();
     init_memory();
-
     init_filesystem();
     init_keyboard();
     init_graphics();

@@ -151,8 +151,11 @@ void fe_reserve(FileEntry* fe, size_t size) {
     }
 }
 
-FILE* fopen(const char* name) {
+FILE* fopen(const char* name, const char* mode) {
     FileEntry* fe = fe_from_name(name);
+    if (mode[0] == 'r' && !fe) {
+        panic("fopen: %s does not exist\n", name);
+    }
     if (!fe) {
         fe = fe_create(name);
     }
@@ -176,10 +179,11 @@ size_t ftell(FILE* fp) {
     return fp->pos;
 }
 
-size_t fread(FILE* fp, size_t size, void* data) {
+size_t fread(void* buffer, size_t size, size_t count, FILE* fp) {
+    size *= count;
     FileEntry* fe = fp->entry;
     BlocksRange* rg = fe->blocks;
-    uchar* p = (uchar*)data;
+    uchar* p = (uchar*)buffer;
     size_t beg = 0;
     for (int i = 0; i < fe->n_blocks; ++i) {
         size_t end = beg + rg->count * BPB;
@@ -199,7 +203,8 @@ size_t fread(FILE* fp, size_t size, void* data) {
     }
 }
 
-size_t fwrite(FILE* fp, const void* data, size_t size) {
+size_t fwrite(const void* data, size_t size, size_t count, FILE* fp) {
+    size *= count;
     FileEntry* fe = fp->entry;
     fe_reserve(fe, fp->pos + size);
     BlocksRange* rg = fe->blocks;
@@ -224,10 +229,10 @@ size_t fwrite(FILE* fp, const void* data, size_t size) {
 }
 
 void* load_file(const char* path) {
-    FILE* fp = fopen(path);
+    FILE* fp = fopen(path, "rb");
     size_t size = fsize(fp);
     void* data = named_malloc(size, path);
-    fread(fp, size, data);
+    fread(data, size, 1, fp);
     fclose(fp);
     return data;
 }

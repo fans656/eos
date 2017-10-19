@@ -5,6 +5,11 @@
 #include "util.h"
 #include "math.h"
 #include "process.h"
+#include "time.h"
+
+#if 0
+#define STATIC_MALLOC
+#endif
 
 #define ROUND_DOWN(x) ((uint)((x) - (uint)(x) % PAGE_SIZE))
 #define ROUND_UP(x) (((uint)(x) + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE)
@@ -150,6 +155,32 @@ void remove(Header* p) {
     p->next->prev = p->prev;
 }
 
+void try_merge(Header* p, Header* q) {
+    if (!p->used && !q->used && (uchar*)p + p->size + HEADER_SIZE == (uchar*)q) {
+        p->size += q->size;
+        p->next = q->next;
+        p->next->prev = p;
+    }
+}
+
+#ifdef STATIC_MALLOC
+
+uchar* static_malloc_base = (uchar*)P2V(64 * MB);
+size_t static_malloc_size = 0;
+
+void* named_malloc(size_t size, const char* name) {
+    size = align4(size);
+    void* res = static_malloc_base + static_malloc_size;
+    static_malloc_size += size;
+    return res;
+}
+
+void free(void* addr) {
+    return;
+}
+
+#else
+
 void* named_malloc(size_t size, const char* name) {
     size = align4(size);
     Header* p = head->next;
@@ -179,22 +210,8 @@ void* named_malloc(size_t size, const char* name) {
     return p->addr;
 }
 
-void* malloc(size_t size) {
-    return named_malloc(size, "N/A");
-}
-
-void try_merge(Header* p, Header* q) {
-    if (!p->used && !q->used && (uchar*)p + p->size + HEADER_SIZE == (uchar*)q) {
-        p->size += q->size;
-        p->next = q->next;
-        p->next->prev = p;
-    }
-}
-
 void free(void* addr) {
     Header* cur = (Header*)((uchar*)addr - HEADER_SIZE);
-    if (cur->addr != addr) {
-    }
     cur->used = false;
 
     // the order is important
@@ -208,6 +225,12 @@ void free(void* addr) {
         remove(last);
         sbrk(-last->size);
     }
+}
+
+#endif
+
+void* malloc(size_t size) {
+    return named_malloc(size, "N/A");
 }
 
 ///////////////////////////////////////////////////////// new/delete
@@ -336,4 +359,17 @@ void init_memory() {
     tail->prev = head;
 
     reload_cr3(kernel_pgdir);
+}
+
+void test_32_mb_write_speed_test() {
+    asm("sti");
+    size_t size = 32 * MB;
+    auto p = new uchar[size];
+    while (true) {
+        timeit(0);
+        for (int i = 0; i < size; ++i) {
+            p[i] = i;
+        }
+        timeit("32MB write");
+    }
 }

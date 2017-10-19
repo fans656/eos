@@ -88,7 +88,7 @@ void isr_page_fault() {
         panic("isr_page_fault | err: %x, vaddr: %x\n", err, vaddr);
     }
     
-    dump_procs();
+    //dump_procs();
     panic("");
 
     asm("popad; pop eax; leave; iret");
@@ -100,7 +100,7 @@ extern "C" void isr_syscall_asm();
 void isr_keyboard() {
     asm volatile ("pushad");
     uchar scancode = inb(0x60);
-    update_key_state(scancode);
+    //update_key_state(scancode);
     send_eoi(IRQ_KEYBOARD);
     asm volatile ("popad; leave; iret");
 }
@@ -159,25 +159,21 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
             free((void*)*parg);
             break;
         case SYSCALL_FOPEN:
-            return (uint)fopen((const char*)*parg);
+            return (uint)fopen((const char*)*parg, (const char*)*(parg + 1));
         case SYSCALL_FCLOSE:
             return (uint)fclose((FILE*)*parg);
         case SYSCALL_FREAD:
-            return (uint)fread(
-                    (FILE*)*(parg + 3),
-                    *(parg + 1) * *(parg + 2),
-                    (void*)*parg);
+            return (uint)fread((void*)*(parg), (size_t)*(parg + 1),
+                    (size_t)*(parg + 2), (FILE*)*(parg + 3));
         case SYSCALL_FWRITE:
-            return (uint)fwrite(
-                    (FILE*)*(parg + 3),
-                    (void*)*parg,
-                    *(parg + 1) * *(parg + 2));
+            return (uint)fwrite((void*)*(parg), (size_t)*(parg + 1),
+                    (size_t)*(parg + 2), (FILE*)*(parg + 3));
         case SYSCALL_FSIZE:
             return (uint)fsize((FILE*)*parg);
         case SYSCALL_LOAD_FILE:
             return (uint)load_file((const char*)*parg);
         case SYSCALL_MEMORY_BLIT:
-            memory_blit((char*)*parg, (int)*(parg + 1),
+            memory_blit((uchar*)*parg, (int)*(parg + 1),
                     (int)*(parg + 2), (int)*(parg + 3),
                     (int)*(parg + 4), (int)*(parg + 5),
                     (int)*(parg + 6), (int)*(parg + 7));
@@ -254,13 +250,15 @@ ushort pic_get_interrupt_request_register() {
 }
 
 void init_pit() {
-    ushort val = PIT_MS_PRECISION * PIT_BASE_FREQUENCY / 1000;
+    ushort divider = PIT_MS_PRECISION * PIT_BASE_FREQUENCY / 1000;
+    if (!(0 < divider && divider <= 65535)) {
+        panic("init_pit: divider out of range %d\n", divider);
+    }
     asm(
             "mov ax, %0;"
-            "mov ax, 0x2e9c;"
             "out 0x40, al;"
             "rol ax, 8;"
-            "out 0x40, al;" :: "m"(val)
+            "out 0x40, al;" :: "m"(divider)
        );
 }
 

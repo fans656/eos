@@ -99,7 +99,7 @@ static inline void load_elf(FILE* fp, ELFHeader* elf) {
     for (ProgramHeader* ph = ph_beg; ph - ph_beg < elf->phnum; ++ph) { 
         if (ph->type == 1) {
             fseek(fp, ph->offset);
-            fread(fp, ph->filesz, (void*)ph->vaddr);
+            fread((void*)ph->vaddr, ph->filesz, 1, fp);
             if (ph->memsz > ph->filesz) {
                 memset((uchar*)ph->vaddr + ph->filesz, 0, ph->memsz - ph->filesz);
             }
@@ -144,9 +144,9 @@ Process proc_new(const char* path) {
     }
     
     // load elf content & setup stack
-    FILE* fp = fopen(proc->path);
+    FILE* fp = fopen(proc->path, "rb");
     ELFHeader* elf = (ELFHeader*)alloc_frame();
-    fread(fp, min(PAGE_SIZE, fsize(fp)), elf);
+    fread(elf, min(PAGE_SIZE, fsize(fp)), 1, fp);
     proc->entry = elf->entry;
 
     map_elf(proc, elf);

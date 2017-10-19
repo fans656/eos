@@ -1,7 +1,8 @@
 #include "def.h"
 
 void* memset(void* ptr, uchar value, uint cnt);
-void* memcpy(void* dst, const void* src, uint cnt);
+void* memmove(void* dst, const void* src, uint cnt);
+#define memcpy memmove
 
 void* strcpy(char* dst, const char* src);
 void* strncpy(char* dst, const char* src, size_t n);

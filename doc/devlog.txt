@@ -1789,3 +1789,110 @@ taskbar也OK了(2017-10-18 16:59:22)，可以显示打开了的窗口和当前�
     - resizing
 
 怎么接下来的有点儿不想做了呢，，prototype要不就写到这儿？回头去优化真正的系统
+
+2017-10-18 20:50:18
+回归eos，给个check-list
+    
+    - test png decoder speed without paging
+    - test malloc speed
+    - test IPC speed
+
+2017-10-18 22:24:33
+测了一下，简单的for loop一亿次，qemu比host慢差不多一倍，这个正常可以接受
+内存读写的话差不多3倍，也可以接受
+
+据说virtualbox比qemu要快，但是vbox想用raw disk image很麻烦，另外启动也没有qemu快
+还是用qemu吧
+
+
+我靠，竟然被库函数坑了——从eos拷出来的png.cc和zlib.cc解码出来的图片就是不对
+调了好久而且对比python实现，解码出来的symbol和length, distance都是对的
+最后定位到memcpy，写了个自己的实现就对了
+这里的特殊之处在于len-dis拷贝的时候dst和src是有一部分overlap的，也许是C的库函数优化不保证能处理overlap的情况
+
+另外，host上跑PNG解码1280x800的图片需要130ms左右——这是连加载带解码
+对比之前eos里2000ms的速度，得十几倍差距了，这肯定是自己代码实现得不够好——包括各个地方，主要可能是 disk io 和 malloc
+
+明确了，memcpy用在overlap情境下属于undefined behavior，这时候应该用memmove
+
+2017-10-19 13:39:05
+试了一下在qemu上跑ubuntu desktop，太特么慢了，，我要再去试试virtualbox了
+
+一些命令：
+VBoxManage convertdd sdb.raw sdb.vdi --format VDI
+
+额，还是算了，vbox启动太慢，，以后遇到性能瓶颈时尝试用qemu的硬件加速吧
+
+2017-10-19 14:12:19
+在进程里头 load_png 要1180ms，开始优化
+先测一下malloc的速度
+
+
+
+这个是没有进程切换时的load_png各部分测速：
+
+        load_file: 420ms
+        concat idat: 20ms
+        decompress: 930ms
+        unfilter: 140ms
+    load_png: 1510ms
+
+所以从大头先开始优化
+
+
+测了一下[1]的速度，哇，原来我比他还要快100ms左右
+
+[1]: http://create.stephan-brumme.com/deflate-decoder/
+
+那么现在主要就是优化eos相关的部分了
+
+
+换成静态内存分配(就是malloc直接返回指针，free啥都不干)
+
+        load_file: 420ms
+        concat idat: 20ms
+        decompress: 770ms (-200ms)
+        unfilter: 110ms (-30ms)
+    load_png: 1290ms (-230ms)
+
+unfilter基本上纯内存读写操作，比host上的速度慢了5倍，这家伙感觉再怎么优化也达不到很快了呃
+文件读写可以优化很多
+
+2017-10-19 16:50:59
+想实现一下精确的时间测量
+http://f.osdev.org/viewtopic.php?f=1&t=21719&start=0
+这里给出了几种精确度由高到低的方案(1ns => 2us):
+    TSC > APIC > HPET > PIT
+目前我用的是PIT而且用得很粗糙，精确度10ms，囧
+
+PIT的oscillator频率是1193181.666666...Hz
+
+
+2017-10-19 20:08:48
+有几点可以优化的地方：
+
+    1. malloc/free linked list
+        目前是used/free block都链在一个链表上，所以如果链表前面有很多used block
+        那么每次malloc travel都要做一些无用功
+        可以每个block填上前后指向free block的指针，这样malloc travel就不必浪费在used block
+    2. stack 16 byte
+        可以注意一下isr里头有没有mess up stack
+    3. disk dma
+        ata pio现在用io port来读数据，会很慢，，去搞DMA
+    4. pic eoi
+        10ms的timer interrupt里头每次都有2us被浪费在send eoi上，据说是几千个cpu cycle
+    5. process switch reload cr3
+        开启进程之后naive实现不管切没切换都要reload一次cr3，这样会让后续的内存读写全部slow down
+        等TLB刚热起来，timer interrupt又来一次reload cr3
+
+2017-10-19 21:35:28
+记录一些数据：
+只开了timer interrupt，isr里只做inc counter操作，最大可以在两个timer isr之间loop到328万次
+
+我靠，开了进程切换也能到300多万次
+我要测下内存读写会不会被reload cr3拖慢
+
+不开进程切换写32MB内存是380ms左右
+尴尬了...开了切换(每次都reload cr3)也还是380ms左右...
+
+补一句，host上是150ms左右

@@ -32,7 +32,7 @@ void bmp_blit(void* bmp, int src_left, int src_top,
 void bmp_draw_at(void* bmp, int left, int top);
 
 void memory_blit(
-        const char* buffer, int src_pitch,
+        const uchar* buffer, int src_pitch,
         int src_left, int src_top,
         int dst_left, int dst_top,
         int width, int height);

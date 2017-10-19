@@ -96,4 +96,6 @@ After paging:
 
 #define V2IPDE(x) ((x) >> 22)
 
+#define GRAPHIC_MODE
+
 #endif

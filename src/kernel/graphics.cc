@@ -66,7 +66,6 @@ uint font_glyph_height;
 uint font_bpr;  // bytes per row of the font bmp image
 
 uint* font_data;
-void draw_char2(char ch, int row, int col);
 
 typedef struct __attribute__((packed)) {
     char signature[2];
@@ -98,15 +97,15 @@ int bmp_pitch(void* bmp) {
 }
 
 void memory_blit(
-        const char* buffer, int src_pitch,
+        const uchar* buffer, int src_pitch,
         int src_left, int src_top,
         int dst_left, int dst_top,
         int width, int height) {
     int dst_pitch = screen_pitch;
     int dst_offset = dst_left << 2;
     int src_offset = src_left << 2;
-    char* dst = (char*)(graphic_video_mem + dst_top * dst_pitch + dst_offset);
-    const char* src = (const char*)(buffer + src_top * src_pitch + src_offset);
+    uchar* dst = (uchar*)(graphic_video_mem + dst_top * dst_pitch + dst_offset);
+    const uchar* src = (const uchar*)(buffer + src_top * src_pitch + src_offset);
     while (height--) {
         asm volatile(
                 "mov esi, %0;"
@@ -228,7 +227,7 @@ void draw_char(char ch, int row, int col) {
     int src_left = ch * font_glyph_width;
     int dst_left = col * font_glyph_width;
     int dst_top = row * font_glyph_height;
-    memory_blit((char*)font_data, font_bmp_width * screen_bpp,
+    memory_blit((uchar*)font_data, font_bmp_width * screen_bpp,
             src_left, 0, dst_left, dst_top,
             font_glyph_width, font_glyph_height);
 }

@@ -9,8 +9,8 @@ void* memset(void* ptr, uchar value, uint cnt) {
     return ptr;
 }
 
-void* memcpy(void* dst, const void* src, uint cnt) {
-    if (!((uint)dst & 3) && !(cnt & 3)) {
+void* memmove(void* dst, const void* src, uint cnt) {
+    if (!(cnt & 3) && !((uint)dst & 3) && !((uint)src & 3)) {
         asm volatile(
                 "mov esi, %0;"
                 "mov edi, %1;"
@@ -18,6 +18,15 @@ void* memcpy(void* dst, const void* src, uint cnt) {
                 "cld;"
                 "rep movsd;"
                 :: "a"(src), "b"(dst), "c"(cnt >> 2));
+        return dst;
+    } else if (!(cnt & 1) && !((uint)dst & 1) && !((uint)src & 1)) {
+        asm volatile(
+                "mov esi, %0;"
+                "mov edi, %1;"
+                "mov ecx, %2;"
+                "cld;"
+                "rep movsw;"
+                :: "a"(src), "b"(dst), "c"(cnt >> 1));
         return dst;
     } else {
         asm volatile(

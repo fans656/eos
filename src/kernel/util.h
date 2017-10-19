@@ -8,7 +8,7 @@
 #define restricted(x, mi, ma) (min((ma), (max((x), (mi)))))
 
 void hlt_forever();
-void hexdump(void* addr, uint cnt);
+void hexdump(void* addr, uint cnt = 128);
 
 ///////////////////////////////////////////////////////////////////
 

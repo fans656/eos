@@ -15,11 +15,11 @@ constexpr uint IEND = MAKE_DWORD('I', 'E', 'N', 'D');
 
 class Buffer {
 public:
-    Buffer(const char* data) : data(data), i_byte(0) {
+    Buffer(const uchar* data) : data(data), i_byte(0) {
     }
     
 private:
-    const char* data;
+    const uchar* data;
     int i_byte;
 };
 

@@ -187,7 +187,7 @@ uchar* inflate(BitBuffer& buf, uchar* dst, HuffmanTree* lit_tree, HuffmanTree* d
         } else if (symbol < 288) {
             auto len = parse_length(buf, symbol);
             auto dis = parse_distance(buf, dis_tree);
-            memcpy(dst, dst - dis, len);
+            memmove(dst, dst - dis, len);
             dst += len;
         }
     }

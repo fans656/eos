@@ -8,17 +8,14 @@ void* memset(void* ptr, uchar value, uint cnt) {
     return ptr;
 }
 
-void* memcpy(void* dst, const void* src, uint cnt) {
-    switch (cnt & 0x11) {
-        case 0:
-            return memcpy_dword(dst, src, cnt);
+void* memmove(void* dst, const void* src, uint cnt) {
+    if (!(cnt & 3) && !((uint)dst & 3) && !((uint)src & 3)) {
+        return memcpy_dword(dst, src, cnt);
+    } else if (!(cnt & 1) && !((uint)dst & 1) && !((uint)src & 1)) {
+        return memcpy_word(dst, src, cnt);
+    } else {
+        return memcpy_byte(dst, src, cnt);
     }
-    const uchar* p = (const uchar*)src;
-    uchar* q = (uchar*)dst;
-    while (cnt--) {
-        *q++ = *p++;
-    }
-    return dst;
 }
 
 void* strcpy(char* dst, const char* src) {
