@@ -1900,3 +1900,6 @@ PIT的oscillator频率是1193181.666666...Hz
 2017-10-19 23:42:58
 https://stackoverflow.com/a/283164/3881776
 再来个detour project吧——研究一下malloc的实现
+
+2017-10-20 14:32:02
+DMA有点儿复杂...要不先放着

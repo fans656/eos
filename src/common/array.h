@@ -70,7 +70,8 @@ struct Array {
     }
     
     struct iter {
-        T operator*() { return arr.a[i]; }
+        T operator*() const { return arr.a[i]; }
+        T& operator*() { return arr.a[i]; }
         iter& operator++() { i = arr.inc(i); return *this; }
         iter& operator--() { i = arr.dec(i); return *this; }
         bool operator==(const iter& o) { return i == o.i; }
@@ -81,7 +82,8 @@ struct Array {
     };
     
     struct riter {
-        T operator*() { return arr.a[arr.dec(i)]; }
+        T operator*() const { return arr.a[arr.dec(i)]; }
+        T& operator*() { return arr.a[arr.dec(i)]; }
         riter& operator++() { i = arr.dec(i); return *this; }
         riter& operator--() { i = arr.inc(i); return *this; }
         bool operator==(const riter& o) { return i == o.i; }

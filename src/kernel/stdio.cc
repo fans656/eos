@@ -102,6 +102,11 @@ void print_hex_byte(uint val) {
     putchar(HEX(val & 0x0f));
 }
 
+void print_hex_word(uint val) {
+    print_hex_byte((val >> 8) & 0xff);
+    print_hex_byte(val & 0xff);
+}
+
 void print_hex_dword(uint val) {
     print_hex_byte((val >> 24) & 0xff);
     print_hex_byte((val >> 16) & 0xff);
@@ -180,10 +185,16 @@ int _printf(const char** pfmt) {
                 width = printf_get_width(&(p));
                 switch (*p) {
                     case 'x':
-                        if (width == 1) {
-                            print_hex_byte(*arg++);
-                        } else {
-                            print_hex_dword(*arg++);
+                        switch (width) {
+                            case 1:
+                                print_hex_byte(*arg++);
+                                break;
+                            case 2:
+                                print_hex_word(*arg++);
+                                break;
+                            default:
+                                print_hex_dword(*arg++);
+                                break;
                         }
                         res += 8;
                         break;

@@ -2,9 +2,12 @@
 http://wiki.osdev.org/ATA_PIO_Mode
 http://wiki.osdev.org/PCI_IDE_Controller
 
+http://wiki.osdev.org/ATA/ATAPI_using_DMA
+
 - LBA28 is faster for LBA48, so it can be used when disk is less than 128GB
  */
 #include "disk.h"
+#include "pci.h"
 #include "asm.h"
 #include "stdio.h"
 #include "string.h"
@@ -127,6 +130,7 @@ void do_identify(DiskInfo* meta) {
 }
 
 void init_disk() {
+    //init_pci();
     select_master_drive();
     clear_address_ports();
     do_identify(&disk_info);
