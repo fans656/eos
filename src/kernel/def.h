@@ -84,8 +84,7 @@ After paging:
 #define V2P(x) ((uint)(x) - KERNEL_BASE)
 #define P2V(x) ((uint)(x) + KERNEL_BASE)
 
-#define CHAR(row, col) (*(video_mem + (row) * COLS + (col)))
-//#define CHAR(row, col) (*((char*)(0xb8000) + (row) * COLS + (col)))
+#define CHAR(row, col) (*(console_video_mem + (row) * COLS + (col)))
 
 #define PTE_P 0x001
 #define PTE_W 0x002

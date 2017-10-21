@@ -26,6 +26,9 @@ extern "C" void main() {
 
     while (true) {
         process_release();
+        while (process_is_idle()) {
+            asm("hlt");
+        }
         process_yield();
     }
 }

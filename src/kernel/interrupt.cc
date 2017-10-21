@@ -107,19 +107,13 @@ void isr_keyboard() {
 
 uchar mouse_cycle = 0;
 uchar mouse_bytes[3];
-bool gui_inited = false;
-GUIMouseEvent* mouse_events_pool = 0;
-size_t mouse_events_pool_idx = 0;
-constexpr size_t mouse_events_pool_size = 256;
 
 void isr_mouse() {
     asm volatile ("pushad");
     uchar val = inb(0x60);
     switch (mouse_cycle) {
         case 0:
-            if (val & 0x08) {
-                mouse_bytes[mouse_cycle++] = val;
-            }
+            if (val & 0x08) mouse_bytes[mouse_cycle++] = val;
             break;
         case 1:
             mouse_bytes[mouse_cycle++] = val;
@@ -127,11 +121,7 @@ void isr_mouse() {
         case 2:
             mouse_bytes[mouse_cycle] = val;
             mouse_cycle = 0;
-            parse_mouse_event(mouse_bytes, mouse_events_pool[mouse_events_pool_idx]);
-            if (gui_inited) {
-                replace_message(GUI_MOUSE_EVENT_ID, &mouse_events_pool[mouse_events_pool_idx]);
-                mouse_events_pool_idx = (mouse_events_pool_idx + 1) % mouse_events_pool_size;
-            }
+            put_message(QUEUE_ID_GUI, parse_mouse_event(mouse_bytes));
             break;
     }
     send_eoi(IRQ_MOUSE);
@@ -150,6 +140,8 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
             process_sleep((uint)*parg);
             do_schedule = 1;
             break;
+        case SYSCALL_IS_IDLE:
+            return _process_is_idle();
         case SYSCALL_YIELD:
             do_schedule = 1;
             break;
@@ -172,8 +164,11 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
             return (uint)fsize((FILE*)*parg);
         case SYSCALL_LOAD_FILE:
             return (uint)load_file((const char*)*parg);
-        case SYSCALL_MEMORY_BLIT:
-            memory_blit((uchar*)*parg, (int)*(parg + 1),
+        case SYSCALL_GET_SCREEN_INFO:
+            get_screen_info((ScreenInfo*)*parg);
+            break;
+        case SYSCALL_BLIT:
+            blit((uchar*)*parg, (int)*(parg + 1),
                     (int)*(parg + 2), (int)*(parg + 3),
                     (int)*(parg + 4), (int)*(parg + 5),
                     (int)*(parg + 6), (int)*(parg + 7));
@@ -192,17 +187,14 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
         case SYSCALL_PUT_MESSAGE:
             put_message((int)*parg, (void*)*(parg + 1));
             break;
+        case SYSCALL_REPLACE_MESSAGE:
+            replace_message((int)*parg, (void*)*(parg + 1));
+            break;
         case SYSCALL_SET_TIMER:
             return (uint)set_timer((uint)*parg, (uint)*(parg + 1), (bool)*(parg + 2));
         case SYSCALL_TIMEIT:
             _timeit((const char**)parg);
             break;
-        case SYSCALL_INIT_GUI:
-            gui_inited = true;
-            mouse_events_pool = new GUIMouseEvent[mouse_events_pool_size];
-            return (uint)new GUIInfo(
-                    get_screen_width(), get_screen_height(),
-                    get_screen_pitch(), get_screen_bpp());
         default:
             panic("unknown syscall %d\n", callnum);
     }

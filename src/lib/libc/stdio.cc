@@ -4,6 +4,13 @@ int printf(const char* fmt, ...) {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_PRINTF));
 }
 
+void panic(const char* fmt, ...) {
+    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_PRINTF));
+    while (true) {
+        asm("hlt");
+    }
+}
+
 FILE* fopen(const char* path, const char* mode) {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_FOPEN));
 }

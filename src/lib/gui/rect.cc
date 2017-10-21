@@ -2,17 +2,37 @@
 #include "math.h"
 #include "stdio.h"
 
+bool Rect::is_intersected(const Rect& rc) {
+    if (rc.right() <= left()) return false;
+    if (rc.left() >= right()) return false;
+    if (rc.bottom() <= top()) return false;
+    if (rc.top() >= bottom()) return false;
+    return true;
+}
+
 void Rect::intersect(const Rect& rc) {
-    intersect(rc.left(), rc.top(), rc.width(), rc.height());
+    if (is_intersected(rc)) {
+        int l = max(rc.left(), left());
+        int t = max(rc.top(), top());
+        int r = min(rc.right(), right());
+        int b = min(rc.bottom(), bottom());
+        left_ = l;
+        top_ = t;
+        width_ = r - l;
+        height_ = b - t;
+    } else {
+        width_ = height_ = 0;
+    }
 }
 
 void Rect::intersect(int left, int top, int width, int height) {
-    int r = left + width;
-    int b = top + height;
-    left_ = max(left_, left);
-    top_ = max(top_, top);
-    width_ = max(min(right(), r) - left_, 0);
-    height_ = max(min(bottom(), b) - top_, 0);
+    intersect(Rect(left, top, width, height));
+}
+
+Rect Rect::intersected(const Rect& rc) const {
+    Rect res(*this);
+    res.intersect(rc);
+    return res;
 }
 
 void Rect::dump(const char* name) {

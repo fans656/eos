@@ -1,27 +1,33 @@
 #include "stdio.h"
 #include "stdlib.h"
+#include "eos.h"
 #include "gui.h"
 #include "time.h"
 
 struct Wnd : public Window {
-    void on_create() {
-        Window::on_create();
-        img = new Bitmap("/img/snow-leopard.bmp");
-        resize(img->width(), img->height());
+    Wnd(int width, int height, uint attr)
+        : Window(0, 0, width, height, attr) {
+        background = new Bitmap("/img/snow-leopard.bmp");
+    }
+    
+    ~Wnd() {
+        delete background;
     }
     
     void on_paint(PaintEvent* ev) {
-        Canvas c(this);
-        c.draw_bitmap(img, 0, 0);
+        Painter painter(this);
+        painter.draw_bitmap(0, 0, background);
     }
     
-    Bitmap* img;
+    Bitmap* background;
 };
 
 int main() {
-    Wnd* wnd = new Wnd;
-    wnd->set_attribute(WINDOW_CAPTION, false);
-    wnd->set_attribute(WINDOW_FRAME, false);
-    wnd->move(0, 0);
-    gui_exec(wnd);
+    auto info = new ScreenInfo;
+    get_screen_info(info);
+    Wnd* wnd = new Wnd(info->width, info->height,
+            WND_CLIENT_ONLY | WND_KEEP_INACTIVE | WND_KEEP_BOTTOM);
+    delete info;
+    wnd->exec();
+    delete wnd;
 }

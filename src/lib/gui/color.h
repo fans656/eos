@@ -4,6 +4,7 @@
 constexpr uint rgb_red(uint rgb) { return (rgb >> 16) & 0xff; }
 constexpr uint rgb_green(uint rgb) { return (rgb >> 8) & 0xff; }
 constexpr uint rgb_blue(uint rgb) { return (rgb >> 0) & 0xff; }
+constexpr uint get_alpha(uint color) { return color >> 24; }
 
 constexpr uint RGB2BGR(uint rgb) {
     return (rgb_blue(rgb) << 16) | (rgb_green(rgb) << 8) | rgb_red(rgb);
@@ -17,6 +18,9 @@ constexpr uint SteelBlue =         0xff4682b4;
 constexpr uint LightSteelBlue =    0xffb0c4de; 
 constexpr uint GhostWhite =        0xfff8f8ff; 
 
-constexpr uint White =        0xffffffff; 
+constexpr uint White    = 0xffffffff; 
+constexpr uint Red      = 0xffff0000; 
+constexpr uint Green    = 0xff00ff00; 
+constexpr uint Blue     = 0xff0000ff; 
 
 #endif

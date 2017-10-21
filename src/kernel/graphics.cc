@@ -96,7 +96,7 @@ int bmp_pitch(void* bmp) {
     return align4(bih->width * bih->bpp / 8);
 }
 
-void memory_blit(
+void blit(
         const uchar* buffer, int src_pitch,
         int src_left, int src_top,
         int dst_left, int dst_top,
@@ -165,8 +165,8 @@ void init_graphics() {
     COLS = screen_width / font_glyph_width;
     ROWS = screen_height / font_glyph_height;
     int video_mem_size = COLS * ROWS * 2;
-    video_mem = (ushort*)named_malloc(video_mem_size, "video_mem");
-    memset(video_mem, 0, video_mem_size);
+    console_video_mem = (ushort*)named_malloc(video_mem_size, "video_mem");
+    memset(console_video_mem, 0, video_mem_size);
     cur_row = cur_col = 0;
     
     // init mouse
@@ -227,7 +227,7 @@ void draw_char(char ch, int row, int col) {
     int src_left = ch * font_glyph_width;
     int dst_left = col * font_glyph_width;
     int dst_top = row * font_glyph_height;
-    memory_blit((uchar*)font_data, font_bmp_width * screen_bpp,
+    blit((uchar*)font_data, font_bmp_width * screen_bpp,
             src_left, 0, dst_left, dst_top,
             font_glyph_width, font_glyph_height);
 }
@@ -252,4 +252,12 @@ void sync_console() {
             }
         }
     }
+}
+
+void get_screen_info(ScreenInfo* info) {
+    info->width = screen_width;
+    info->height = screen_height;
+    info->bpp = screen_bpp;
+    info->pitch = screen_pitch;
+    info->video_mem = graphic_video_mem;
 }

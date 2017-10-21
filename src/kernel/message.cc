@@ -14,8 +14,9 @@ MessageQueue* get_queue(int id) {
     return queues[id];
 }
 
-extern "C" void* get_message(int id, bool blocking) {
+void* get_message(int id, bool blocking) {
     auto q = get_queue(id);
+    q->empty();
     if (q->empty()) {
         if (blocking) {
             q->blocked_procs.append(running_proc);

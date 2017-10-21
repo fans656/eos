@@ -53,7 +53,7 @@ struct TimerCountDown : public CountDown {
             } else {
                 cnt = initial_cnt;
             }
-            put_message(queue_id, new KernelTimerEvent(timer_id));
+            //put_message(queue_id, new KernelTimerEvent(timer_id));
         }
     }
 
@@ -187,20 +187,34 @@ void process_release() {
 }
 
 uint process_schedule() {
+    //if (!running_proc && ready_procs.empty()) {
+    //    panic("no running proc and ready_procs.empty");
+    //}
     if (running_proc) {
         running_proc->esp = current_esp;
         ready_procs.append(running_proc);
         running_proc = 0;
     }
     if (ready_procs.empty()) {
+        //printf("if (ready_procs.empty())");
+        dump_procs();
         panic("no process");
     }
     running_proc = ready_procs.popleft();
+    //printf("switch to %s\n", running_proc->path);
     return (uint)running_proc;
 }
 
 void process_yield() {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_YIELD));
+}
+
+bool process_is_idle() {
+    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_IS_IDLE));
+}
+
+bool _process_is_idle() {
+    return ready_procs.empty();
 }
 
 void process_block() {
@@ -268,5 +282,5 @@ void init_process() {
     ready_procs.append(proc_new("/bin/gui"));
     ready_procs.append(proc_new("/bin/desktop"));
     ready_procs.append(proc_new("/bin/pa"));
-    //ready_procs.append(proc_new("/bin/pb"));
+    ready_procs.append(proc_new("/bin/pb"));
 }

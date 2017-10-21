@@ -30,5 +30,9 @@ void memory_blit(
         int src_left, int src_top,
         int dst_left, int dst_top,
         int width, int height) {
-    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_MEMORY_BLIT));
+    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_BLIT));
+}
+
+void get_screen_info(ScreenInfo* info) {
+    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_GET_SCREEN_INFO));
 }

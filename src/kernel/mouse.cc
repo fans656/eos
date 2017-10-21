@@ -67,7 +67,7 @@ void init_mouse(int screen_width, int screen_height) {
     mouse_y = screen_height / 2;
 }
 
-void parse_mouse_event(uchar* b, GUIMouseEvent& ev) {
+MouseEvent* parse_mouse_event(uchar* b) {
     mouse_left = (b[0] & BTN_LEFT) != 0;
     mouse_right = (b[0] & BTN_RIGHT) != 0;
 
@@ -86,10 +86,5 @@ void parse_mouse_event(uchar* b, GUIMouseEvent& ev) {
     if (0 <= new_mouse_y && new_mouse_y < screen_height) {
         mouse_y = new_mouse_y;
     }
-    ev.x = mouse_x;
-    ev.y = mouse_y;
-    ev.left = mouse_left;
-    ev.right = mouse_right;
-    //printf("%4d %4d %c%c\n", mouse_x, mouse_y,
-    //        mouse_left ? 'L' : ' ', mouse_right ? 'R' : ' ');
+    return new MouseEvent(mouse_x, mouse_y, (b[0] & BTN_LEFT) | (b[0] & BTN_RIGHT));
 }

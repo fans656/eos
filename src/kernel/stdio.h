@@ -1,9 +1,12 @@
+#ifndef _KERNEL_STDIO_H
+#define _KERNEL_STDIO_H
+
 #include "def.h"
 #include "filesystem.h"
 
 extern int ROWS, COLS;
 extern int cur_row, cur_col;
-extern ushort* video_mem;
+extern ushort* console_video_mem;
 
 void init_console();
 
@@ -18,3 +21,5 @@ int printf(const char* fmt, ...);
 void panic(const char* fmt, ...);
 
 void print_hex_byte(uint val);
+
+#endif

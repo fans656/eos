@@ -1903,3 +1903,49 @@ https://stackoverflow.com/a/283164/3881776
 
 2017-10-20 14:32:02
 DMA有点儿复杂...要不先放着
+
+2017-10-21 08:47:40
+感觉gui prototype写一写还是很有用的，昨儿在eos里尝试鼠标绘制，写不对，去prototype里三下五除二就搞定了
+框架对了实现功能果然很容易，，所以感觉还是有必要在prototype里走远一点，把能踩的坑都踩了，然后优化设计，最后再往eos上移植
+那么一些基础的东西要在prototype里复现一下，比如painter，比如文件系统
+
+2017-10-21 15:06:24
+整理一下hit test可能的流程
+
+    1. mouse over border => GUI show "resizing" cursor (horz/vert/diag)
+    2. mouse over caption icon => Window show icon hover effect
+    3. mouse over client area => GUI send "on_mouse_move"
+    4. mouse click on border => GUI prepare resizing
+    5. mouse click on caption icon => Window show icon pressed effect
+    6. mouse click on client area => GUI send "on_mouse_press"
+    7. mouse release on border =>
+    ...
+
+hit_test结果区域：
+    
+    1. border
+    2. caption
+    3. caption icon (minimize/maximize/close)
+    4. client
+
+2017-10-21 16:17:36
+决定了，就把现阶段的GUI移植到eos就好了，已有的特性是：
+
+    + window activation
+    + window drag
+    + transparent window/caption
+    + mouse 
+    + desktop icon
+    + window close
+    + window title
+    - no task bar
+    - no window minimize/maximize
+
+这样的程度已经可以支持想要的演示效果，，更根本的东西其实在console里
+做GUI的一大目标其实是想能在console里 open girl.png 然后打开一个窗口显示图片
+目前足以
+
+2017-10-22 04:03:00
+昨天是移植GUI搞了一半被一个bug卡住了，刚解决，大抵是invalidate那里List操作的地方
+没有细考虑地就用了std::swap去交换链表，可能导致写了deleted内存了
+具体细节不清楚，换用另一种写法就OK了，，所以这种底层的代码还是不能仓促啊

@@ -2,15 +2,14 @@
 #define LIST_H
 
 #include "def.h"
+#include "../kernel/stdio.h"
 
 template<typename T>
 struct List {
+    struct DataNode;
+
     struct Node {
-        Node* prev;
-        Node* next;
-        T data;
-        
-        Node(T data = T()) : prev(0), next(0), data(data) {}
+        Node() : prev(0), next(0) {}
         void prepend(Node* node) {
             node->prev = prev;
             node->next = this;
@@ -21,17 +20,26 @@ struct List {
             node->next = next;
             next->prev = next = node;
         }
-        Node* take() {
+        DataNode* take() {
             prev->next = next;
             next->prev = prev;
-            return this;
+            return (DataNode*)this;
         }
+        
+        Node* prev;
+        Node* next;
+    };
+    
+    struct DataNode : public Node {
+        T data;
+        DataNode(T data = T()) : Node(), data(data) {}
     };
 
     struct iter {
         Node* node;
         iter(Node* node) : node(node) {}
-        T operator*() { return node->data; }
+        const T& operator*() const { return ((DataNode*)node)->data; }
+        T& operator*() { return ((DataNode*)node)->data; }
         iter& operator++() { node = node->next; return *this; }
         iter& operator--() { node = node->prev; return *this; }
         bool operator==(iter o) { return node == o.node; }
@@ -42,7 +50,8 @@ struct List {
     struct riter {
         Node* node;
         riter(Node* node) : node(node) {}
-        T operator*() { return node->data; }
+        const T& operator*() const { return ((DataNode*)node)->data; }
+        T& operator*() { return ((DataNode*)node)->data; }
         riter& operator++() { node = node->prev; return *this; }
         riter& operator--() { node = node->next; return *this; }
         bool operator==(riter o) { return node == o.node; }
@@ -76,12 +85,24 @@ struct List {
     
     void prepend(T data) {
         ++size_;
-        head->append(new Node(data));
+        head->append(new DataNode(data));
     }
     
     void append(T data) {
         ++size_;
-        tail->prepend(new Node(data));
+        tail->prepend(new DataNode(data));
+    }
+    
+    void extend(List<T> l) {
+        for (auto& x: l) {
+            append(x);
+        }
+    }
+    
+    void clear() {
+        while (!empty()) {
+            pop();
+        }
     }
     
     T pop() {
@@ -89,7 +110,11 @@ struct List {
         return tail->prev->take()->data;
     }
     
-    T popleft() {
+    T peekleft() {
+        return ((DataNode*)head->next)->data;
+    }
+    
+    T& popleft() {
         --size_;
         return head->next->take()->data;
     }
@@ -133,6 +158,20 @@ struct List {
     iter end() { return iter(tail); }
     riter rbegin() { return riter(tail->prev); }
     riter rend() { return riter(head); }
+    
+    const T& first() const { return *begin(); }
+    T& first() { return *begin(); }
+    
+    const T& last() const { return *rbegin(); }
+    T& last() { return *rbegin(); }
+    
+    List<T> clone() {
+        List<T> l;
+        for (const auto& x: *this) {
+            l.append(x);
+        }
+        return l;
+    }
 };
 
 #endif

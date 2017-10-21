@@ -12,4 +12,6 @@ void memory_blit(const uchar* buffer, int src_pitch,
         int dst_left, int dst_top,
         int width, int height);
 
+void get_screen_info(ScreenInfo* info);
+
 #endif

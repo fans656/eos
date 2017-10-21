@@ -18,29 +18,23 @@ enum {
     SYSCALL_FSIZE,
     SYSCALL_LOAD_FILE,
 
+    SYSCALL_IS_IDLE,
     SYSCALL_SLEEP,
     SYSCALL_YIELD,
     SYSCALL_SET_TIMER,
     SYSCALL_TIMEIT,
 
-    SYSCALL_MEMORY_BLIT,
-
-    SYSCALL_BMP_BLIT,
+    SYSCALL_BLIT,
     
     SYSCALL_GET_MESSAGE,
     SYSCALL_PUT_MESSAGE,
-
-    SYSCALL_INIT_GUI,
+    SYSCALL_REPLACE_MESSAGE,
+    
+    SYSCALL_GET_SCREEN_INFO,
 };
 
 enum {
-    GUI_MESSAGE_ID,
-    GUI_KEYBOARD_EVENT_ID,
-    GUI_MOUSE_EVENT_ID,
-};
-
-enum {
-    MESSAGE_TIMER = 1,
+    QUEUE_ID_GUI,
 };
 
 typedef unsigned char uchar;
@@ -53,28 +47,26 @@ typedef uint size_t;
 #define true 1
 #define false 0
 
-struct GUIInfo {
-    int screen_width;
-    int screen_height;
-    int screen_pitch;
-    int screen_bpp;
+struct ScreenInfo {
+    int width;
+    int height;
+    int bpp;
+    int pitch;
+    uchar* video_mem;
+};
+
+enum {
+    MOUSE_EVENT,
+};
+
+struct MouseEvent {
+    int type;
+    int x;
+    int y;
+    uint buttons;
     
-    GUIInfo(int width, int height, int pitch, int bpp)
-        : screen_width(width), screen_height(height),
-        screen_pitch(pitch), screen_bpp(bpp) {
-    }
-};
-
-struct GUIMouseEvent {
-    ushort x, y;
-    bool left;
-    bool right;
-};
-
-struct KernelTimerEvent {
-    uint type;
-    uint id;
-    KernelTimerEvent(uint id) : type(MESSAGE_TIMER), id(id) {}
+    MouseEvent(int x, int y, uint buttons)
+        : type(MOUSE_EVENT), x(x), y(y), buttons(buttons) {}
 };
 
 #endif

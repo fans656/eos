@@ -18,6 +18,8 @@ extern Process running_proc;
 
 extern "C" uint process_schedule();
 extern "C" void process_yield();
+extern "C" bool _process_is_idle();
+bool process_is_idle();
 void process_exit(int status);
 void process_release();
 

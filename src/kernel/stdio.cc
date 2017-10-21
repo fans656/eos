@@ -3,7 +3,7 @@
 #include "graphics.h"
 
 int ROWS = 25, COLS = 80;
-ushort* video_mem = (ushort*)P2V(VIDEO_MEM);
+ushort* console_video_mem = (ushort*)P2V(VIDEO_MEM);
 
 #define GRAY(ch) (0x0700 | (ch))
 

@@ -40,20 +40,20 @@ $(BIN)/boot.img: $(BOOT)/boot.c
 	$(CC) $(CFLAGS) $(BOOT)/boot.c -o $(BIN)/boot.o -Wl,-Ttext=0x7e00 -Wl,-ebootmain || exit
 	objcopy $(BIN)/boot.o $(BIN)/boot.img -j .text -O binary  # copy boot.o .text so mbr can jmp to it
 
-$(BIN)/kernel.img: $(KERNEL)/*.cc $(KERNEL)/*.h $(KERNEL)/isr.asm
+$(BIN)/kernel.img: $(KERNEL)/*.cc $(KERNEL)/*.h $(KERNEL)/isr.asm $(SRC)/common/*.h
 	@echo "=============================================== Compiling kernel"
 	@mkdir -p $(BIN)
 	nasm -f elf $(KERNEL)/isr.asm -o $(BIN)/isr.o
 	$(CC) $(CFLAGS) -I$(SRC)/common $(KERNEL)/*.cc $(BIN)/isr.o -o $(BIN)/kernel.img -Wl,-Ttext=0xc0100000 -Wl,-eentry || exit
 
-$(USER_BIN)/*: $(PROG)/* $(BIN)/lib/*.o
+$(USER_BIN)/*: $(PROG)/* $(BIN)/lib/*.o $(SRC)/common/*.h
 	@echo "=============================================== Compiling user programs"
 	@mkdir -p $(USER_BIN)
 	for dirname in $(PROG)/*; do $(CC) $$dirname/*.cc $(BIN)/lib/*.o \
 		$(CFLAGS) $(USER_INC) \
 		-o $(USER_BIN)/`basename $$dirname` -Wl,-e_start || exit; done
 
-$(BIN)/lib/*.o: $(LIB)/*.cc $(LIB)/gui/*.cc
+$(BIN)/lib/*.o: $(LIB)/*.cc $(LIB)/*.h $(LIB)/gui/*.cc $(LIB)/gui/*.h $(SRC)/common/*.h
 	@echo "=============================================== Compiling library"
 	@mkdir -p $(BIN)/lib
 	cd $(BIN)/lib; $(CC) ../../$(LIB)/*.cc ../../$(LIB)/libc/*.cc ../../$(LIB)/gui/*.cc -c $(CFLAGS) $(LIB_INC) || exit; cd -
