@@ -1949,3 +1949,12 @@ hit_test结果区域：
 昨天是移植GUI搞了一半被一个bug卡住了，刚解决，大抵是invalidate那里List操作的地方
 没有细考虑地就用了std::swap去交换链表，可能导致写了deleted内存了
 具体细节不清楚，换用另一种写法就OK了，，所以这种底层的代码还是不能仓促啊
+
+2017-10-24 22:47:18
+window activation和drag也都移植过来了，但是都有不同程度的小bug
+最严重的一点时，drag太特么慢了——也许以后优化
+这里mark一些osdev上的涉及优化的帖子：
+http://forum.osdev.org/viewtopic.php?f=1&t=31121
+http://forum.osdev.org/viewtopic.php?f=1&t=31156&start=0
+http://wm.ite.pl/articles/sse4-alphaover.html
+http://forum.osdev.org/viewtopic.php?t=27684

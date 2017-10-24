@@ -99,9 +99,6 @@ struct Server {
             dragging_wnd->move(wnd_x, wnd_y);
             auto new_rc = dragging_wnd->window_rect_in_screen_coord();
             auto rcs = old_rc + new_rc;
-            //List<Rect> rcs;
-            //rcs.append(old_rc);
-            //rcs.append(new_rc);
             invalidate(rcs);
         }
     }

@@ -75,7 +75,7 @@ SwitchToVesaMode:
     ;mov dx, 0x4191  ; 1920x1080 24bit color
 
     mov dx, 0x4143  ; 800x600 32bit color
-    ;mov dx, 0x4177  ; 1280x768 32bit color
+    mov dx, 0x4177  ; 1280x768 32bit color
 
     ; query mode info
     mov ax, 0
