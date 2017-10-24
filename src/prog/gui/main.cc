@@ -63,6 +63,8 @@ struct Server {
         int y = ev->y;
         uint buttons = ev->buttons;
         
+        on_mouse_move(x, y, buttons);
+        
         if (buttons != mouse_buttons) {
             auto left = left_button(buttons);
             auto right = right_button(buttons);
@@ -85,19 +87,56 @@ struct Server {
         mouse_rc.set_top(y);
         invalidate_mouse(true);
     }
+
+    void on_mouse_move(int x, int y, uint buttons) {
+        if (dragging_wnd) {
+            auto old_rc = dragging_wnd->window_rect_in_screen_coord();
+            int dx = x - dragging_initial_mouse_x;
+            int dy = y - dragging_initial_mouse_y;
+            if (!dx || !dy) return;
+            int wnd_x = dragging_initial_window_x + dx;
+            int wnd_y = dragging_initial_window_y + dy;
+            dragging_wnd->move(wnd_x, wnd_y);
+            auto new_rc = dragging_wnd->window_rect_in_screen_coord();
+            auto rcs = old_rc + new_rc;
+            //List<Rect> rcs;
+            //rcs.append(old_rc);
+            //rcs.append(new_rc);
+            invalidate(rcs);
+        }
+    }
     
     void on_mouse_press(MouseEvent* ev, uint button) {
         int x = ev->x;
         int y = ev->y;
         for (auto wnd: reversed(wnds)) {
+            bool handled = false;
             if (wnd->hit_test_activate(x, y)) {
                 activate(wnd);
-                break;
+                handled = true;
             }
+            if (wnd->hit_test_drag(x, y)) {
+                start_drag(wnd, x, y);
+                handled = true;
+            }
+            if (handled) break;
         }
     }
     
     void on_mouse_release(MouseEvent* ev, uint button) {
+        stop_drag();
+    }
+    
+    void start_drag(ServerWindow* wnd, int x, int y) {
+        dragging_wnd = wnd;
+        dragging_initial_window_x = wnd->x();
+        dragging_initial_window_y = wnd->y();
+        dragging_initial_mouse_x = x;
+        dragging_initial_mouse_y = y;
+    }
+    
+    void stop_drag() {
+        dragging_wnd = 0;
     }
     
     void invalidate_mouse(bool draw) {
@@ -114,11 +153,11 @@ struct Server {
             wnds.append(wnd);
         }
         wnd->create();
-        bool painted = false;
+        bool activated = false;
         if (!wnd->keep_inactive()) {
-            painted = activate(wnd);
+            activated = activate(wnd);
         }
-        if (!painted) {
+        if (!activated) {
             wnd->paint();
         }
     }
@@ -135,14 +174,14 @@ struct Server {
             pwnd->deactivate();
             pwnd->paint();
         }
-        bool painted = false;
+        bool activated = false;
         if (!wnd->keep_inactive()) {
             wnd->activate();
             put_at_top(wnd);
             wnd->paint();
-            painted = true;
+            activated = true;
         }
-        return painted;
+        return activated;
     }
     
     ServerWindow* current_active_window() {
@@ -195,6 +234,12 @@ struct Server {
     Painter* video_painter;
     Rect mouse_rc;
     uint mouse_buttons;
+    
+    ServerWindow* dragging_wnd = 0;
+    int dragging_initial_window_x;
+    int dragging_initial_window_y;
+    int dragging_initial_mouse_x;
+    int dragging_initial_mouse_y;
 };
 
 int main() {

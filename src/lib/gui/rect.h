@@ -50,7 +50,7 @@ struct Rect {
     void intersect(int left, int top, int width, int height);
     Rect intersected(const Rect& rc) const;
     
-    List<Rect> operator-(const Rect& o) {
+    List<Rect> operator-(const Rect& o) const {
         List<Rect> res;
         Rect r(*this);
         if (o.left() > left()) {
@@ -68,6 +68,18 @@ struct Rect {
             res.append(Rect(r.left(), o.bottom(), r.width(), r.bottom() - o.bottom()));
         }
         return res;
+    }
+    
+    List<Rect> operator+(const Rect& o) const {
+        List<Rect> combined;
+        Rect inter_rc = intersected(o);
+        if (inter_rc.empty()) {
+            combined.append(o);
+        } else {
+            combined.extend(o - inter_rc);
+        }
+        combined.append(*this);
+        return combined;
     }
     
     Point center() const { return Point(left() + width() / 2, top() + height() / 2); }

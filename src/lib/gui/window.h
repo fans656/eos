@@ -35,6 +35,7 @@ enum MessageType {
     ON_ACTIVATE,
     ON_DEACTIVATE,
     ON_PAINT,
+    ON_MOVE,
 };
 
 struct WindowMessage {
@@ -65,6 +66,11 @@ struct DeactivateEvent : public WindowEvent {
 
 struct PaintEvent : public WindowEvent {
     PaintEvent() : WindowEvent(ON_PAINT) {}
+};
+
+struct MoveEvent : public WindowEvent {
+    MoveEvent(int x, int y) : WindowEvent(ON_MOVE), x(x), y(y) {}
+    int x, y;
 };
 
 struct WindowRequest : public WindowMessage {
@@ -167,6 +173,11 @@ struct BaseWindow {
     void resize(int width, int height) {
         width_ = width;
         height_ = height;
+    }
+    
+    void move(int x, int y) {
+        x_ = x;
+        y_ = y;
     }
     
     virtual void activate() { active_ = true; }
@@ -293,6 +304,11 @@ struct ServerWindow : public BaseWindow {
         put_message(new PaintEvent);
     }
     
+    void move(int x, int y) {
+        BaseWindow::move(x, y);
+        put_message(new MoveEvent(x, y));
+    }
+    
     void activate() {
         BaseWindow::activate();
         put_message(new ActivateEvent);
@@ -304,6 +320,10 @@ struct ServerWindow : public BaseWindow {
     }
     
     bool hit_test_activate(int x, int y) {
+        return window_rect_in_screen_coord().contains(x, y);
+    }
+    
+    bool hit_test_drag(int x, int y) {
         return window_rect_in_screen_coord().contains(x, y);
     }
     
@@ -343,7 +363,7 @@ struct ServerWindow : public BaseWindow {
     void clip_margin(const Rect& margin_rc, const Rect& wnd_rc, bool& to_draw) {
         auto draw_rc = margin_rc.intersected(wnd_rc);
         if (!draw_rc.empty()) {
-            clips.append(make_pair(draw_rc, (bool)true));
+            clips.append(make_pair(draw_rc, true));
             to_draw = true;
         }
     }
