@@ -17,6 +17,7 @@ constexpr uint WND_CAPTION = (1 << 1);
 constexpr uint WND_TRANSPARENT = (1 << 2);
 constexpr uint WND_KEEP_INACTIVE = (1 << 3);
 constexpr uint WND_KEEP_BOTTOM = (1 << 4);
+constexpr uint WND_NO_CLIENT_FILL = (1 << 5);
 
 constexpr uint WND_DEFAULT = WND_BORDER | WND_CAPTION;
 constexpr uint WND_CLIENT_ONLY = 0;
@@ -168,6 +169,7 @@ struct BaseWindow {
     bool has_caption() const { return attr_ & WND_CAPTION; }
     bool keep_bottom() const { return attr_ & WND_KEEP_BOTTOM; }
     bool keep_inactive() const { return attr_ & WND_KEEP_INACTIVE; }
+    bool no_client_fill() const { return attr_ & WND_NO_CLIENT_FILL; }
     bool active() const { return active_; }
     
     void resize(int width, int height) {
@@ -262,6 +264,9 @@ struct Window : public BaseWindow {
         }
         if (has_caption()) {
             draw_caption(painter, caption_color);
+        }
+        if (!no_client_fill()) {
+            painter._fill_rect_solid(client_rect_in_window_coord(), 0);
         }
     }
     

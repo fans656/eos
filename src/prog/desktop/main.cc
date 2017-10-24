@@ -27,7 +27,8 @@ int main() {
     auto info = new ScreenInfo;
     get_screen_info(info);
     Wnd* wnd = new Wnd(info->width, info->height,
-            WND_CLIENT_ONLY | WND_KEEP_INACTIVE | WND_KEEP_BOTTOM);
+            WND_CLIENT_ONLY | WND_KEEP_INACTIVE | WND_KEEP_BOTTOM
+            | WND_NO_CLIENT_FILL);
     delete info;
     wnd->exec();
     delete wnd;
