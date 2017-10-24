@@ -26,6 +26,10 @@ struct Rect {
     
     inline void set_width(int width) { width_ = width; }
     inline void set_height(int height) { height_ = height; }
+    
+    inline bool contains(int x, int y) {
+        return left() <= x && x < right() && top() <= y && y < bottom();
+    }
 
     inline void adjust(int dleft, int dtop, int dright, int dbottom) {
         left_ += dleft;

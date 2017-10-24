@@ -245,7 +245,6 @@ struct Window : public BaseWindow {
     void on_system_paint(PaintEvent* ev) {
         Painter painter(bitmap, window_rect_in_window_coord());
         uint caption_color = active() ? SteelBlue : LightSteelBlue;
-        //uint caption_color = active() ? Red : Green;
         caption_color &= active() ? 0xccffffff : 0x88ffffff;
         if (has_border()) {
             draw_border(painter, caption_color);
@@ -304,6 +303,10 @@ struct ServerWindow : public BaseWindow {
         put_message(new DeactivateEvent);
     }
     
+    bool hit_test_activate(int x, int y) {
+        return window_rect_in_screen_coord().contains(x, y);
+    }
+    
     bool clip(List<Rect>& rcs) {
         bool to_draw = false;
         auto size = rcs.size();
@@ -314,11 +317,6 @@ struct ServerWindow : public BaseWindow {
                 rcs.append(invalid_rc);
                 continue;
             }
-            //if (width() < 800 && invalid_rc.width() < width()) {
-            //    window_rect_in_screen_coord().dump("window");
-            //    invalid_rc.dump("invalid_rc");
-            //    wnd_rc.dump("wnd_rc");
-            //}
             auto client_rc = client_rect_in_screen_coord().intersected(wnd_rc);
             if (!client_rc.empty()) {
                 auto alpha = transparent();

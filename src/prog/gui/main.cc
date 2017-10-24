@@ -87,11 +87,17 @@ struct Server {
     }
     
     void on_mouse_press(MouseEvent* ev, uint button) {
-        printf("press %d\n", button);
+        int x = ev->x;
+        int y = ev->y;
+        for (auto wnd: reversed(wnds)) {
+            if (wnd->hit_test_activate(x, y)) {
+                activate(wnd);
+                break;
+            }
+        }
     }
     
     void on_mouse_release(MouseEvent* ev, uint button) {
-        printf("release %d\n", button);
     }
     
     void invalidate_mouse(bool draw) {
