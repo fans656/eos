@@ -1958,3 +1958,13 @@ http://forum.osdev.org/viewtopic.php?f=1&t=31121
 http://forum.osdev.org/viewtopic.php?f=1&t=31156&start=0
 http://wm.ite.pl/articles/sse4-alphaover.html
 http://forum.osdev.org/viewtopic.php?t=27684
+
+2017-10-25 01:14:23
+各个方面稍微尝试了一下，拖动窗口的lag感觉应该还是可以解决的，但是涉及的方面很广泛
+List的实现、内存碎片等等，一时并不好解决，，感觉应该是二期的时候，没写一个组件都加上性能测试，保证前进的过程中对系统性能有足够的掌控
+
+所以考虑是不是暂时abandon图形界面，直接去搞一下tcp/ip stack
+然后就开二期——二期的主题是：性能   包括内存管理性能、磁盘读写性能、graphics性能(比如上SSE，乃至不用VESA而是写专门的显卡驱动)
+等三期再做POSIX
+
+对了，一期要不要写些文档呢？描述一下做这个的过程

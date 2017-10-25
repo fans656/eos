@@ -113,6 +113,11 @@ void Painter::fill_rect(Rect rc, uint color) {
     }
 }
 
+void Painter::fill_rect_solid(Rect rc, uint color) {
+    rc.intersect(limit_rc);
+    _fill_rect_solid(rc, color);
+}
+
 void Painter::draw_bitmap(int x, int y, Bitmap* bitmap) {
     Rect src(0, 0, bitmap->width(), bitmap->height());
     Rect dst(limit_rc.left() + x, limit_rc.top() + y,

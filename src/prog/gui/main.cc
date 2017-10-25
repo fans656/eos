@@ -82,10 +82,11 @@ struct Server {
             mouse_buttons = buttons;
         }
 
-        invalidate_mouse(false);
+        Rect new_mouse_rc = Rect(x, y, mouse_rc.width(), mouse_rc.height());
+        invalidate_mouse(new_mouse_rc, false);
         mouse_rc.set_left(x);
         mouse_rc.set_top(y);
-        invalidate_mouse(true);
+        invalidate_mouse(new_mouse_rc, true);
     }
 
     void on_mouse_move(int x, int y, uint buttons) {
@@ -136,9 +137,13 @@ struct Server {
         dragging_wnd = 0;
     }
     
-    void invalidate_mouse(bool draw) {
+    void invalidate_mouse(Rect new_rc, bool draw) {
         List<Rect> rcs;
-        rcs.append(mouse_rc);
+        if (!draw) {
+            rcs.extend(mouse_rc - new_rc);
+        } else {
+            rcs.append(new_rc);
+        }
         invalidate(rcs, draw);
     }
     

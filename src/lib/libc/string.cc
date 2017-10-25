@@ -2,11 +2,34 @@
 #include "stdio.h"
 
 void* memset(void* ptr, uchar value, uint cnt) {
-    uchar* p = (uchar*)ptr;
-    while (cnt--) {
-        *p++ = value;
+    if (!(cnt & 3) && !((uint)ptr & 3)) {
+        asm volatile(
+                "mov eax, %0;"
+                "mov edi, %1;"
+                "mov ecx, %2;"
+                "cld;"
+                "rep stosd;"
+                :: "a"((uint)value), "b"(ptr), "c"(cnt >> 2));
+        return ptr;
+    } else if (!(cnt & 1) && !((uint)ptr & 1)) {
+        asm volatile(
+                "mov ax, %0;"
+                "mov edi, %1;"
+                "mov ecx, %2;"
+                "cld;"
+                "rep stosw;"
+                :: "a"((ushort)value), "b"(ptr), "c"(cnt >> 1));
+        return ptr;
+    } else {
+        asm volatile(
+                "mov al, %0;"
+                "mov edi, %1;"
+                "mov ecx, %2;"
+                "cld;"
+                "rep stosb;"
+                :: "a"(value), "b"(ptr), "c"(cnt));
+        return ptr;
     }
-    return ptr;
 }
 
 void* memmove(void* dst, const void* src, uint cnt) {

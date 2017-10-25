@@ -333,6 +333,20 @@ struct ServerWindow : public BaseWindow {
     }
     
     bool clip(List<Rect>& rcs) {
+        //if (no_client_fill()) {
+        //    for (auto& rc: rcs) {
+        //        clips.append(make_pair(rc, false));
+        //    }
+        //    return true;
+        //} else {
+        //    for (auto& rc: rcs) {
+        //        auto wnd_rc = window_rect_in_screen_coord().intersected(rc);
+        //        if (!wnd_rc.empty()) {
+        //            clips.append(make_pair(wnd_rc, false));
+        //        }
+        //    }
+        //    return true;
+        //}
         bool to_draw = false;
         auto size = rcs.size();
         for (auto i = 0; i < size; ++i) {

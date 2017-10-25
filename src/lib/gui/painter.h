@@ -18,6 +18,7 @@ struct Painter {
     void draw_rect(const Rect& rc);
 
     void fill_rect(Rect rc, uint color);
+    void fill_rect_solid(Rect rc, uint color);
 
     void draw_bitmap(int x, int y, Bitmap* bitmap);
     void draw_bitmap(Rect dst, Bitmap* bitmap, Rect src);
