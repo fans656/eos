@@ -132,6 +132,8 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
     switch (callnum) {
         case SYSCALL_PRINTF:
             return (uint)_printf((const char**)parg);
+        case SYSCALL_DEBUG:
+            return (uint)_debug((const char**)parg);
         case SYSCALL_EXIT:
             process_exit((int)*parg);
             do_schedule = 1;

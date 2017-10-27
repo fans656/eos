@@ -1,3 +1,4 @@
+#include "stdio.h"
 #include "def.h"
 #include "asm.h"
 #include "graphics.h"
@@ -63,7 +64,7 @@ void newline() {
     carrige();
 }
 
-void putchar(char ch) {
+void _putchar(char ch) {
     switch (ch) {
         case '\n':
             newline();
@@ -80,6 +81,16 @@ void putchar(char ch) {
     }
     set_cursor(cur_row, cur_col);
 }
+
+/*
+http://wiki.osdev.org/Serial_Ports
+http://wiki.osdev.org/Kernel_Debugging
+ */
+void _serial_putchar(char ch) {
+    outb(0x3f8, ch);
+}
+
+putchar_func_t putchar = _putchar;
 
 #define HEX(v) ((v) < 10 ? ((v) + '0') : ((v) - 10 + 'A'))
 
@@ -225,6 +236,17 @@ int printf(const char* fmt, ...) {
     return _printf(&fmt);
 }
 
+int _debug(const char** pfmt) {
+    putchar = _serial_putchar;
+    auto res = _printf(pfmt);
+    putchar = _putchar;
+    return res;
+}
+
+int debug(const char* fmt, ...) {
+    return _debug(&fmt);
+}
+
 void init_console() {
     for (int row = 0; row < ROWS; ++row) {
         for (int col = 0; col < COLS; ++col) {
@@ -240,4 +262,12 @@ void panic(const char* fmt, ...) {
     while (true) {
         asm("hlt");
     }
+}
+
+void debug_on() {
+    putchar = _serial_putchar;
+}
+
+void debug_off() {
+    putchar = _putchar;
 }

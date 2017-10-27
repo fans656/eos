@@ -15,7 +15,7 @@ struct MessageQueue {
     void put(void* msg) {
         messages.append(msg);
         if (!blocked_procs.empty()) {
-            auto proc = blocked_procs.peekleft();
+            auto proc = blocked_procs.popleft();
             process_unblock(proc);
         }
     }
@@ -26,7 +26,7 @@ struct MessageQueue {
         }
         messages.append(msg);
         if (!blocked_procs.empty()) {
-            auto proc = blocked_procs.peekleft();
+            auto proc = blocked_procs.popleft();
             process_unblock(proc);
         }
     }

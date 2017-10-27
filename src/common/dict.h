@@ -54,7 +54,6 @@ struct Dict {
     
     void add(const Key& key, const Val& val) {
         auto l = get_list(key);
-        //printf("dict add get_list => %x\n", l);
         l->append(Pair{key, val});
     }
     

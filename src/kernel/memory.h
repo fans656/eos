@@ -16,3 +16,6 @@ void* malloc(size_t nbytes);
 void free(void* addr);
 
 void dump_malloc_list();
+
+void test_malloc_free();
+size_t malloc_list_size();

@@ -187,21 +187,16 @@ void process_release() {
 }
 
 uint process_schedule() {
-    //if (!running_proc && ready_procs.empty()) {
-    //    panic("no running proc and ready_procs.empty");
-    //}
     if (running_proc) {
         running_proc->esp = current_esp;
         ready_procs.append(running_proc);
         running_proc = 0;
     }
     if (ready_procs.empty()) {
-        //printf("if (ready_procs.empty())");
         dump_procs();
         panic("no process");
     }
     running_proc = ready_procs.popleft();
-    //printf("switch to %s\n", running_proc->path);
     return (uint)running_proc;
 }
 

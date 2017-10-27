@@ -24,6 +24,13 @@ struct Wnd : public Window {
 };
 
 int main() {
+    //while (true) {
+    //    for (int i = 0; i < 10000; ++i) {
+    //        for (int j = 0; j < 1000; ++j) {
+    //        }
+    //    }
+    //    put_message(QUEUE_ID_GUI, new int);
+    //}
     auto info = new ScreenInfo;
     get_screen_info(info);
     Wnd* wnd = new Wnd(info->width, info->height,

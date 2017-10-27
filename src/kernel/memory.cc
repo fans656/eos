@@ -397,3 +397,43 @@ void test_32_mb_write_speed_test() {
         timeit("32MB write");
     }
 }
+
+void test_malloc_free() {
+    asm("sti");
+    size_t total = 0;
+    constexpr size_t MAX_ALLOC = 4 * MB;
+    constexpr size_t MIN_SINGLE_ALLOC = 1;
+    constexpr size_t MAX_SINGLE_ALLOC = 1 * MB;
+    constexpr size_t PTR_SIZE = MAX_ALLOC / ((MAX_SINGLE_ALLOC + MIN_SINGLE_ALLOC) / 2);
+    char** a = new char*[PTR_SIZE];
+    size_t cnt = 0;
+    size_t ops = 0;
+    auto beg = clock();
+    while (true) {
+        int alloc;
+        if (total > MAX_ALLOC) {
+            alloc = randint(0, 1);
+        } else {
+            alloc = randint(0, 3);
+        }
+        if (alloc) {
+            a[cnt++] = new char[randint(MIN_SINGLE_ALLOC, MAX_SINGLE_ALLOC)];
+        } else {
+            delete a[--cnt];
+        }
+        ++ops;
+        if ((clock() - beg) * PIT_MS_PRECISION >= 1000) {
+            printf("%d ops per sec\n", ops);
+            ops = 0;
+            beg = clock();
+        }
+    }
+}
+
+size_t malloc_list_size() {
+    size_t n = 0;
+    for (auto p = head->next; p->size; p = p->next) {
+        ++n;
+    }
+    return n;
+}

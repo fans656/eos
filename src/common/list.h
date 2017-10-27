@@ -44,7 +44,7 @@ struct List {
         iter& operator--() { node = node->prev; return *this; }
         bool operator==(iter o) { return node == o.node; }
         bool operator!=(iter o) { return !(*this == o); }
-        void remove() { node->take(); }
+        void remove() { delete node->take(); }
     };
 
     struct riter {
@@ -56,7 +56,7 @@ struct List {
         riter& operator--() { node = node->next; return *this; }
         bool operator==(riter o) { return node == o.node; }
         bool operator!=(riter o) { return !(*this == o); }
-        void remove() { node->take(); }
+        void remove() { delete node->take(); }
     };
 
     Node* head;
@@ -107,7 +107,10 @@ struct List {
     
     T pop() {
         --size_;
-        return tail->prev->take()->data;
+        auto node = tail->prev->take();
+        auto res = &node->data;
+        delete node;
+        return *res;
     }
     
     T peekleft() {
@@ -116,7 +119,10 @@ struct List {
     
     T& popleft() {
         --size_;
-        return head->next->take()->data;
+        auto node = head->next->take();
+        auto res = &node->data;
+        delete node;
+        return *res;
     }
     
     bool remove(const T& target) {

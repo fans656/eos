@@ -6,6 +6,7 @@
 typedef struct FILE FILE;
 
 int printf(const char* fmt, ...);
+int debug(const char* fmt, ...);
 void panic(const char* fmt, ...);
 
 FILE* fopen(const char* path, const char* mode);

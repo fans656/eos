@@ -4,6 +4,10 @@ int printf(const char* fmt, ...) {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_PRINTF));
 }
 
+int debug(const char* fmt, ...) {
+    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_DEBUG));
+}
+
 void panic(const char* fmt, ...) {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_PRINTF));
     while (true) {
