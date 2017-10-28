@@ -64,7 +64,14 @@ struct List {
     size_t size_;
     
     List() { construct(); }
-    ~List() { desctruct(); }
+    ~List() { destruct(); }
+    
+    List(const List<T>& o) {
+        construct();
+        for (auto x: o) {
+            append(x);
+        }
+    }
     
     void construct() {
         head = new Node();
@@ -74,7 +81,7 @@ struct List {
         size_ = 0;
     }
     
-    void desctruct() {
+    void destruct() {
         Node* p = head;
         while (p) {
             Node* next = p->next;
@@ -161,9 +168,13 @@ struct List {
     bool empty() const { return size_ == 0; }
     size_t size() const { return size_; }
     iter begin() { return iter(head->next); }
+    iter begin() const { return iter(head->next); }
     iter end() { return iter(tail); }
+    iter end() const { return iter(tail); }
     riter rbegin() { return riter(tail->prev); }
+    riter rbegin() const { return riter(tail->prev); }
     riter rend() { return riter(head); }
+    riter rend() const { return riter(head); }
     
     const T& first() const { return *begin(); }
     T& first() { return *begin(); }

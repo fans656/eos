@@ -26,7 +26,7 @@ extern "C" void main() {
     asm("sti");
 
     while (true) {
-        //debug("%d\n", malloc_list_size());
+        debug("%d\n", malloc_list_size());
         process_release();
         while (process_is_idle()) {
             asm("hlt");
