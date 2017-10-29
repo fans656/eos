@@ -318,8 +318,8 @@ void init_memory() {
     // determine usable memory
     uint phy_mem_size = 0;
     MemRange* usable_mem = 0;
-    uint count = *(uint*)P2V(0x7004);
-    MemRange* range = (MemRange*)P2V(0x7008);
+    uint count = *(uint*)P2V(0x704);
+    MemRange* range = (MemRange*)P2V(0x708);
     while (count--) {
         //assert(range->addr_high == 0);
         //assert(range->len_high == 0);

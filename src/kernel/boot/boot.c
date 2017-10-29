@@ -3,38 +3,13 @@ https://docs.oracle.com/cd/E19455-01/806-3773/6jct9o0aj/index.html
 https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
 https://gcc.gnu.org/onlinedocs/gcc/Machine-Constraints.html#Machine-Constraints
 */
+#include "../elf.h"
 #include "../def.h"
 #include "../stdio.h"
 
-typedef struct ELFHeader {
-    uint magic;
-    uchar ignored[12];
-    ushort type;
-    ushort machine;
-    uint version;
-    uint entry;
-    uint phoff;
-    uint shoff;
-    uint flags;
-    ushort ehsize;
-    ushort phentsize;
-    ushort phnum;
-    ushort shentsize;
-    ushort shnum;
-    ushort shstrndx;
-} ELFHeader;
-
-typedef struct ProgramHeader {
-    uint type;
-    uint offset;
-    uint vaddr;
-    uint paddr;
-    uint filesz;
-    uint memsz;
-    uint flags;
-    uint align;
-} ProgramHeader;
-
+// we don't use kernel/asm.h cause we must keep bootmain() the first function
+// in the compiled image file
+// mbr's last jump rely on this
 uchar inb(ushort port);
 void insd(int port, void* addr, int cnt);
 void outb(ushort port, uchar val);
@@ -46,7 +21,7 @@ void read_segment(char* addr, uint count, uint offset);
 
 extern "C" {
 void bootmain() {
-    ELFHeader* elf = (ELFHeader*)0x6000;
+    ELFHeader* elf = (ELFHeader*)0x6000;  // 4KB temporary space 
     read_segment((char*)elf, 4 * KB, 0);
 
     ProgramHeader* ph = (ProgramHeader*)((uchar*)elf + elf->phoff);
@@ -68,9 +43,7 @@ void bootmain() {
     end += PAGE_SIZE - (uint)end % PAGE_SIZE;
     asm volatile("mov [0x500], %0" ::  "a"(end));
     
-    //hexdump((char*)0x100ab6);
-    //asm("hlt");
-    
+    // jump to kernel/entry.cc
     asm volatile("jmp %0" :: "r"(elf->entry - KERNEL_BASE));
 }
 }

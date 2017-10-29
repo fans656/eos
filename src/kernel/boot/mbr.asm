@@ -1,23 +1,23 @@
-    org 0x7c00
-
-    global _start
-    extern bootmain
+    org 0x7c00  ; MBR will be loaded to memory address 0x7c00 after BIOS test.
+                ; This is the first time we gain control of the computer.
 
 [bits 16]
 
 _start:
-    jmp 0:START16  ; ensure CS == 0
+    jmp 0:START16  ; Ensure CS == 0
 
 START16:
-    cli  ; We don't need interrupt, we just do simple things to go into
-         ; protected mode.
-         ; Reading disk is done by a simple ATA disk driver utilizing IO port.
+    cli  ; We don't need interrupt, we just do simple things to go into protected mode.
 
-    xor ax, ax  ; make all data segments to 0
+    xor ax, ax  ; Make all data segments (DS/ES/SS) to 0
     mov ds, ax
     mov es, ax
     mov ss, ax
-    mov sp, _start
+    mov sp, _start  ; Use 0x7c00 as stack bottom, growing to lower address.
+                    ; From 0x0500 to 0x7c00 there're almost 30KB free space guaranteed for our use.
+                    ; We barely use any here, just a few function calls.
+                    ; The bootloader (boot.c) will rely on this stack we set up.
+                    ; After jump to kernel, it will set up it's own stack.
     
     call LoadBootloader
     call GetMemoryMap
@@ -29,17 +29,38 @@ START16:
     or al, 2
     out 0x92, al
     
-    ; load GDT
-    ; there're three descriptors: null, code and data,
-    ; the later two both cover all the 4GB space
+    ; Load GDT
+    ; There're three descriptors: null, code and data, the later two both cover all the 4GB space.
+    ; Later kernel will use it's own GDT.
     lgdt [GDTDesc]
     mov eax, cr0
     or eax, 1  ; http://wiki.osdev.org/CR0#CR0
     mov cr0, eax
     
     ; long jump to 32-bit code
-    jmp (1 << 3):START32
+    jmp (1 << 3):START32  ; 1 << 3 == 8 is the code descriptor
 
+; Global Descriptor Table  http://wiki.osdev.org/GDT
+%macro Descriptor 3  ; base, limit, attr
+    dw %2 & 0xffff
+    dw %1 & 0xffff
+    db (%1 >> 16) & 0x00ff
+    db %3 & 0xff
+    db (%3 >> 8) & 0xf0 | (%2 >> 16) & 0x0f
+    db %1 >> 24
+%endmacro
+
+GDT:
+    Descriptor 0, 0, 0  ; null
+    Descriptor 0, 0xffffffff, 0x409a  ; code
+    Descriptor 0, 0xffffffff, 0x4092  ; data
+GDTDesc:
+    dw GDTDesc - GDT
+    dd GDT
+
+; http://www.ctyme.com/intr/rb-0708.htm
+; Read [1-8) sectors (3.5KB) into memory after this MBR.
+; The boot loader is bundled there, see Makefile.
 LoadBootloader:
     pushad
     xor ax, ax
@@ -50,6 +71,7 @@ LoadBootloader:
     int 0x13
     popad
     ret
+; http://www.ctyme.com/intr/rb-0708.htm#Table272
 DiskAddressPacket:
     db 16  ; size of this packet
     db 0  ; reserved
@@ -58,16 +80,17 @@ DiskAddressPacket:
     dd 1  ; LBA low
     dd 0  ; LBA high
 
+; http://www.delorie.com/djgpp/doc/rbinter/ix/10/4F.html
 SwitchToVesaMode:
     pushad
     
-    xor ax, ax
-    mov es, ax
-    mov di, 0xa00
-    mov ax, 0x4f00
-    int 0x10
-    cmp ax, 0x004f
-    jne Panic
+    ;xor ax, ax
+    ;mov es, ax
+    ;mov di, 0xa00
+    ;mov ax, 0x4f00
+    ;int 0x10
+    ;cmp ax, 0x004f
+    ;jne Panic
     
     ;mov dx, 0x4115  ; 800x600 24bit color
     ;mov dx, 0x4118  ; 1024x768 24bit color
@@ -80,7 +103,7 @@ SwitchToVesaMode:
     ; query mode info
     mov ax, 0
     mov es, ax
-    mov di, 0x600
+    mov di, 0x600  ; 0x0600, used by kernel/graphics.cc
     mov cx, dx
     mov ax, 0x4f01
     int 0x10
@@ -104,7 +127,7 @@ GetMemoryMap:
     mov ax, 0
     mov si, ax  ; range count
 
-    mov ax, 0x700
+    mov ax, 0x70  ; 0x0700, used by kernel/memory.cc
     mov es, ax
     mov di, 8  ; 0x7008
     mov eax, 0xe820  ; query system address map
@@ -152,28 +175,10 @@ START32:
     mov ss, ax
     mov fs, ax
     mov gs, ax
-
     mov esp, _start  ; setup stack
-    jmp (1 << 3):MBREnd
+    jmp (1 << 3):MBREnd  ; jump to boot.c
 
-; Global Descriptor Table  http://wiki.osdev.org/GDT
-%macro Descriptor 3  ; base, limit, attr
-    dw %2 & 0xffff
-    dw %1 & 0xffff
-    db (%1 >> 16) & 0x00ff
-    db %3 & 0xff
-    db (%3 >> 8) & 0xf0 | (%2 >> 16) & 0x0f
-    db %1 >> 24
-%endmacro
-
-GDT:
-    Descriptor 0, 0, 0
-    Descriptor 0, 0xffffffff, 0x409a  ; code
-    Descriptor 0, 0xffffffff, 0x4092  ; data
-GDTDesc:
-    dw GDTDesc - GDT
-    dd GDT
-
+    ; Fill up MBR and sign the signature
     times 510 - ($ - $$) db 0
     dw 0xaa55
 

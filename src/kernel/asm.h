@@ -39,4 +39,18 @@ static inline void wait_for(int port, uchar mask, uchar val) {
     }
 }
 
+static inline void insd(int port, void* addr, int cnt) {
+    asm volatile("cld; rep insd"
+            : "=D"(addr), "=c"(cnt)
+            : "d"(port), "0"(addr), "1"(cnt)
+            : "memory", "cc");
+}
+
+static inline void stosb(void* addr, uint count, uchar val) {
+    asm volatile("cld; rep stosb"
+            : "=D"(addr), "=c"(count)
+            : "0"(addr), "1"(count), "a"(val)
+            : "memory", "cc");
+}
+
 #endif

@@ -14,19 +14,19 @@
 #include "asm.h"
 
 extern "C" void main() {
-    init_console();
-    init_interrupt();
-    init_memory();
-    init_filesystem();
+    init_console();     // clear screen
+    init_interrupt();   // early interrupt to catch page faults
+    init_memory();      // malloc/free
+    init_filesystem();  // fopen/fread etc
     init_keyboard();
-    init_graphics();
-    init_process();
-    init_message();
+    init_graphics();    // screen info, font, mouse etc
+    init_message();     // IPC
+    init_process();     // process will only be started by the first timer interrupt
 
-    asm("sti");
+    asm("sti");  // Open interrupt, from now on the execution may be switch to another process.
+                 // Here as the kernel process will only do some cleaning up work.
 
     while (true) {
-        debug("%d\n", malloc_list_size());
         process_release();
         while (process_is_idle()) {
             asm("hlt");
