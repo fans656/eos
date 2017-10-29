@@ -23,6 +23,20 @@ START16:
     call GetMemoryMap
     call SwitchToVesaMode
     
+    ;; http://wiki.osdev.org/SSE
+    ;; enable SSE
+    ;mov eax, 1
+    ;cpuid
+    ;test edx, 1 << 25
+    ;jz Panic
+    ;mov eax, cr0
+    ;and ax, 0xfffb
+    ;or ax, 2
+    ;mov cr0, eax
+    ;mov eax, cr4
+    ;or ax, 3 << 9
+    ;mov cr4, eax
+    
     ; open A20  http://wiki.osdev.org/A20
     ; this method is not perfect, but simple and reliable enough
     in al, 0x92

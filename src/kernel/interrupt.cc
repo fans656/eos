@@ -121,7 +121,7 @@ void isr_mouse() {
         case 2:
             mouse_bytes[mouse_cycle] = val;
             mouse_cycle = 0;
-            put_message(QUEUE_ID_GUI, parse_mouse_event(mouse_bytes));
+            replace_message(QUEUE_ID_GUI, parse_mouse_event(mouse_bytes));
             break;
     }
     send_eoi(IRQ_MOUSE);
@@ -197,6 +197,8 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
         case SYSCALL_TIMEIT:
             _timeit((const char**)parg);
             break;
+        case SYSCALL_CLOCK:
+            return clock();
         default:
             panic("unknown syscall %d\n", callnum);
     }

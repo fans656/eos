@@ -38,6 +38,29 @@ struct Server {
     }
 
     void exec() {
+        //auto img = new Bitmap("/img/girl-blue.png");
+        ////auto img = new Bitmap("/img/walle.png");
+        //int x = 0;
+        //Rect rc(0, 0, screen_width, screen_height);
+        //auto screen_painter = new Painter(screen);
+        //uint cnt = 0;
+        //auto beg = clock();
+        //while (true) {
+        //    screen_painter->fill_rect(rc, 0xffffffff);
+        //    screen_painter->draw_bitmap(x, 0, img);
+        //    update_screen(rc);
+        //    x += 1;
+        //    if (x + img->width() == screen_width) {
+        //        x = 0;
+        //    }
+        //    ++cnt;
+        //    auto end = clock();
+        //    if ((end - beg) * 10 >= 1000) {
+        //        debug("%d\n", cnt);
+        //        beg = end;
+        //        cnt = 0;
+        //    }
+        //}
         while (true) {
             auto msg = (WindowRequest*)get_message(QUEUE_ID_GUI);
             switch (msg->type) {
