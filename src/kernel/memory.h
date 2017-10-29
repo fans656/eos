@@ -19,3 +19,8 @@ void dump_malloc_list();
 
 void test_malloc_free();
 size_t malloc_list_size();
+
+template<typename T>
+T* named_new(const char* name) {
+    T* res = named_malloc(sizeof(T), name);
+}

@@ -329,7 +329,7 @@ struct ServerWindow : public BaseWindow {
     }
     
     bool hit_test_drag(int x, int y) {
-        return window_rect_in_screen_coord().contains(x, y);
+        return active() && window_rect_in_screen_coord().contains(x, y);
     }
     
     bool clip(List<Rect>& rcs) {

@@ -1,5 +1,5 @@
 /*
-h/ttp://wiki.osdev.org/8259_PIC
+http://wiki.osdev.org/8259_PIC
 http://wiki.osdev.org/IRQ
 http://wiki.osdev.org/I_Cant_Get_Interrupts_Working
 http://wiki.osdev.org/PIC#Programming_the_PIC_chips
@@ -209,6 +209,7 @@ void io_wait() {
 
 // remap Programed Interrupt Controller
 // to avoid the 15 hardware interrupts overlap with software exceptions
+// http://wiki.osdev.org/8259_PIC
 void pic_remap() {
 	outb(PIC1_COMMAND, ICW1_INIT+ICW1_ICW4);
 	io_wait();
@@ -245,7 +246,7 @@ ushort pic_get_interrupt_request_register() {
 
 void init_pit() {
     ushort divider = PIT_MS_PRECISION * PIT_BASE_FREQUENCY / 1000;
-    if (!(0 < divider && divider <= 65535)) {
+    if (!(0 <= divider && divider <= 65535)) {
         panic("init_pit: divider out of range %d\n", divider);
     }
     asm(
@@ -258,6 +259,7 @@ void init_pit() {
 
 void remap_hardware_interrupts() {
     pic_remap();
+    // unmask
     outb(0x21, IRQ_MASK_TIMER & IRQ_MASK_KEYBOARD & IRQ_MASK_SLAVE);
     outb(0xa1, IRQ_MASK_MOUSE);
 }
@@ -286,13 +288,6 @@ void fill_idt_entry(int idx, ISR isr) {
     idt[idx].offset2 = addr >> 16;
 }
 
-void load_idt() {
-    idtr.limit = 256 * 8 - 1;
-    idtr.base = (uint)idt;
-    asm volatile ("mov eax, %0" :: "r"(&idtr));
-    asm volatile ("lidt [eax]");
-}
-
 void fill_idt_entries() {
     for (int i = 0; i < 256; ++i) {
         fill_idt_entry(i, isr_default);
@@ -301,11 +296,19 @@ void fill_idt_entries() {
     fill_idt_entry(0x0d, isr_gpf);
     fill_idt_entry(0x0e, isr_page_fault);
 
-    fill_idt_entry(IRQ_OFFSET + IRQ_PIT_TIMER, isr_timer_asm);
+    // some isr need to be written in assembly
+    fill_idt_entry(IRQ_OFFSET + IRQ_PIT_TIMER, isr_timer_asm);  // isr.asm
     fill_idt_entry(IRQ_OFFSET + IRQ_KEYBOARD, isr_keyboard);
     fill_idt_entry(IRQ_OFFSET + IRQ_MOUSE, isr_mouse);
 
     fill_idt_entry(0x80, isr_syscall_asm);
+}
+
+void load_idt() {
+    idtr.limit = 256 * 8 - 1;
+    idtr.base = (uint)idt;
+    asm volatile ("mov eax, %0" :: "r"(&idtr));
+    asm volatile ("lidt [eax]");
 }
 
 void init_interrupt() {

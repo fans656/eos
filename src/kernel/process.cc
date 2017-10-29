@@ -9,18 +9,12 @@
 #include "string.h"
 #include "list.h"
 #include "message.h"
+#include "debug.h"
 
 #define CODE_SELECTOR (1 << 3)
 
 extern clock_t clock_counter;
 extern uint kernel_end;
-
-List<Process> ready_procs;
-List<Process> blocked_procs;
-List<Process> exited_procs;
-Process running_proc;
-uint current_esp;
-uint pid_alloc = 0;
 
 static inline uint ms2tick(uint ms) {
     return (ms + PIT_MS_PRECISION - 1) / PIT_MS_PRECISION;
@@ -38,6 +32,14 @@ struct CountDown {
     uint cnt;
     bool dead_;
 };
+
+List<CountDown*> countdowns;
+List<Process> ready_procs;
+List<Process> blocked_procs;
+List<Process> exited_procs;
+Process running_proc;
+uint current_esp;
+uint pid_alloc = 0;
 
 struct TimerCountDown : public CountDown {
     TimerCountDown(uint ms, uint queue_id, uint timer_id, bool singleshot = false)
@@ -76,8 +78,6 @@ struct SleepCountDown : public CountDown {
     
     Process proc;
 };
-
-List<CountDown*> countdowns;
 
 static inline void map_elf(Process proc, ELFHeader* elf) {
     ProgramHeader* ph_beg = (ProgramHeader*)((char*)elf + elf->phoff);
@@ -129,7 +129,7 @@ static inline void prepare_stack(Process proc) {
 }
 
 Process proc_new(const char* path) {
-    Process proc = (Process)named_malloc(sizeof(_Process), "Process");
+    Process proc = (Process)named_malloc(sizeof(_Process), path);
 
     proc->path = path;
     proc->pid = pid_alloc++;
@@ -186,6 +186,11 @@ void process_release() {
     }
 }
 
+uint debug_switch_cnt = 0;
+
+void debug_process_stat() {
+}
+
 uint process_schedule() {
     if (running_proc) {
         running_proc->esp = current_esp;
@@ -197,6 +202,9 @@ uint process_schedule() {
         panic("no process");
     }
     running_proc = ready_procs.popleft();
+
+    ++debug_info.proc_switch_cnt;
+
     return (uint)running_proc;
 }
 
@@ -276,7 +284,7 @@ void init_process() {
 
     ready_procs.append(proc_new("/bin/gui"));
     ready_procs.append(proc_new("/bin/desktop"));
-    ready_procs.append(proc_new("/bin/pa"));
-    ready_procs.append(proc_new("/bin/pb"));
+    //ready_procs.append(proc_new("/bin/pa"));
+    //ready_procs.append(proc_new("/bin/pb"));
     ready_procs.append(proc_new("/bin/pc"));
 }

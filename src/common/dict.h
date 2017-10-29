@@ -13,7 +13,7 @@ size_t hash(T key, size_t size) {
     return (uint)key % size;
 }
 
-constexpr size_t INITIAL_DICT_SIZE = 31;
+constexpr size_t INITIAL_DICT_SIZE = 11;
 
 template<typename Key, typename Val>
 struct Dict {

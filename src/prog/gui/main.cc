@@ -252,6 +252,7 @@ int main() {
     screen_bpp = info->bpp;
     screen_pitch = info->pitch;
     video_mem = info->video_mem;
+    delete info;
     Server server;
     server.exec();
 }

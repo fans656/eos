@@ -150,7 +150,8 @@ void init_graphics() {
     font_bmp_width = bmp_width(font_bmp);
     font_bmp_height = bmp_height(font_bmp);
     size_t font_data_size = font_bmp_width * font_bmp_height;
-    font_data = new uint[font_data_size];
+    //font_data = new uint[font_data_size];
+    font_data = (uint*)named_malloc(font_data_size * sizeof(uint), "font_data");
     uint* q = font_data;
     for (int y = 0; y < font_bmp_height; ++y) {
         for (int x = 0; x < font_bmp_width; ++x) {
