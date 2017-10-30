@@ -12,6 +12,8 @@ struct Painter {
     Painter(Bitmap* bitmap);
     Painter(Bitmap* bitmap, const Rect& rc);
     
+    static void init(Bitmap* font);
+    
     void draw_horz_line(int x1, int x2, int y);
     void draw_vert_line(int y1, int y2, int x);
 
@@ -22,6 +24,9 @@ struct Painter {
 
     void draw_bitmap(int x, int y, Bitmap* bitmap);
     void draw_bitmap(Rect dst, Bitmap* bitmap, Rect src);
+    
+    void draw_text(int x, int y, const char* text);
+    void draw_char(int x, int y, char ch);
     
     void set_pen_color(uint color) { pen_color = color; }
 
@@ -40,6 +45,11 @@ struct Painter {
     Rect limit_rc;
     uint pen_color = 0;
     bool alpha_blending_ = false;
+    
+    static Bitmap* font;
+    static int font_pitch;
+    static int font_glyph_width;
+    static int font_glyph_height;
 };
 
 #endif

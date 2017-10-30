@@ -40,10 +40,6 @@ typedef enum Key {
     VK_F12,
 } Key;
 
-typedef int (*KeyboardListener)(uint, bool);
-
-void init_keyboard();
-void listen_keyboard(KeyboardListener listener);
 void update_key_state(uchar scancode);
 
 #endif

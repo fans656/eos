@@ -6,7 +6,7 @@
 
 constexpr int ICON_MARGIN = 20;
 constexpr int ICON_MARGIN_BORDER = 8;
-constexpr int N_ICONS = 3;
+constexpr int N_ICONS = 4;
 
 struct Wnd : public Window {
     Wnd(int width, int height, uint attr)
@@ -15,14 +15,16 @@ struct Wnd : public Window {
         icons[0] = new Bitmap("/img/icon-pa.png");
         icons[1] = new Bitmap("/img/icon-pb.png");
         icons[2] = new Bitmap("/img/icon-pc.png");
+        icons[3] = new Bitmap("/img/icon-terminal.png");
         fpaths[0] = "/bin/pa";
         fpaths[1] = "/bin/pb";
         fpaths[2] = "/bin/pc";
+        fpaths[3] = "/bin/terminal";
     }
     
     ~Wnd() {
         delete background;
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < N_ICONS; ++i) {
             delete icons[i];
         }
     }
@@ -31,7 +33,7 @@ struct Wnd : public Window {
         Painter painter(this);
         painter.draw_bitmap(0, 0, background);
         int side = icons[0]->height();
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < N_ICONS; ++i) {
             if (i == i_selected_icon) {
                 painter.fill_rect(Rect(
                             ICON_MARGIN - ICON_MARGIN_BORDER, 
@@ -62,19 +64,20 @@ struct Wnd : public Window {
             }
         }
         if (ev->buttons & 1) {
-            if (i_selected_icon == index) {
+            if (i_selected_icon != index) {
+                i_selected_icon = index;
+                update();
+            } else if (i_selected_icon >= 0) {
                 execute(fpaths[i_selected_icon]);
                 i_selected_icon = -1;
-            } else {
-                i_selected_icon = index;
+                update();
             }
-            update();
         }
     }
     
     Bitmap* background;
-    Bitmap* icons[3];
-    const char* fpaths[3];
+    Bitmap* icons[N_ICONS];
+    const char* fpaths[N_ICONS];
     int i_selected_icon = -1;
 };
 

@@ -261,4 +261,8 @@ void get_screen_info(ScreenInfo* info) {
     info->bpp = screen_bpp;
     info->pitch = screen_pitch;
     info->video_mem = graphic_video_mem;
+    info->font_data = (uchar*)font_data;
+    info->font_pitch = font_bmp_width * 4;
+    info->font_glyph_width = font_glyph_width;
+    info->font_glyph_height = font_glyph_height;
 }

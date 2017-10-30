@@ -52,10 +52,16 @@ struct ScreenInfo {
     int bpp;
     int pitch;
     uchar* video_mem;
+    uchar* font_data;
+    int font_pitch;
+    int font_glyph_width;
+    int font_glyph_height;
 };
 
 enum {
+    KEY_EVENT,
     MOUSE_EVENT,
+    TIMER_EVENT,
 };
 
 struct MouseEvent {
@@ -66,6 +72,22 @@ struct MouseEvent {
     
     MouseEvent(int x, int y, uint buttons)
         : type(MOUSE_EVENT), x(x), y(y), buttons(buttons) {}
+};
+
+struct TimerEvent {
+    int type;
+    uint id;
+    
+    TimerEvent(uint id) : type(TIMER_EVENT), id(id) {}
+};
+
+struct KeyEvent {
+    int type;
+    uint key;
+    bool up;
+    
+    KeyEvent(uint key, bool up)
+        : type(KEY_EVENT), key(key), up(up) {}
 };
 
 #endif

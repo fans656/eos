@@ -19,18 +19,17 @@
 - Process
 - PNG decoder
 - Alpha blending
+- GUI: Windows
+- GUI: Mouse
+- GUI: Font
 
 ## Future
 
 - Console
+- Networking
 - GUI
-  - Mouse
-  - Windows
-  - Font
-  - JPG
   - Video
   - Audio
-- Networking
 - UTF-8
 - POSIX
 - Swap

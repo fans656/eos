@@ -100,7 +100,7 @@ extern "C" void isr_syscall_asm();
 void isr_keyboard() {
     asm volatile ("pushad");
     uchar scancode = inb(0x60);
-    //update_key_state(scancode);
+    update_key_state(scancode);
     send_eoi(IRQ_KEYBOARD);
     asm volatile ("popad; leave; iret");
 }

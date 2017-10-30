@@ -9,7 +9,7 @@
 struct Wnd : public Window {
     Wnd() {
         img = new Bitmap("/img/girl-blue.png");
-        move(400, 40);
+        move(150, 40);
         resize(img->width(), img->height());
     }
     

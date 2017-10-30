@@ -38,6 +38,11 @@ static inline void alpha_color_over(uint& dst, uint src) {
     dst_alpha = alpha_over(dst_alpha, alpha, alpha);
 }
 
+Bitmap* Painter::font = 0;
+int Painter::font_pitch = 0;
+int Painter::font_glyph_width = 0;
+int Painter::font_glyph_height = 0;
+
 Painter::Painter(BaseWindow* wnd)
     : bitmap(wnd->bitmap), limit_rc(wnd->client_rect_in_window_coord()) {
 }
@@ -48,6 +53,15 @@ Painter::Painter(Bitmap* bitmap)
 
 Painter::Painter(Bitmap* bitmap, const Rect& rc)
     : bitmap(bitmap), limit_rc(rc) {
+}
+
+void Painter::init(Bitmap* font) {
+    Painter::font = font;
+    auto info = new ScreenInfo;
+    get_screen_info(info);
+    font_pitch = info->font_pitch;
+    font_glyph_width = info->font_glyph_width;
+    font_glyph_height = info->font_glyph_height;
 }
 
 void Painter::draw_horz_line(int x1, int x2, int y) {
@@ -95,6 +109,7 @@ void Painter::draw_rect(const Rect& rc) {
 }
 
 void Painter::fill_rect(Rect rc, uint color) {
+    rc.translate(limit_rc.left(), limit_rc.top());
     rc.intersect(limit_rc);
     if (alpha_blending()) {
         uint alpha = get_alpha(color);
@@ -146,6 +161,25 @@ void Painter::draw_bitmap(Rect dst, Bitmap* bitmap, Rect src) {
                 dst_x, dst_y,
                 src.width(), src.height());
     }
+}
+
+void Painter::draw_text(int x, int y, const char* text) {
+    x += limit_rc.left();
+    y += limit_rc.top();
+    for (const char* p = text; *p; ++p) {
+        alpha_blit(font->buffer(), font->pitch(),
+                (*p - 32) * 9, 0,
+                x, y, 9, 18);
+        x += font_glyph_width;
+    }
+}
+
+void Painter::draw_char(int x, int y, char ch) {
+    x += limit_rc.left();
+    y += limit_rc.top();
+    alpha_blit(font->buffer(), font->pitch(),
+            (ch - 32) * 9, 0,
+            x, y, 9, 18);
 }
 
 void Painter::blit(uchar* src, int src_pitch,

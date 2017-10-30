@@ -56,7 +56,7 @@ struct TimerCountDown : public CountDown {
             } else {
                 cnt = initial_cnt;
             }
-            //put_message(queue_id, new KernelTimerEvent(timer_id));
+            put_message(queue_id, new TimerEvent(timer_id));
         }
     }
 
@@ -297,6 +297,7 @@ void init_process() {
     ready_procs.append(proc_new("/bin/gui"));
     ready_procs.append(proc_new("/bin/desktop"));
     //ready_procs.append(proc_new("/bin/pa"));
-    //ready_procs.append(proc_new("/bin/pb"));
+    ready_procs.append(proc_new("/bin/pb"));
     //ready_procs.append(proc_new("/bin/pc"));
+    ready_procs.append(proc_new("/bin/terminal"));
 }

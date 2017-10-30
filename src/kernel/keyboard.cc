@@ -1,6 +1,7 @@
 #include "keyboard.h"
 #include "list.h"
 #include "stdio.h"
+#include "message.h"
 
 // http://www.computer-engineering.org/ps2keyboard/scancodes1.html
 
@@ -60,21 +61,9 @@ const char* VK2NAME[256] = {
     "VK_F12",
 };
 
-static List<KeyboardListener> listeners;
-
-void init_keyboard() {
-    listeners.construct();
-}
-
-void listen_keyboard(KeyboardListener listener) {
-    listeners.append(listener);
-}
-
 void update_key_state(uchar scancode) {
     bool up = scancode & 0x80;
     scancode &= 0x7f;
     uchar vk = SCAN2VK[scancode];
-    for (auto onkey: listeners) {
-        onkey(vk, up);
-    }
+    put_message(QUEUE_ID_GUI, new KeyEvent(vk, up));
 }

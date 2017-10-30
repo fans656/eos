@@ -18,7 +18,6 @@ extern "C" void main() {
     init_interrupt();   // early interrupt to catch page faults
     init_memory();      // malloc/free
     init_filesystem();  // fopen/fread etc
-    init_keyboard();
     init_graphics();    // screen info, font, mouse etc
     init_message();     // IPC
     init_process();     // process will only be started by the first timer interrupt

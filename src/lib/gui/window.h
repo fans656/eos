@@ -51,8 +51,10 @@ struct WindowEvent : public WindowMessage {
 };
 
 struct CreateEvent : public WindowEvent {
-    CreateEvent(ServerWindow* swnd) : WindowEvent(ON_CREATE), swnd(swnd) {}
+    CreateEvent(Bitmap* font, ServerWindow* swnd)
+        : WindowEvent(ON_CREATE), font(font), swnd(swnd) {}
     ServerWindow* swnd;
+    Bitmap* font;
 };
 
 struct DestroyEvent : public WindowEvent {
@@ -115,6 +117,7 @@ struct BaseWindow {
     int y() const { return y_; }
     int width() const { return width_; }
     int height() const { return height_; }
+    Rect rect() const { return Rect(0, 0, width_, height_); }
     
     int margin_left() const { return border_width(); }
     int margin_right() const { return border_width(); }
@@ -216,6 +219,7 @@ struct Window : public BaseWindow {
     
     virtual void on_create(CreateEvent* ev) {
         swnd = ev->swnd;
+        Painter::init(ev->font);
     }
 
     virtual void on_destroy(DestroyEvent* ev) {
@@ -224,11 +228,21 @@ struct Window : public BaseWindow {
     virtual void on_activate(ActivateEvent* ev) {}
     virtual void on_deactivate(DeactivateEvent* ev) {}
     virtual void on_paint(PaintEvent* ev) {}
+    virtual void on_timer(TimerEvent* ev) {}
     virtual void on_mouse(MouseEvent* ev) {
         if (ev->buttons == 2) {
             put_message(new DestroyRequest(this));
         }
     }
+    virtual void on_key(KeyEvent* ev) {
+        if (ev->up) {
+            on_key_release(ev);
+        } else {
+            on_key_press(ev);
+        }
+    }
+    virtual void on_key_press(KeyEvent* ev) {}
+    virtual void on_key_release(KeyEvent* ev) {}
     
     void move(int x, int y) {
         x_ = x;
@@ -259,6 +273,12 @@ struct Window : public BaseWindow {
             switch (ev->type) {
                 case MOUSE_EVENT:
                     on_mouse((MouseEvent*)ev);
+                    break;
+                case KEY_EVENT:
+                    on_key((KeyEvent*)ev);
+                    break;
+                case TIMER_EVENT:
+                    on_timer((TimerEvent*)ev);
                     break;
                 case ON_CREATE:
                     on_create((CreateEvent*)ev);
@@ -313,7 +333,9 @@ struct Window : public BaseWindow {
     }
     
     void draw_caption(Painter& painter, uint caption_color) {
-        painter.fill_rect(caption_rect_in_window_coord(), caption_color);
+        auto rc = caption_rect_in_window_coord();
+        painter.fill_rect(rc, caption_color);
+        //painter.draw_text(rc.left() + 8, rc.top() + (rc.height() - 18) / 2, "hello");
     }
     
     void put_message(WindowRequest* request) {
@@ -333,8 +355,8 @@ struct ServerWindow : public BaseWindow {
         bitmap = wnd->bitmap = new Bitmap(wnd->window_width(), wnd->window_height());
     }
     
-    void create() {
-        put_message(new CreateEvent(this));
+    void create(Bitmap* font) {
+        put_message(new CreateEvent(font, this));
     }
     
     void destroy() {
@@ -370,6 +392,10 @@ struct ServerWindow : public BaseWindow {
         auto rc = client_rect_in_screen_coord();
         auto ev_ = new MouseEvent(ev->x - rc.left(), ev->y - rc.top(), ev->buttons);
         put_message((WindowEvent*)ev_);
+    }
+    
+    void keyevent(KeyEvent* ev) {
+        put_message((WindowEvent*)new KeyEvent(ev->key, ev->up));
     }
     
     bool hit_test_activate(int x, int y) {

@@ -1991,3 +1991,74 @@ List的实现、内存碎片等等，一时并不好解决，，感觉应该是�
 把窗口invalidate的那些bug给修了，感觉又可以清清爽爽地继续呀
 
 (要注意一下目前的replace_message实现是清空queue的，而目前只用一个queue的情况下应该只replace相同type的message)
+
+2017-10-31 00:20:13
+简单实现了一下基本的terminal，现在能打字能有光标
+暂告一段落，要写论文了
+
+想整理一下之后可以做的事情，还是很多
+昨儿和今儿忽然琢磨也许不用明确地分成一期二期，其实就在一期的基础上慢慢改进各个部分，自然而然就把二期的东西做了
+一个自然的理由是目前的syscall之类还比较少，迁移成posix compliant还比较容易，，如果之后闭门造车搞多了，再改就困难一点
+
+下面是列表：
+
+1. collections (data structure)
+
+目前用到的已经有了三种：Array(数组), List(双链表), Dict(哈希表)
+实现得稀松平常，无法确定有没有bug，接口也是有一搭没一搭的
+这种基础结构在kernel往后就无数地方用到，需要尽快搞出一个健壮的、高性能的实现
+
+2. process scheduling
+
+目前就是简单的round robin，之后有必要实现优先级，比如GUI进程优先级就应该比program高些，因为所有屏幕更新都是它来做的
+另外涉及到process sleep, timer之类的东西目前也是水水地实现，之后要仔细思索一下
+还有进程们跑起来之后开新的进程，也没想明白，虽然凭着debug底子实现了
+也许有必要实现进程树，之后terminal跑non-gui进程时它们之间的交互怎么搞——这涉及到文件的概念(stdin, stdout)
+还有PCB，参数啊环境变量啊什么的
+
+3. file system
+
+目前的文件系统连树状结构都没有，写文件也没有测试过(这个之后应该用一个图形化的mspaint来测试最好)
+另外底层的磁盘读写要改进成DMA的，效率可以高很多
+
+4. dynamic memory management
+
+目前的malloc/free是用链表，而且free节点也没和used分开，效率堪忧
+之前的mark里有别人的更好的实现(甚至还有O(1)的)
+这也是基础设施，无数地方用到，这的效率提高了，所有地方的效率都会提高
+
+5. SSE
+
+这主要是为了alpha blending，另外solid的绘制也可以获益
+网上已经有说过alpha就是慢，用上这个之后速度能提高4倍
+之前不是测过么，solid能到100FPS，alpha只有30，，等到alpha也优化成100，图形界面就可以如丝般顺滑
+
+6. syscall
+
+就是POSIX compliance了，那些比较清楚的改过去(read/write什么的)，不太清楚的还就暂时用咱自己的(memory_blit)
+也涉及到进程，比如get_message作为blocking call时，怎样让它第一次有message时就能返回给user正确结果(目前是返回0，需要user再次查询才能拿到正确结果)
+
+7. IPC
+
+message queue的方式是现阶段能想到最直观也最generic的办法，第二优先的应该是锁+共享内存了，其他的那些有了需求也应该实现一下(PIPE)
+
+8. GUI
+
+图形界面这里有很多东西可以做，
+比如TrueType字体(UTF-8支持——正好又是一个基础数据结构：String)，
+比如窗口内的widget hierarchy(各种控件：ListView, TreeView, Button, Radio, Edit...)
+作为一个可演示的OS至少得有几个代表性的软件：
+
+    - explorer 演示文件系统
+    - gallery 演示读文件
+    - mspaint 演示写文件(binary)
+    - notepad 演示写文件(text)
+    - 再来个随便什么演示各种控件
+    - 最后来个超级玛丽——或者坦克大战？前者有点儿复杂
+
+9. 剩下的这些都是小问题
+
+    - gcc mbr: 脱离对nasm的依赖
+    - GRUB: bootloader阶段尽量跟common practice一致，比如video info的传递，MBR中的文件系统类型
+    - protected VESA: 在保护模式操作video mode，作为演示可以桌面右键菜单属性之后更改分辨率(分辨率列表是从VESA拿到的)
+    - virtual box: 多来几个虚拟机测试一下，甚至真机，，不过这些大抵在稳定之后再弄吧

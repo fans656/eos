@@ -25,6 +25,7 @@ uchar* video_mem;
 struct Server {
     Server() {
         mouse_img = new Bitmap("/img/mouse.png");
+        font = new Bitmap("/font/font.png");
         mouse_rc.set_width(mouse_img->width());
         mouse_rc.set_height(mouse_img->height());
         screen = new Bitmap(screen_width, screen_height);
@@ -44,6 +45,9 @@ struct Server {
             switch (msg->type) {
                 case MOUSE_EVENT:
                     on_mouse((MouseEvent*)msg);
+                    break;
+                case KEY_EVENT:
+                    on_key((KeyEvent*)msg);
                     break;
                 case CREATE:
                     create(msg->wnd);
@@ -92,6 +96,14 @@ struct Server {
         invalidate_mouse(mouse_rc, false);
         mouse_rc.move_to(x, y);
         invalidate_mouse(mouse_rc, true);
+    }
+
+    void on_key(KeyEvent* ev) {
+        for (auto wnd: reversed(wnds)) {
+            if (wnd->active()) {
+                wnd->keyevent(ev);
+            }
+        }
     }
 
     void on_mouse_move(int x, int y, uint buttons) {
@@ -167,7 +179,7 @@ struct Server {
         } else {
             wnds.append(wnd);
         }
-        wnd->create();
+        wnd->create(font);
         bool activated = false;
         if (!wnd->keep_inactive()) {
             activated = activate(wnd);
@@ -249,6 +261,7 @@ struct Server {
     Bitmap* screen;
     Bitmap* video;
     Bitmap* mouse_img;
+    Bitmap* font;
     Painter* video_painter;
     Rect mouse_rc;
     uint mouse_buttons;
