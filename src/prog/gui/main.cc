@@ -195,36 +195,16 @@ struct Server {
         wnds.append(wnd);
     }
     
-    void invalidate(List<Rect>& rcs, bool draw_mouse = false) {
-        printf("=================== invalidate rcs\n");
-        for (auto rc: rcs) {
-            rc.dump("");
-        }
-        auto update_rcs = rcs.clone();
+    void invalidate(List<Rect>& rcs, bool draw_mouse = true) {
+        auto update_rcs(rcs);
         Array<ServerWindow*> wnds_to_draw;
-        int cnt = 0;
         for (auto wnd: reversed(wnds)) {
-            int size = rcs.size();
-            if (size == 0) break;
-            for (int i = 0; i < size; ++i) {
-                if (wnd->clip(rcs)) {
-                    wnds_to_draw.append(wnd);
-                }
+            if (!rcs.empty() && wnd->clip(rcs)) {
+                wnds_to_draw.append(wnd);
             }
-            //printf("----------------- clip\n");
-            //for (auto rc: rcs) {
-            //    rc.dump("");
-            //}
         }
         Painter painter(screen);
-        printf("=================== wnds_to_draw\n");
         for (auto wnd: reversed(wnds_to_draw)) {
-            printf("wnd %x\n", wnd);
-            for (auto pair: wnd->clips) {
-                auto rc = pair.first;
-                auto alpha = pair.second;
-                rc.dump(alpha ? "alpha" : "opaque");
-            }
             wnd->blit(painter);
         }
         if (draw_mouse) {

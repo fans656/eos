@@ -257,9 +257,8 @@ struct Window : public BaseWindow {
     
     void on_system_paint(PaintEvent* ev) {
         Painter painter(bitmap, window_rect_in_window_coord());
-        //uint caption_color = active() ? SteelBlue : LightSteelBlue;
-        uint caption_color = active() ? Red : Green;
-        caption_color &= active() ? 0xccffffff : 0x88ffffff;
+        uint caption_color = active() ? SteelBlue : LightSteelBlue;
+        caption_color &= active() ? 0xddffffff : 0xccffffff;
         if (has_border()) {
             draw_border(painter, caption_color);
         }
@@ -273,7 +272,7 @@ struct Window : public BaseWindow {
     
     void draw_border(Painter& painter, uint caption_color) {
         Rect rc(0, 0, window_width(), window_height());
-        auto max_alpha = active() ? 60 : 10;
+        auto max_alpha = active() ? 40 : 10;
         auto dalpha = max_alpha / DEF_BORDER_WIDTH;
         for (int i = 0; i < DEF_BORDER_WIDTH - 1; ++i) {
             painter.set_pen_color(i * dalpha << 24);
@@ -334,50 +333,50 @@ struct ServerWindow : public BaseWindow {
     }
     
     bool clip(List<Rect>& rcs) {
-        //if (no_client_fill()) {
-        //    for (auto& rc: rcs) {
-        //        clips.append(make_pair(rc, false));
-        //    }
-        //    return true;
-        //} else {
-        //    for (auto& rc: rcs) {
-        //        auto wnd_rc = window_rect_in_screen_coord().intersected(rc);
-        //        if (!wnd_rc.empty()) {
-        //            clips.append(make_pair(wnd_rc, false));
-        //        }
-        //    }
-        //    return true;
-        //}
-        bool to_draw = false;
-        auto size = rcs.size();
-        for (auto i = 0; i < size; ++i) {
-            auto invalid_rc = rcs.popleft();
-            auto wnd_rc = window_rect_in_screen_coord().intersected(invalid_rc);
-            if (wnd_rc.empty()) {
-                rcs.append(invalid_rc);
-                continue;
+        if (no_client_fill()) {
+            for (auto& rc: rcs) {
+                clips.append(make_pair(rc, false));
             }
-            auto client_rc = client_rect_in_screen_coord().intersected(wnd_rc);
-            if (!client_rc.empty()) {
-                auto alpha = transparent();
-                clips.append(make_pair(client_rc, alpha));
-                to_draw = true;
-                if (alpha) {
-                    rcs.append(invalid_rc);
-                } else {
-                    rcs.extend(invalid_rc - client_rc);
+            return true;
+        } else {
+            for (auto& rc: rcs) {
+                auto wnd_rc = window_rect_in_screen_coord().intersected(rc);
+                if (!wnd_rc.empty()) {
+                    clips.append(make_pair(wnd_rc, true));
                 }
-            } else {
-                rcs.append(invalid_rc);
             }
-            if (has_margin()) {
-                clip_margin(clip_top(), wnd_rc, to_draw);
-                clip_margin(clip_bottom(), wnd_rc, to_draw);
-                clip_margin(clip_left(), wnd_rc, to_draw);
-                clip_margin(clip_right(), wnd_rc, to_draw);
-            }
+            return true;
         }
-        return to_draw;
+        //bool to_draw = false;
+        //auto size = rcs.size();
+        //for (auto i = 0; i < size; ++i) {
+        //    auto invalid_rc = rcs.popleft();
+        //    auto wnd_rc = window_rect_in_screen_coord().intersected(invalid_rc);
+        //    if (wnd_rc.empty()) {
+        //        rcs.append(invalid_rc);
+        //        continue;
+        //    }
+        //    auto client_rc = client_rect_in_screen_coord().intersected(wnd_rc);
+        //    if (!client_rc.empty()) {
+        //        auto alpha = transparent();
+        //        clips.append(make_pair(client_rc, alpha));
+        //        to_draw = true;
+        //        if (alpha) {
+        //            rcs.append(invalid_rc);
+        //        } else {
+        //            rcs.extend(invalid_rc - client_rc);
+        //        }
+        //    } else {
+        //        rcs.append(invalid_rc);
+        //    }
+        //    if (has_margin()) {
+        //        clip_margin(clip_top(), wnd_rc, to_draw);
+        //        clip_margin(clip_bottom(), wnd_rc, to_draw);
+        //        clip_margin(clip_left(), wnd_rc, to_draw);
+        //        clip_margin(clip_right(), wnd_rc, to_draw);
+        //    }
+        //}
+        //return to_draw;
     }
     
     void clip_margin(const Rect& margin_rc, const Rect& wnd_rc, bool& to_draw) {

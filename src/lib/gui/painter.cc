@@ -135,7 +135,6 @@ void Painter::draw_bitmap(Rect dst, Bitmap* bitmap, Rect src) {
     int dst_x = src.left();
     int dst_y = src.top();
     src.translate(-dx, -dy);
-
     if (alpha_blending() || !bitmap->opaque()) {
         alpha_blit(bitmap->buffer(), bitmap->pitch(),
                 src.left(), src.top(),

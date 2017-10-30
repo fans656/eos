@@ -280,6 +280,6 @@ void init_process() {
     ready_procs.append(proc_new("/bin/gui"));
     ready_procs.append(proc_new("/bin/desktop"));
     ready_procs.append(proc_new("/bin/pa"));
-    //ready_procs.append(proc_new("/bin/pb"));
-    //ready_procs.append(proc_new("/bin/pc"));
+    ready_procs.append(proc_new("/bin/pb"));
+    ready_procs.append(proc_new("/bin/pc"));
 }

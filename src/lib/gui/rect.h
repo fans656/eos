@@ -15,13 +15,24 @@ struct Rect {
     inline int top() const { return top_; }
     inline int right() const { return left_ + width_; }
     inline int bottom() const { return top_ + height_; }
-
     inline int width() const  { return width_; }
     inline int height() const  { return height_; }
     
-    inline void move_to(int x, int y) {
-        left_ = x;
-        top_ = y;
+    inline bool empty() const { return width_ <= 0 || height_ <= 0; }
+    
+    inline void move_to(int x, int y) { left_ = x; top_ = y; }
+
+    inline void adjust(int dleft, int dtop, int dright, int dbottom) {
+        left_ += dleft;
+        top_ += dtop;
+        width_ += -dleft + dright;
+        height_ += -dtop + dbottom;
+    }
+    
+    inline Rect adjusted(int dleft, int dtop, int dright, int dbottom) {
+        Rect rc(*this);
+        rc.adjust(dleft, dtop, dright, dbottom);
+        return rc;
     }
 
     inline void set_left(int left) {
@@ -45,20 +56,11 @@ struct Rect {
     inline bool contains(int x, int y) {
         return left() <= x && x < right() && top() <= y && y < bottom();
     }
-
-    inline void adjust(int dleft, int dtop, int dright, int dbottom) {
-        left_ += dleft;
-        top_ += dtop;
-        width_ += -dleft + dright;
-        height_ += -dtop + dbottom;
-    }
     
     inline void translate(int dx, int dy) { left_ += dx; top_ += dy; }
     inline Rect translated(int dx, int dy) {
         return Rect(left_ + dx, top_ + dy, width_, height_);
     }
-    
-    inline bool empty() const { return width_ <= 0 || height_ <= 0; }
     
     bool is_intersected(const Rect& rc) const;
     void intersect(const Rect& rc);
@@ -109,11 +111,11 @@ struct Rect {
     
     Point center() const { return Point(left() + width() / 2, top() + height() / 2); }
     
-    void clip_and_apply(const Rect& rc, Rect& buddy);
-    
     void dump(const char* name) const;
 
     int left_, top_, width_, height_;
 };
+
+void test_rect();
 
 #endif

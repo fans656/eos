@@ -39,3 +39,6 @@ void Rect::dump(const char* name) const {
     printf("%s %d %d %d %d wh %d %d\n",
             name, left(), top(), right(), bottom(), width(), height());
 }
+
+void test_rect() {
+}

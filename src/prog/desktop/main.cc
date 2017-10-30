@@ -7,8 +7,8 @@
 struct Wnd : public Window {
     Wnd(int width, int height, uint attr)
         : Window(0, 0, width, height, attr) {
-        background = new Bitmap("/img/snow-leopard.bmp");
-        //background = new Bitmap("/img/cheetah.png");
+        //background = new Bitmap("/img/snow-leopard.bmp");
+        background = new Bitmap("/img/cheetah.png");
     }
     
     ~Wnd() {
