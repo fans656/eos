@@ -18,11 +18,26 @@ struct Rect {
 
     inline int width() const  { return width_; }
     inline int height() const  { return height_; }
+    
+    inline void move_to(int x, int y) {
+        left_ = x;
+        top_ = y;
+    }
 
-    inline void set_left(int left) { left_ = left; }
-    inline void set_top(int top) { top_ = top; }
-    inline void set_right(int right) { left_ = right - width_; }
-    inline void set_bottom(int bottom) { top_ = bottom - height_; }
+    inline void set_left(int left) {
+        int dx = left - left_;
+        left_ = left;
+        width_ -= dx;
+    }
+
+    inline void set_top(int top) {
+        int dy = top - top_;
+        top_ = top;
+        height_ -= dy;
+    }
+
+    inline void set_right(int right) { width_ += right - this->right(); }
+    inline void set_bottom(int bottom) { height_ += bottom - this->bottom(); }
     
     inline void set_width(int width) { width_ = width; }
     inline void set_height(int height) { height_ = height; }
@@ -45,28 +60,38 @@ struct Rect {
     
     inline bool empty() const { return width_ <= 0 || height_ <= 0; }
     
-    bool is_intersected(const Rect& rc);
+    bool is_intersected(const Rect& rc) const;
     void intersect(const Rect& rc);
     void intersect(int left, int top, int width, int height);
     Rect intersected(const Rect& rc) const;
     
     List<Rect> operator-(const Rect& o) const {
         List<Rect> res;
+        if (!is_intersected(o)) {
+            res.append(Rect(*this));
+            return res;
+        }
         Rect r(*this);
-        if (o.left() > left()) {
-            res.append(Rect(r.left(), r.top(), o.left() - r.left(), r.height()));
-            r.set_left(o.left());
-        }
-        if (o.right() < r.right()) {
-            res.append(Rect(o.right(), r.top(), r.right() - o.right(), r.height()));
-            r.set_right(o.right());
-        }
         if (o.top() > r.top()) {
             res.append(Rect(r.left(), r.top(), r.width(), o.top() - r.top()));
+            r.set_top(o.top());
         }
         if (o.bottom() < r.bottom()) {
             res.append(Rect(r.left(), o.bottom(), r.width(), r.bottom() - o.bottom()));
+            r.set_bottom(o.bottom());
         }
+        if (o.left() > r.left()) {
+            res.append(Rect(r.left(), r.top(), o.left() - r.left(), r.height()));
+        }
+        if (o.right() < r.right()) {
+            res.append(Rect(o.right(), r.top(), r.right() - o.right(), r.height()));
+        }
+        //printf("~~~~~~~~~~~~~~~~~~~~~ Rect.-\n");
+        //this->dump("this");
+        //o.dump("o   ");
+        //for (auto rc: res) {
+        //    rc.dump("");
+        //}
         return res;
     }
     
@@ -86,7 +111,7 @@ struct Rect {
     
     void clip_and_apply(const Rect& rc, Rect& buddy);
     
-    void dump(const char* name);
+    void dump(const char* name) const;
 
     int left_, top_, width_, height_;
 };

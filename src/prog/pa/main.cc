@@ -9,7 +9,8 @@
 struct Wnd : public Window {
     Wnd() {
         img = new Bitmap("/img/girl.bmp");
-        move(50, 125);
+        //move(50, 125);
+        move(-50, 125);
         resize(300, 200);
     }
     
@@ -24,6 +25,10 @@ struct Wnd : public Window {
 };
 
 int main() {
+    for (int i = 0; i < 10000; ++i) {
+        for (int j = 0; j < 10000; ++j) {
+        }
+    }
     Wnd* wnd = new Wnd();
     wnd->exec();
 }

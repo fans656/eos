@@ -2,7 +2,7 @@
 #include "math.h"
 #include "stdio.h"
 
-bool Rect::is_intersected(const Rect& rc) {
+bool Rect::is_intersected(const Rect& rc) const {
     if (rc.right() <= left()) return false;
     if (rc.left() >= right()) return false;
     if (rc.bottom() <= top()) return false;
@@ -35,7 +35,7 @@ Rect Rect::intersected(const Rect& rc) const {
     return res;
 }
 
-void Rect::dump(const char* name) {
+void Rect::dump(const char* name) const {
     printf("%s %d %d %d %d wh %d %d\n",
             name, left(), top(), right(), bottom(), width(), height());
 }

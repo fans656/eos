@@ -14,10 +14,10 @@ clock_t clock() {
 void clock_tick() {
     ++current_ticks;
     process_count_down();
-    debug_info.current_ticks = current_ticks;
-    if (current_ticks % 100 == 0) {
-        debug_info.dump();
-    }
+    //debug_info.current_ticks = current_ticks;
+    //if (current_ticks % 100 == 0) {
+    //    debug_info.dump();
+    //}
 }
 
 void _timeit(const char** pfmt) {

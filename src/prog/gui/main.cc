@@ -5,6 +5,7 @@
 #include "eos.h"
 #include "time.h"
 #include "list.h"
+#include "array.h"
 #include "pair.h"
 #include "iterator.h"
 #include "algorithm.h"
@@ -38,29 +39,6 @@ struct Server {
     }
 
     void exec() {
-        //auto img = new Bitmap("/img/girl-blue.png");
-        ////auto img = new Bitmap("/img/walle.png");
-        //int x = 0;
-        //Rect rc(0, 0, screen_width, screen_height);
-        //auto screen_painter = new Painter(screen);
-        //uint cnt = 0;
-        //auto beg = clock();
-        //while (true) {
-        //    screen_painter->fill_rect(rc, 0xffffffff);
-        //    screen_painter->draw_bitmap(x, 0, img);
-        //    update_screen(rc);
-        //    x += 1;
-        //    if (x + img->width() == screen_width) {
-        //        x = 0;
-        //    }
-        //    ++cnt;
-        //    auto end = clock();
-        //    if ((end - beg) * 10 >= 1000) {
-        //        debug("%d\n", cnt);
-        //        beg = end;
-        //        cnt = 0;
-        //    }
-        //}
         while (true) {
             auto msg = (WindowRequest*)get_message(QUEUE_ID_GUI);
             switch (msg->type) {
@@ -105,11 +83,9 @@ struct Server {
             mouse_buttons = buttons;
         }
 
-        Rect new_mouse_rc = Rect(x, y, mouse_rc.width(), mouse_rc.height());
-        invalidate_mouse(new_mouse_rc, false);
-        mouse_rc.set_left(x);
-        mouse_rc.set_top(y);
-        invalidate_mouse(new_mouse_rc, true);
+        invalidate_mouse(mouse_rc, false);
+        mouse_rc.move_to(x, y);
+        invalidate_mouse(mouse_rc, true);
     }
 
     void on_mouse_move(int x, int y, uint buttons) {
@@ -160,13 +136,9 @@ struct Server {
         dragging_wnd = 0;
     }
     
-    void invalidate_mouse(Rect new_rc, bool draw) {
+    void invalidate_mouse(Rect rc, bool draw) {
         List<Rect> rcs;
-        if (!draw) {
-            rcs.extend(mouse_rc - new_rc);
-        } else {
-            rcs.append(new_rc);
-        }
+        rcs.append(rc);
         invalidate(rcs, draw);
     }
     
@@ -223,9 +195,13 @@ struct Server {
         wnds.append(wnd);
     }
     
-    void invalidate(List<Rect>& rcs, bool draw_mouse = true) {
+    void invalidate(List<Rect>& rcs, bool draw_mouse = false) {
+        printf("=================== invalidate rcs\n");
+        for (auto rc: rcs) {
+            rc.dump("");
+        }
         auto update_rcs = rcs.clone();
-        List<ServerWindow*> wnds_to_draw;
+        Array<ServerWindow*> wnds_to_draw;
         int cnt = 0;
         for (auto wnd: reversed(wnds)) {
             int size = rcs.size();
@@ -235,9 +211,20 @@ struct Server {
                     wnds_to_draw.append(wnd);
                 }
             }
+            //printf("----------------- clip\n");
+            //for (auto rc: rcs) {
+            //    rc.dump("");
+            //}
         }
         Painter painter(screen);
+        printf("=================== wnds_to_draw\n");
         for (auto wnd: reversed(wnds_to_draw)) {
+            printf("wnd %x\n", wnd);
+            for (auto pair: wnd->clips) {
+                auto rc = pair.first;
+                auto alpha = pair.second;
+                rc.dump(alpha ? "alpha" : "opaque");
+            }
             wnd->blit(painter);
         }
         if (draw_mouse) {

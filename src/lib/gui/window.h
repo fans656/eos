@@ -257,7 +257,8 @@ struct Window : public BaseWindow {
     
     void on_system_paint(PaintEvent* ev) {
         Painter painter(bitmap, window_rect_in_window_coord());
-        uint caption_color = active() ? SteelBlue : LightSteelBlue;
+        //uint caption_color = active() ? SteelBlue : LightSteelBlue;
+        uint caption_color = active() ? Red : Green;
         caption_color &= active() ? 0xccffffff : 0x88ffffff;
         if (has_border()) {
             draw_border(painter, caption_color);

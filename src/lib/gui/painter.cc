@@ -126,22 +126,26 @@ void Painter::draw_bitmap(int x, int y, Bitmap* bitmap) {
 }
 
 void Painter::draw_bitmap(Rect dst, Bitmap* bitmap, Rect src) {
-    //dst.dump("dst");
-    dst.intersect(limit_rc);
-    //dst.dump("dst int");
-    //src.dump("src");
+    int dx = dst.left() - src.left();
+    int dy = dst.top() - src.top();
     src.intersect(bitmap->rect());
-    //dst.dump("src int");
+    src.translate(dx, dy);
+    src.intersect(dst);
+    src.intersect(limit_rc);
+    int dst_x = src.left();
+    int dst_y = src.top();
+    src.translate(-dx, -dy);
+
     if (alpha_blending() || !bitmap->opaque()) {
         alpha_blit(bitmap->buffer(), bitmap->pitch(),
                 src.left(), src.top(),
-                dst.left(), dst.top(),
-                min(src.width(), dst.width()), min(src.height(), dst.height()));
+                dst_x, dst_y,
+                src.width(), src.height());
     } else {
         blit(bitmap->buffer(), bitmap->pitch(),
                 src.left(), src.top(),
-                dst.left(), dst.top(),
-                min(src.width(), dst.width()), min(src.height(), dst.height()));
+                dst_x, dst_y,
+                src.width(), src.height());
     }
 }
 

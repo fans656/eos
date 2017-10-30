@@ -186,11 +186,6 @@ void process_release() {
     }
 }
 
-uint debug_switch_cnt = 0;
-
-void debug_process_stat() {
-}
-
 uint process_schedule() {
     if (running_proc) {
         running_proc->esp = current_esp;
@@ -203,7 +198,7 @@ uint process_schedule() {
     }
     running_proc = ready_procs.popleft();
 
-    ++debug_info.proc_switch_cnt;
+    //++debug_info.proc_switch_cnt;
 
     return (uint)running_proc;
 }
@@ -285,6 +280,6 @@ void init_process() {
     ready_procs.append(proc_new("/bin/gui"));
     ready_procs.append(proc_new("/bin/desktop"));
     ready_procs.append(proc_new("/bin/pa"));
-    ready_procs.append(proc_new("/bin/pb"));
-    ready_procs.append(proc_new("/bin/pc"));
+    //ready_procs.append(proc_new("/bin/pb"));
+    //ready_procs.append(proc_new("/bin/pc"));
 }
