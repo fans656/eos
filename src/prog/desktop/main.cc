@@ -15,6 +15,9 @@ struct Wnd : public Window {
         icons[0] = new Bitmap("/img/icon-pa.png");
         icons[1] = new Bitmap("/img/icon-pb.png");
         icons[2] = new Bitmap("/img/icon-pc.png");
+        fpaths[0] = "/bin/pa";
+        fpaths[1] = "/bin/pb";
+        fpaths[2] = "/bin/pc";
     }
     
     ~Wnd() {
@@ -59,18 +62,19 @@ struct Wnd : public Window {
             }
         }
         if (ev->buttons & 1) {
-            if (i_selected_icon != index) {
-                i_selected_icon = index;
-                update();
-            } else if (i_selected_icon >= 0) {
+            if (i_selected_icon == index) {
+                execute(fpaths[i_selected_icon]);
                 i_selected_icon = -1;
-                update();
+            } else {
+                i_selected_icon = index;
             }
+            update();
         }
     }
     
     Bitmap* background;
     Bitmap* icons[3];
+    const char* fpaths[3];
     int i_selected_icon = -1;
 };
 

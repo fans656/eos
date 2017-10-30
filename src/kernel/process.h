@@ -10,6 +10,12 @@ typedef struct _Process {
     const char* path;
     uint pid;
     uint entry;
+    
+    ~_Process() {
+        if ((uint)path > KERNEL_HEAP_VADDR) {
+            delete path;
+        }
+    }
 } _Process;
 typedef _Process* Process;
 
@@ -22,6 +28,8 @@ extern "C" bool _process_is_idle();
 bool process_is_idle();
 void process_exit(int status);
 void process_release();
+void process_init(const char* fpath);
+void process_start();
 
 void process_block();
 void process_unblock(Process proc);

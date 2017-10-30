@@ -13,5 +13,6 @@ void memory_blit(const uchar* buffer, int src_pitch,
         int width, int height);
 
 void get_screen_info(ScreenInfo* info);
+void execute(const char* fpath);
 
 #endif

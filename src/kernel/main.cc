@@ -30,6 +30,7 @@ extern "C" void main() {
 
     while (true) {
         process_release();
+        process_start();
         while (process_is_idle()) {
             asm("hlt");
         }

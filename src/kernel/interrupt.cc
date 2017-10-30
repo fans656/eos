@@ -147,6 +147,9 @@ extern "C" uint dispatch_syscall(uint callnum, uint* parg, uint do_schedule) {
             process_exit((int)*parg);
             do_schedule = 1;
             break;
+        case SYSCALL_EXECUTE:
+            process_init((const char*)*parg);
+            break;
         case SYSCALL_SLEEP:
             process_sleep((uint)*parg);
             do_schedule = 1;

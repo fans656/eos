@@ -1,4 +1,5 @@
 #include "eos.h"
+#include "string.h"
 
 void* _get_message(int id, bool blocking) {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_GET_MESSAGE));
@@ -35,4 +36,15 @@ void memory_blit(
 
 void get_screen_info(ScreenInfo* info) {
     asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_GET_SCREEN_INFO));
+}
+
+void execute_(char* fpath) {
+    asm("mov eax, %0; int 0x80" :: "i"(SYSCALL_EXECUTE));
+}
+
+void execute(const char* fpath) {
+    char* pfpath = new char[256];
+    strcpy(pfpath, fpath);
+    execute_(pfpath);
+    delete pfpath;
 }

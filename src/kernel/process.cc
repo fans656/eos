@@ -37,6 +37,7 @@ List<CountDown*> countdowns;
 List<Process> ready_procs;
 List<Process> blocked_procs;
 List<Process> exited_procs;
+List<const char*> init_procs;
 Process running_proc;
 uint current_esp;
 uint pid_alloc = 0;
@@ -269,6 +270,21 @@ void dump_procs() {
     printf("======================================= dump_procs end\n");
 }
 
+void process_init(const char* fpath) {
+    char* fpath_ = new char[strlen(fpath) + 1];
+    strcpy(fpath_, fpath);
+    init_procs.append(fpath_);
+}
+
+void process_start() {
+    asm("cli");
+    while (!init_procs.empty()) {
+        auto fpath = init_procs.popleft();
+        ready_procs.append(proc_new(fpath));
+    }
+    asm("sti");
+}
+
 void init_process() {
     running_proc = proc_kernel();
 
@@ -276,10 +292,11 @@ void init_process() {
     ready_procs.construct();
     blocked_procs.construct();
     exited_procs.construct();
+    init_procs.construct();
 
     ready_procs.append(proc_new("/bin/gui"));
     ready_procs.append(proc_new("/bin/desktop"));
-    ready_procs.append(proc_new("/bin/pa"));
-    ready_procs.append(proc_new("/bin/pb"));
-    ready_procs.append(proc_new("/bin/pc"));
+    //ready_procs.append(proc_new("/bin/pa"));
+    //ready_procs.append(proc_new("/bin/pb"));
+    //ready_procs.append(proc_new("/bin/pc"));
 }
