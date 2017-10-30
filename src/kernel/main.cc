@@ -23,7 +23,7 @@ extern "C" void main() {
     init_message();     // IPC
     init_process();     // process will only be started by the first timer interrupt
 
-    debug_on();
+    //debug_on();
 
     asm("sti");  // Open interrupt, from now on the execution may be switch to another process.
                  // Here as the kernel process will only do some cleaning up work.

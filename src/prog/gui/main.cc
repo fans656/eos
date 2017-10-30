@@ -51,6 +51,9 @@ struct Server {
                 case PAINTED:
                     painted(msg->wnd->swnd);
                     break;
+                case UPDATE:
+                    msg->wnd->swnd->paint();
+                    break;
                 default:
                     printf("gui server: unknown message");
                     break;
@@ -116,11 +119,23 @@ struct Server {
                 start_drag(wnd, x, y);
                 handled = true;
             }
+            if (wnd->client_rect_in_screen_coord().contains(x, y)) {
+                wnd->mouse_press(ev);
+                handled = true;
+            }
             if (handled) break;
         }
     }
     
     void on_mouse_release(MouseEvent* ev, uint button) {
+        for (auto wnd: reversed(wnds)) {
+            bool handled = false;
+            if (wnd->client_rect_in_screen_coord().contains(ev->x, ev->y)) {
+                wnd->mouse_release(ev);
+                handled = true;
+            }
+            if (handled) break;
+        }
         stop_drag();
     }
     

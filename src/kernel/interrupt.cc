@@ -107,6 +107,7 @@ void isr_keyboard() {
 
 uchar mouse_cycle = 0;
 uchar mouse_bytes[3];
+uint mouse_buttons = 0;
 
 void isr_mouse() {
     asm volatile ("pushad");
@@ -119,10 +120,18 @@ void isr_mouse() {
             mouse_bytes[mouse_cycle++] = val;
             break;
         case 2:
-            mouse_bytes[mouse_cycle] = val;
-            mouse_cycle = 0;
-            replace_message(QUEUE_ID_GUI, parse_mouse_event(mouse_bytes));
-            break;
+            {
+                mouse_bytes[mouse_cycle] = val;
+                mouse_cycle = 0;
+                auto ev = parse_mouse_event(mouse_bytes);
+                if (mouse_buttons != ev->buttons) {
+                    mouse_buttons = ev->buttons;
+                    put_message(QUEUE_ID_GUI, ev);
+                } else {
+                    replace_message(QUEUE_ID_GUI, ev);
+                }
+                break;
+            }
     }
     send_eoi(IRQ_MOUSE);
     asm volatile ("popad; leave; iret");

@@ -4,23 +4,74 @@
 #include "gui.h"
 #include "time.h"
 
+constexpr int ICON_MARGIN = 20;
+constexpr int ICON_MARGIN_BORDER = 8;
+constexpr int N_ICONS = 3;
+
 struct Wnd : public Window {
     Wnd(int width, int height, uint attr)
         : Window(0, 0, width, height, attr) {
-        //background = new Bitmap("/img/snow-leopard.bmp");
         background = new Bitmap("/img/cheetah.png");
+        icons[0] = new Bitmap("/img/icon-pa.png");
+        icons[1] = new Bitmap("/img/icon-pb.png");
+        icons[2] = new Bitmap("/img/icon-pc.png");
     }
     
     ~Wnd() {
         delete background;
+        for (int i = 0; i < 3; ++i) {
+            delete icons[i];
+        }
     }
     
     void on_paint(PaintEvent* ev) {
         Painter painter(this);
         painter.draw_bitmap(0, 0, background);
+        int side = icons[0]->height();
+        for (int i = 0; i < 3; ++i) {
+            if (i == i_selected_icon) {
+                painter.fill_rect(Rect(
+                            ICON_MARGIN - ICON_MARGIN_BORDER, 
+                            ICON_MARGIN - ICON_MARGIN_BORDER
+                            + (icons[i]->height() + ICON_MARGIN) * i,
+                            side + 2 * ICON_MARGIN_BORDER,
+                            side + 2 * ICON_MARGIN_BORDER), SteelBlue);
+            }
+            painter.draw_bitmap(
+                    ICON_MARGIN,
+                    ICON_MARGIN + (icons[i]->height() + ICON_MARGIN) * i,
+                    icons[i]);
+        }
+    }
+    
+    void on_mouse(MouseEvent* ev) {
+        int x = ev->x;
+        int y = ev->y;
+        int side = icons[0]->height();
+        int index = -1;
+        if (ICON_MARGIN <= x && x < ICON_MARGIN + side) {
+            if (y >= ICON_MARGIN) {
+                y -= ICON_MARGIN;
+                int i = y / (side + ICON_MARGIN);
+                if (i < N_ICONS && y % (side + ICON_MARGIN) < side) {
+                    index = i;
+                }
+            }
+        }
+        if (ev->buttons & 1) {
+            if (i_selected_icon != index) {
+                i_selected_icon = index;
+                update();
+            } else if (i_selected_icon >= 0) {
+                i_selected_icon = -1;
+                update();
+            }
+        }
     }
     
     Bitmap* background;
+    Bitmap* icons[3];
+    int i_selected_icon = -1;
 };
 
 int main() {

@@ -30,6 +30,7 @@ constexpr int DEF_CAPTION_HEIGHT = 25;
 enum MessageType {
     CREATE = 1024,
     PAINTED,
+    UPDATE,
 
     ON_CREATE,
     ON_DESTROY,
@@ -85,6 +86,11 @@ struct CreateRequest : public WindowRequest {
 
 struct PaintedRequest : public WindowRequest {
     PaintedRequest(Window* wnd) : WindowRequest(PAINTED, wnd) {}
+};
+
+struct UpdateRequest : public WindowRequest {
+    UpdateRequest(Rect rc, Window* wnd) : WindowRequest(UPDATE, wnd), rc(rc) {}
+    Rect rc;
 };
 
 struct BaseWindow {
@@ -211,6 +217,7 @@ struct Window : public BaseWindow {
     virtual void on_activate(ActivateEvent* ev) {}
     virtual void on_deactivate(DeactivateEvent* ev) {}
     virtual void on_paint(PaintEvent* ev) {}
+    virtual void on_mouse(MouseEvent* ev) {}
     
     void move(int x, int y) {
         x_ = x;
@@ -226,11 +233,22 @@ struct Window : public BaseWindow {
         put_message(new CreateRequest(this));
     }
     
+    void update() {
+        put_message(new UpdateRequest(window_rect_in_screen_coord(), this));
+    }
+    
+    void update(Rect rc) {
+        put_message(new UpdateRequest(rc, this));
+    }
+    
     void exec() {
         create();
         while (true) {
             auto ev = (WindowEvent*)get_message((uint)this);
             switch (ev->type) {
+                case MOUSE_EVENT:
+                    on_mouse((MouseEvent*)ev);
+                    break;
                 case ON_CREATE:
                     on_create((CreateEvent*)ev);
                     break;
@@ -322,6 +340,18 @@ struct ServerWindow : public BaseWindow {
     void deactivate() {
         BaseWindow::deactivate();
         put_message(new DeactivateEvent);
+    }
+    
+    void mouse_press(MouseEvent* ev) {
+        auto rc = client_rect_in_screen_coord();
+        auto ev_ = new MouseEvent(ev->x - rc.left(), ev->y - rc.top(), ev->buttons);
+        put_message((WindowEvent*)ev_);
+    }
+    
+    void mouse_release(MouseEvent* ev) {
+        auto rc = client_rect_in_screen_coord();
+        auto ev_ = new MouseEvent(ev->x - rc.left(), ev->y - rc.top(), ev->buttons);
+        put_message((WindowEvent*)ev_);
     }
     
     bool hit_test_activate(int x, int y) {
