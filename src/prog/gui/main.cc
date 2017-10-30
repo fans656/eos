@@ -48,6 +48,9 @@ struct Server {
                 case CREATE:
                     create(msg->wnd);
                     break;
+                case DESTROY:
+                    destroy(msg->wnd->swnd);
+                    break;
                 case PAINTED:
                     painted(msg->wnd->swnd);
                     break;
@@ -172,6 +175,14 @@ struct Server {
         if (!activated) {
             wnd->paint();
         }
+    }
+
+    void destroy(ServerWindow* wnd) {
+        wnds.remove(wnd);
+        wnd->destroy();
+        List<Rect> rcs;
+        rcs.append(wnd->window_rect_in_screen_coord());
+        invalidate(rcs);
     }
     
     void painted(ServerWindow* wnd) {

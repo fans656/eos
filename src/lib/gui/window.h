@@ -29,6 +29,7 @@ constexpr int DEF_CAPTION_HEIGHT = 25;
 
 enum MessageType {
     CREATE = 1024,
+    DESTROY,
     PAINTED,
     UPDATE,
 
@@ -82,6 +83,10 @@ struct WindowRequest : public WindowMessage {
 
 struct CreateRequest : public WindowRequest {
     CreateRequest(Window* wnd) : WindowRequest(CREATE, wnd) {}
+};
+
+struct DestroyRequest : public WindowRequest {
+    DestroyRequest(Window* wnd) : WindowRequest(DESTROY, wnd) {}
 };
 
 struct PaintedRequest : public WindowRequest {
@@ -213,11 +218,17 @@ struct Window : public BaseWindow {
         swnd = ev->swnd;
     }
 
-    virtual void on_destroy(DestroyEvent* ev) {}
+    virtual void on_destroy(DestroyEvent* ev) {
+        destroyed_ = true;
+    }
     virtual void on_activate(ActivateEvent* ev) {}
     virtual void on_deactivate(DeactivateEvent* ev) {}
     virtual void on_paint(PaintEvent* ev) {}
-    virtual void on_mouse(MouseEvent* ev) {}
+    virtual void on_mouse(MouseEvent* ev) {
+        if (ev->buttons == 2) {
+            put_message(new DestroyRequest(this));
+        }
+    }
     
     void move(int x, int y) {
         x_ = x;
@@ -243,7 +254,7 @@ struct Window : public BaseWindow {
     
     void exec() {
         create();
-        while (true) {
+        while (!destroyed()) {
             auto ev = (WindowEvent*)get_message((uint)this);
             switch (ev->type) {
                 case MOUSE_EVENT:
@@ -309,7 +320,10 @@ struct Window : public BaseWindow {
         ::put_message(QUEUE_ID_GUI, request);
     }
     
+    bool destroyed() const { return destroyed_; }
+    
     ServerWindow* swnd;
+    bool destroyed_ = false;
 };
 
 struct ServerWindow : public BaseWindow {
@@ -321,6 +335,10 @@ struct ServerWindow : public BaseWindow {
     
     void create() {
         put_message(new CreateEvent(this));
+    }
+    
+    void destroy() {
+        put_message(new DestroyEvent);
     }
     
     void paint() {
